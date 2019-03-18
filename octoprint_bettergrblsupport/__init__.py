@@ -94,7 +94,7 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
          OctoPrint needs the 'ok' to be at the start of the line.
          """
 
-         self._logger.info("line: [%s]" % line)
+         logging.info("line: [%s]", line)
 
          if 'MPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
