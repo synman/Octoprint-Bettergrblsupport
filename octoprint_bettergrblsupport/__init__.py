@@ -44,8 +44,6 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
     ##-
 
 	def on_event(self, event, payload):
-         self._logger.info('on_event: [%s]' % event)
-
          subscribed_events = 'FileSelected FileDeselected'
 
          if subscribed_events.find(event) > -1:
@@ -60,6 +58,7 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
             for line in f:
                 self._logger.debug(line)
 
+            self._logger.info('finished reading [%s]' % payload['file'])
             return
 
          if (event == "FileDeselected"):
