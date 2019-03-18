@@ -55,9 +55,9 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
          if (event == 'FileSelected'):
-            file = open(payload.path + "/" + payload.name, "r")
+            f = open(payload.file, "r")
 
-            for line in file:
+            for line in f:
                 self._logger.debug(line)
 
             return
@@ -93,8 +93,6 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
          This plugin moves Grbl's ok from the end to the start.
          OctoPrint needs the 'ok' to be at the start of the line.
          """
-
-         self._logger.info("line: [%s]" % line)
 
          if 'MPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
@@ -161,7 +159,7 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-__plugin_name__ = "Bettergrblsupport Plugin"
+#__plugin_name__ = "Bettergrblsupport Plugin"
 
 def __plugin_load__():
 	global __plugin_implementation__
