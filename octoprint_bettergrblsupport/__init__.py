@@ -1,59 +1,52 @@
-# coding=utf-8
-from __future__ import absolute_import
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
+from __future__ import absolute_import
 
 import octoprint.plugin
 import re
 import logging
 
+
 class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
-                              octoprint.plugin.AssetPlugin,
-                              octoprint.plugin.TemplatePlugin,
-                              octoprint.plugin.StartupPlugin,
-                              octoprint.plugin.EventHandlerPlugin):
+    octoprint.plugin.AssetPlugin, octoprint.plugin.TemplatePlugin,
+    octoprint.plugin.StartupPlugin,
+    octoprint.plugin.EventHandlerPlugin):
 
-	def on_after_startup(self):
-         self._logger.info("Better Grbl Support On After Startup")
+    def on_after_startup(self):
+        self._logger.info('Better Grbl Support On After Startup')
 
+    # #~~ SettingsPlugin mixin
 
-	##~~ SettingsPlugin mixin
+    def get_settings_defaults(self):
+        return dict()
 
-	def get_settings_defaults(self):
-		return dict(
-			# put your plugin's default settings here
-		)
+            # put your plugin's default settings here
 
-	##~~ AssetPlugin mixin
+    # #~~ AssetPlugin mixin
 
-	def get_assets(self):
-		# Define your plugin's asset files to automatically include in the
-		# core UI here.
-		return dict(
-			js=["js/bettergrblsupport.js"],
-			css=["css/bettergrblsupport.css"],
-			less=["less/bettergrblsupport.less"]
-		)
+    def get_assets(self):
 
-    ##-
+        # Define your plugin's asset files to automatically include in the
+        # core UI here.
 
-	def on_event(self, event, payload):
-         subscribed_events = 'FileSelected FileDeselected'
+        return dict(js=['js/bettergrblsupport.js'],
+                    css=['css/bettergrblsupport.css'],
+                    less=['less/bettergrblsupport.less'])
 
-         if subscribed_events.find(event) > -1:
+    # #-
+
+    def on_event(self, event, payload):
+        subscribed_events = 'FileSelected FileDeselected'
+
+        if subscribed_events.find(event) > -1:
             self._logger.info('on_event: [%s]' % event)
-         else:
+        else:
             self._logger.info('ignoring: [%s]' % event)
             return
 
-         if (event == 'FileSelected'):
-            f = open(payload['file'], "r")
+        if event == 'FileSelected':
+            f = open(payload['file'], 'r')
 
             for line in f:
                 self._logger.debug(line)
@@ -61,113 +54,140 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info('finished reading [%s]' % payload['file'])
             return
 
-         if (event == "FileDeselected"):
+        if event == 'FileDeselected':
             return
 
-         return
+        return
 
+    def hook_gcode_sending(
+        self,
+        comm_instance,
+        phase,
+        cmd,
+        cmd_type,
+        gcode,
+        *args,
+        **kwargs
+        ):
 
-	def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
          # rewrite M115 as M5 (hello)
-         if cmd.upper().startswith('M115'):
-             self._logger.info("Rewriting M115 as M5")
-             return "M5",
+
+        if cmd.upper().startswith('M115'):
+            self._logger.info('Rewriting M115 as M5')
+            return ('M5', )
 
          # suppress unsupported commands - temperature & reset line #s
-         if cmd.upper().startswith('M110') or cmd.upper().startswith("M105"):
-             return None,
+
+        if cmd.upper().startswith('M110') \
+            or cmd.upper().startswith('M105'):
+            return (None, )
 
          # Wait for moves to finish before turning off the spindle
-         if cmd.upper().startswith('M400'):
-             return 'G4 P0',
+
+        if cmd.upper().startswith('M400'):
+            return ('G4 P0', )
 
          # rewrite current position
-         if cmd.upper().startswith('M114'):
-             return '?',
 
-         return None
+        if cmd.upper().startswith('M114'):
+            return ('?', )
 
-	def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
-         """
+        return None
+
+    def hook_gcode_received(
+        self,
+        comm_instance,
+        line,
+        *args,
+        **kwargs
+        ):
+        """
          This plugin moves Grbl's ok from the end to the start.
          OctoPrint needs the 'ok' to be at the start of the line.
          """
 
-         if 'MPos' in line:
+        if 'MPos' in line:
+
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
-             match = re.search(r'MPos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
-             if match is None:
-                 log.warning('Bad data %s', line.rstrip())
-                 return line
+
+            match = \
+                re.search(r'MPos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)',
+                          line)
+            if match is None:
+                log.warning('Bad data %s', line.rstrip())
+                return line
+
              # OctoPrint records positions in some instances.
              # It needs a different format. Put both on the same line so the GRBL info is not lost
              # and is accessible for "controls" to read.
-             return 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(
-                 *match.groups(),
-                 original=line
-             )
 
-         if line.startswith('Grbl'):
+            return 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(original=line,
+                    *match.groups())
+
+        if line.startswith('Grbl'):
+
              # Hack to make Arduino based GRBL work.
              # When the serial port is opened, it resets and the "hello" command
              # is not processed.
              # This makes Octoprint recognise the startup message as a successful connection.
-             return 'ok ' + line
 
-         if not line.rstrip().endswith('ok'):
-             return line
+            return 'ok ' + line
 
-         if line.startswith('{'):
+        if not line.rstrip().endswith('ok'):
+            return line
+
+        if line.startswith('{'):
+
              # Regular ACKs
              # {0/0}ok
              # {5/16}ok
-             return 'ok'
 
-         elif '{' in line:
+            return 'ok'
+        elif '{' in line:
+
              # Ack with return data
              # F300S1000{0/0}ok
-             before, _, _ = line.partition('{')
-             return 'ok ' + before
-         else:
-             return 'ok'
 
-	##~~ Softwareupdate hook
+            (before, _, _) = line.partition('{')
+            return 'ok ' + before
+        else:
+            return 'ok'
 
-	def get_update_information(self):
-		# Define the configuration for your plugin to use with the Software Update
-		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
-		# for details.
-		return dict(
-			bettergrblsupport=dict(
-				displayName="Bettergrblsupport Plugin",
-				displayVersion=self._plugin_version,
+    # #~~ Softwareupdate hook
 
-				# version check: github repository
-				type="github_release",
-				user="synman",
-				repo="OctoPrint-Bettergrblsupport",
-				current=self._plugin_version,
+    def get_update_information(self):
 
-				# update method: pip
-				pip="https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip"
-			)
-		)
+        # Define the configuration for your plugin to use with the Software Update
+        # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
+        # for details.
+
+        return dict(bettergrblsupport=dict(  # version check: github repository
+                                             # update method: pip
+            displayName='Bettergrblsupport Plugin',
+            displayVersion=self._plugin_version,
+            type='github_release',
+            user='synman',
+            repo='OctoPrint-Bettergrblsupport',
+            current=self._plugin_version,
+            pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'
+                ,
+            ))
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 
-__plugin_name__ = "Better Grbl Support"
+__plugin_name__ = 'Better Grbl Support'
+
 
 def __plugin_load__():
-	global __plugin_implementation__
-	__plugin_implementation__ = BettergrblsupportPlugin()
+    global __plugin_implementation__
+    __plugin_implementation__ = BettergrblsupportPlugin()
 
-	global __plugin_hooks__
-	__plugin_hooks__ = {
-		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
-        "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.hook_gcode_sending,
-        "octoprint.comm.protocol.gcode.received": __plugin_implementation__.hook_gcode_received
-	}
+    global __plugin_hooks__
+    __plugin_hooks__ = \
+        {'octoprint.plugin.softwareupdate.check_config': __plugin_implementation__.get_update_information,
+         'octoprint.comm.protocol.gcode.sending': __plugin_implementation__.hook_gcode_sending,
+         'octoprint.comm.protocol.gcode.received': __plugin_implementation__.hook_gcode_received}
