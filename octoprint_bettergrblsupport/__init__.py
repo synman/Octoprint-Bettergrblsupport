@@ -55,7 +55,7 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
          if (event == 'FileSelected'):
-            f = open(payload.file, "r")
+            f = open(payload['file'], "r")
 
             for line in f:
                 self._logger.debug(line)
