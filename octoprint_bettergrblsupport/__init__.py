@@ -8,7 +8,7 @@ import re
 import logging
 
 
-class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
+class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     octoprint.plugin.AssetPlugin, octoprint.plugin.TemplatePlugin,
     octoprint.plugin.StartupPlugin,
     octoprint.plugin.EventHandlerPlugin):
@@ -49,7 +49,7 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
             f = open(payload['file'], 'r')
 
             for line in f:
-                self._logger.debug(line)
+                self._logger.info("[%s]" % line)
 
             self._logger.info('finished reading [%s]' % payload['file'])
             return
@@ -164,7 +164,7 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
 
         return dict(bettergrblsupport=dict(  # version check: github repository
                                              # update method: pip
-            displayName='Bettergrblsupport Plugin',
+            displayName='Better Grbl Support',
             displayVersion=self._plugin_version,
             type='github_release',
             user='synman',
@@ -184,7 +184,7 @@ __plugin_name__ = 'Better Grbl Support'
 
 def __plugin_load__():
     global __plugin_implementation__
-    __plugin_implementation__ = BettergrblsupportPlugin()
+    __plugin_implementation__ = BetterGrblSupportPlugin()
 
     global __plugin_hooks__
     __plugin_hooks__ = \
