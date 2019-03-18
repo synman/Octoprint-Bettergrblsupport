@@ -48,10 +48,10 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
 
          subscribed_events = 'FileSelected FileDeselected'
 
-         if subscribed_events.find(event):
-            self._logger.debug('EventHandlerPlugin: [%s]' % event)
+         if subscribed_events.find(event) > -1:
+            self._logger.info('on_event: [%s]' % event)
          else:
-            self._logger.info('EventHandlerPlugin: [%s]' % event)
+            self._logger.info('ignoring: [%s]' % event)
             return
 
          if (event == 'FileSelected'):
@@ -94,7 +94,7 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
          OctoPrint needs the 'ok' to be at the start of the line.
          """
 
-         logging.info("line: [%s]", line)
+         self._logger.info("line: [%s]" % line)
 
          if 'MPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
