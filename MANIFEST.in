@@ -1,0 +1,4 @@
+include README.md
+recursive-include octoprint_bettergrblsupport/templates *
+recursive-include octoprint_bettergrblsupport/translations *
+recursive-include octoprint_bettergrblsupport/static *
