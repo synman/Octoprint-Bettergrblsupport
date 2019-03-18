@@ -93,6 +93,9 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
          This plugin moves Grbl's ok from the end to the start.
          OctoPrint needs the 'ok' to be at the start of the line.
          """
+
+         self._logger.info("line: [%s]" % line)
+
          if 'MPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
