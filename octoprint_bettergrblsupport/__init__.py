@@ -88,7 +88,7 @@ class BettergrblsupportPlugin(octoprint.plugin.SettingsPlugin,
 
          return None
 
-	def hook_gcode_received(comm_instance, line, *args, **kwargs):
+	def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
          """
          This plugin moves Grbl's ok from the end to the start.
          OctoPrint needs the 'ok' to be at the start of the line.
