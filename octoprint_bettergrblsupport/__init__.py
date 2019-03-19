@@ -82,13 +82,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if printer is printing
 
-        if self._printer.is_printing and cmd.upper().startswith('M105'):
+        if self._printer.is_printing() and cmd.upper().startswith('M105'):
             self._logger.info('Ignoring %s', cmd)
             return (None, )
         else:
             self._logger.info('Rewriting M105 as ?$G')
             return ('?$G', )
-            
+
          # Wait for moves to finish before turning off the spindle
 
         if cmd.upper().startswith('M400'):
