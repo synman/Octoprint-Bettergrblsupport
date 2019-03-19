@@ -14,8 +14,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     octoprint.plugin.EventHandlerPlugin):
 
     def on_after_startup(self):
-        # self._logger.info('Better Grbl Support On After Startup')
+        self._logger.info('Better Grbl Support On After Startup')
         self._settings.global_set_boolean(["feature", "temperatureGraph"], True)
+        self._settings.save()
         # self._settings.global_set_boolean(["components", "disabled"])
         return
 
