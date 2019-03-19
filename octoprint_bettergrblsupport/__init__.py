@@ -14,7 +14,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     octoprint.plugin.EventHandlerPlugin):
 
     def on_after_startup(self):
-        self._logger.info('Better Grbl Support On After Startup')
+        # self._logger.info('Better Grbl Support On After Startup')
+        return
 
     # #~~ SettingsPlugin mixin
 
@@ -39,17 +40,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_event(self, event, payload):
         subscribed_events = 'FileSelected FileDeselected'
 
-        if subscribed_events.find(event) > -1:
-            self._logger.info('on_event: [%s]' % event)
-        else:
-            self._logger.info('ignoring: [%s]' % event)
+        if subscribed_events.find(event) == -1:
             return
 
         if event == 'FileSelected':
             f = open(payload['file'], 'r')
 
             for line in f:
-                self._logger.info("[%s]" % line)
+                self._logger.info("[%s]" % line.strip())
 
             self._logger.info('finished reading [%s]' % payload['file'])
             return
@@ -109,8 +107,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
 
-            self._logger.info('Rewriting Position Response')
-
             match = re.search(r'MPos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
 
             if match is None:
@@ -121,7 +117,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # It needs a different format. Put both on the same line so the GRBL info is not lost
              # and is accessible for "controls" to read.
 
-            response = 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(original=line, *match.groups())
+            response = 'ok X:{0} Y:{1} Z:{2} E:0'.format(*match.groups())
             self._logger.info('[%s] rewrote as [%s]', line.strip(), response.strip())
 
             return response
