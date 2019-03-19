@@ -78,42 +78,41 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
          # suppress unsupported commands - temperature & reset line #s
 
-        if cmd.upper().startswith('M110') \
-            or cmd.upper().startswith('M105'):
+        if cmd.upper().startswith('M110') or cmd.upper().startswith('M105'):
+            self._logger.info('Ignoring %s', cmd)
             return (None, )
 
          # Wait for moves to finish before turning off the spindle
 
         if cmd.upper().startswith('M400'):
+            self._logger.info('Rewriting M400 as G4 P0')
             return ('G4 P0', )
 
          # rewrite current position
 
         if cmd.upper().startswith('M114'):
+            self._logger.info('Rewriting M114 as ?')
             return ('?', )
+
+         # soft reset / resume (stolen from Marlin)
+
+        if cmd.upper().startswith('M999'):
+            self._logger.info('Sending Soft Reset')
+            # self._printer.commands("\x18")
+            return ("\x18",)
 
         return None
 
-    def hook_gcode_received(
-        self,
-        comm_instance,
-        line,
-        *args,
-        **kwargs
-        ):
-        """
-         This plugin moves Grbl's ok from the end to the start.
-         OctoPrint needs the 'ok' to be at the start of the line.
-         """
+    def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
 
         if 'MPos' in line:
-
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
 
-            match = \
-                re.search(r'MPos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)',
-                          line)
+            self._logger.info('Rewriting Position Response')
+
+            match = re.search(r'MPos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
+
             if match is None:
                 log.warning('Bad data %s', line.rstrip())
                 return line
@@ -122,8 +121,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # It needs a different format. Put both on the same line so the GRBL info is not lost
              # and is accessible for "controls" to read.
 
-            return 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(original=line,
-                    *match.groups())
+            response = 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(original=line, *match.groups())
+            self._logger.info('[%s] rewrote as [%s]', line.strip(), response.strip())
+
+            return response
 
         if line.startswith('Grbl'):
 
