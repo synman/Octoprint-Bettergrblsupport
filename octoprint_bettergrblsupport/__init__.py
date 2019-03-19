@@ -42,12 +42,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if event == 'FileSelected':
-            f = open(payload['file'], 'r')
+            selected_file = self._settings.global_get_basefolder("uploads") + payload['path']
+            f = open(selected_file, 'r')
 
             for line in f:
                 self._logger.info("[%s]" % line.strip())
 
-            self._logger.info('finished reading [%s]' % payload['file'])
+            self._logger.info('finished reading [%s]', selected_file)
             return
 
         if event == 'FileDeselected':
@@ -71,35 +72,35 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
          # rewrite M115 as M5 (hello)
 
         if cmd.upper().startswith('M115'):
-            self._logger.info('Rewriting M115 as M5')
+            self._logger.debug('Rewriting M115 as M5')
             return ('M5', )
 
          # suppress reset line #s
 
         if cmd.upper().startswith('M110'):
-            self._logger.info('Ignoring %s', cmd)
+            self._logger.debug('Ignoring %s', cmd)
             return (None, )
 
         # suppress temperature if printer is printing
 
         if cmd.upper().startswith('M105'):
             if self._printer.is_printing():
-                self._logger.info('Ignoring %s', cmd)
+                self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
-                self._logger.info('Rewriting M105 as ?$G')
+                self._logger.debug('Rewriting M105 as ?$G')
                 return ('?$G', )
 
          # Wait for moves to finish before turning off the spindle
 
         if cmd.upper().startswith('M400'):
-            self._logger.info('Rewriting M400 as G4 P0')
+            self._logger.debug('Rewriting M400 as G4 P0')
             return ('G4 P0', )
 
          # rewrite current position
 
         if cmd.upper().startswith('M114'):
-            self._logger.info('Rewriting M114 as ?')
+            self._logger.debug('Rewriting M114 as ?')
             return ('?', )
 
          # soft reset / resume (stolen from Marlin)
@@ -130,7 +131,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # and is accessible for "controls" to read.
 
             response = 'ok X:{0} Y:{1} Z:{2} E:0'.format(*match.groups())
-            self._logger.info('[%s] rewrote as [%s]', line.strip(), response.strip())
+            self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
             return response
 
