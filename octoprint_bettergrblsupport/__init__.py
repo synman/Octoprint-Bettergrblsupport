@@ -16,8 +16,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger.info('Better Grbl Support On After Startup')
         self._settings.global_set_boolean(["feature", "temperatureGraph"], False)
+        self._settings.global_set_boolean(["feature", "gCodeVisualizer"], False)
+        self._settings.global_set_boolean(["gcodeViewer", "enabled"], False)
+
+        self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
+
         self._settings.save()
-        # self._settings.global_set_boolean(["components", "disabled"])
         return
 
     # #~~ SettingsPlugin mixin
