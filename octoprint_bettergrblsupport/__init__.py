@@ -22,8 +22,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def get_settings_defaults(self):
         return dict()
 
-            # put your plugin's default settings here
-
     # #~~ AssetPlugin mixin
 
     def get_assets(self):
@@ -35,7 +33,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     css=['css/bettergrblsupport.css'],
                     less=['less/bettergrblsupport.less'])
 
-    # #-
+    # #-- EventHandlerPlugin mix-in
 
     def on_event(self, event, payload):
         subscribed_events = 'FileSelected FileDeselected'
@@ -56,6 +54,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         return
+
+    # #-- gcode sending hook
 
     def hook_gcode_sending(
         self,
@@ -100,6 +100,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return ("\x18",)
 
         return None
+
+    # #-- gcode received hook
 
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
 
