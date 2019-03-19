@@ -42,7 +42,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if event == 'FileSelected':
-            selected_file = self._settings.global_get_basefolder("uploads") + payload['path']
+            selected_file = self._settings.global_get_basefolder("uploads") + '/' + payload['path']
             f = open(selected_file, 'r')
 
             for line in f:
