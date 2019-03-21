@@ -46,6 +46,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.save()
 
+        self._logger.info("Setting defaults")
         self._logger.info("Setting defaults for UI elements tempTab=%s gCodeTab=$s", hideTempTab, hideGCodeTab)
 
         return
@@ -218,7 +219,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             repo='OctoPrint-Bettergrblsupport',
             current=self._plugin_version,
             pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
-
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
