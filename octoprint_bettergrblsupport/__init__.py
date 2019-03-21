@@ -17,8 +17,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger.info('Setting defaults for UI elements')
 
-        hideTempTab = self._settings.get_boolean("hideTempTab")
-        hideGCodeTab = self._settings.get_boolean("hideGCodeTab")
+        hideTempTab = self._settings.get_boolean(["hideTempTab"])
+        hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
 
         self._settings.global_set_boolean(["feature", "temperatureGraph"], False)
         self._settings.global_set_boolean(["feature", "gCodeVisualizer"], False)
