@@ -46,7 +46,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.save()
 
-        self._logger.info('Setting defaults for UI elements tempTab={hideTempTab} gCodeTab={hideGCodeTab}'.format(**locals())
+        self._logger.info("Setting defaults for UI elements tempTab={hideTempTab} gCodeTab={hideGCodeTab}".format(**locals())
 
         return
 
