@@ -14,10 +14,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.StartupPlugin,
                               octoprint.plugin.EventHandlerPlugin):
 
-    def on_after_startup(self):
-        hideTempTab = self._settings.get_boolean(["hideTempTab"])
-        hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
+    def __init__(self):
+        hideTempTab = True
+        hideGCodeTab = True
 
+    def on_settings_initialized(self):
+        self.hideTempTab = self._settings.get_boolean("hideTempTab")
+        self._logger.info("hideTempTab: %s" % self.hideTempTab)
+
+        self.hideGCodeTab = self._settings.get_boolean("hideGCodeTab")
+        self._logger.info("hideGCodeTab: %s" % self.hideGCodeTab)
+
+    def on_after_startup(self):
         self._settings.global_set_boolean(["feature", "temperatureGraph"], False)
         self._settings.global_set_boolean(["feature", "gCodeVisualizer"], False)
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], False)
@@ -46,10 +54,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.save()
 
-        self._logger.info("Setting defaults for UI elements tempTab %s gCodeTab $s", hideTempTab, hideGCodeTab)
-
-        return
-
     # #~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
@@ -58,8 +62,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             hideGCodeTab = True,
         )
 
-    # def on_settings_save(self, data):
-        # octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+    def on_settings_save(self, data):
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+        self.hideTempTab = self._settings.get_boolean("hideTempTab")
+        self.hideGCodeTab = self._settings.get_boolean("hideGCodeTab")
 
     # #~~ AssetPlugin mixin
 
