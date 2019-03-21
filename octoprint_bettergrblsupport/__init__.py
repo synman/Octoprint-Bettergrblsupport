@@ -9,17 +9,35 @@ import logging
 
 
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
-    octoprint.plugin.AssetPlugin, octoprint.plugin.TemplatePlugin,
-    octoprint.plugin.StartupPlugin,
-    octoprint.plugin.EventHandlerPlugin):
+                              octoprint.plugin.AssetPlugin,
+                              octoprint.plugin.TemplatePlugin,
+                              octoprint.plugin.StartupPlugin,
+                              octoprint.plugin.EventHandlerPlugin):
 
     def on_after_startup(self):
-        self._logger.info('Better Grbl Support On After Startup')
+        self._logger.info('Setting defaults for UI elements')
+
         self._settings.global_set_boolean(["feature", "temperatureGraph"], False)
         self._settings.global_set_boolean(["feature", "gCodeVisualizer"], False)
+        self._settings.global_set_boolean(["feature", "modelSizeDetection"], False)
+        self._settings.global_set_boolean(["feature", "sdSupport"], False)
+
         self._settings.global_set_boolean(["gcodeViewer", "enabled"], False)
 
+        self._settings.global_set_boolean(["serial", "capabilities", "autoreport_sdstatus"], False)
+        self._settings.global_set_boolean(["serial", "capabilities", "autoreport_temp"], False)
+        self._settings.global_set_boolean(["serial", "capabilities", "busy_protocol"], False)
+        self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
+        self._settings.global_set_boolean(["serial", "firmwareDetection"], False)
+        self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
+        self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
+
         self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
+        self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
+
+        self._settings.global_set(["serial", "checksumRequiringCommands"], [])
+        self._settings.global_set(["serial", "helloCommand"], "M5")
+        self._settings.global_set(["serial", "supportResendsWithoutOk"], "never")
 
         self._settings.save()
         return
@@ -65,16 +83,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #-- gcode sending hook
 
-    def hook_gcode_sending(
-        self,
-        comm_instance,
-        phase,
-        cmd,
-        cmd_type,
-        gcode,
-        *args,
-        **kwargs
-        ):
+    def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
 
          # rewrite M115 as M5 (hello)
 
@@ -187,9 +196,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             user='synman',
             repo='OctoPrint-Bettergrblsupport',
             current=self._plugin_version,
-            pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'
-                ,
-            ))
+            pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
