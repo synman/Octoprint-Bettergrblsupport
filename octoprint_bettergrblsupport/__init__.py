@@ -44,7 +44,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set(["serial", "helloCommand"], "M5")
         self._settings.global_set(["serial", "supportResendsWithoutOk"], "never")
 
-        self._logger.info("Setting defaults for UI elements tempTab=%b gCodeTab=%b", hideTempTab, hideGCodeTab)
+        self._logger.info("Setting defaults for UI elements tempTab=" + hideTempTab + " gCodeTab=" + hideGCodeTab)
 
         self._settings.save()
 
