@@ -14,16 +14,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.StartupPlugin,
                               octoprint.plugin.EventHandlerPlugin):
 
-    def __init__(self):
-        hideTempTab = True
-        hideGCodeTab = True
+    # def __init__(self):
+    #     hideTempTab = True
+    #     hideGCodeTab = True
 
-    def on_settings_initialized(self):
-        self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
-        self._logger.info("hideTempTab: %s" % self.hideTempTab)
-
-        self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
-        self._logger.info("hideGCodeTab: %s" % self.hideGCodeTab)
+    # def on_settings_initialized(self):
+    #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
+    #     self._logger.info("hideTempTab: %s" % self.hideTempTab)
+    #
+    #     self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
+    #     self._logger.info("hideGCodeTab: %s" % self.hideGCodeTab)
 
     def on_after_startup(self):
         self._settings.global_set_boolean(["feature", "temperatureGraph"], False)
@@ -62,11 +62,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             hideGCodeTab = True,
         )
 
-    def on_settings_save(self, data):
-        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-
-        self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
-        self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
+    # def on_settings_save(self, data):
+    #     octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+    #
+    #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
+    #     self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
 
     # #~~ AssetPlugin mixin
 
@@ -83,8 +83,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_template_configs(self):
         return [
-            dict(type="settings", custom_bindings=True)
+            dict(type="settings", custom_bindings=False)
         ]
+
+    def get_template_vars(self):
+        return dict(hideTempTab=self._settings.get_boolean(["hideTempTab"]),
+                    hideGCodeTab=self._settings.get_boolean(["hideGCodeTab"]))
 
     # #-- EventHandlerPlugin mix-in
 
