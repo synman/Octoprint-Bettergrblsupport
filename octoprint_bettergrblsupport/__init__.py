@@ -26,12 +26,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     #     self._logger.info("hideGCodeTab: %s" % self.hideGCodeTab)
 
     def on_after_startup(self):
-        self._settings.global_set_boolean(["feature", "temperatureGraph"], False)
-        self._settings.global_set_boolean(["feature", "gCodeVisualizer"], False)
+
+        hideTemptab = self_settings.get_boolean("[hideTempTab]")
+        hideGCodeTab = self_settings.get_boolean("[hideGCodeTab]")
+
+        self._settings.global_set_boolean(["feature", "temperatureGraph"], not hideTempTab)
+        self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not hideGCodeTab)
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], False)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
 
-        self._settings.global_set_boolean(["gcodeViewer", "enabled"], False)
+        self._settings.global_set_boolean(["gcodeViewer", "enabled"], not hideGCodeTab)
 
         self._settings.global_set_boolean(["serial", "capabilities", "autoreport_sdstatus"], False)
         self._settings.global_set_boolean(["serial", "capabilities", "autoreport_temp"], False)
@@ -45,7 +49,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "long"], 0)
         self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "printing"], 0)
 
-        self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
+        if hideTempTab:
+            self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
+        else:
+            self._settings.global_set(["appearance", "components", "disabled", "tab"], [])
+
         self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
 
         self._settings.global_set(["serial", "checksumRequiringCommands"], [])
