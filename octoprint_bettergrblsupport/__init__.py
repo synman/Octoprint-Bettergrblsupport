@@ -32,6 +32,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
 
+        self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "idle"], 0)
+        self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "long"], 0)
+        self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "printing"], 0)
+
         self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
         self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
 
@@ -57,6 +61,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         return dict(js=['js/bettergrblsupport.js'],
                     css=['css/bettergrblsupport.css'],
                     less=['less/bettergrblsupport.less'])
+
+    # #~~ TemplatePlugin mixin
+
+    def get_template_configs(self):
+        return [
+            dict(type="settings", custom_bindings=True)
+        ]
 
     # #-- EventHandlerPlugin mix-in
 
