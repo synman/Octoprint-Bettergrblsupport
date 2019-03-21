@@ -19,10 +19,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         hideGCodeTab = True
 
     def on_settings_initialized(self):
-        self.hideTempTab = self._settings.get_boolean("hideTempTab")
+        self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
         self._logger.info("hideTempTab: %s" % self.hideTempTab)
 
-        self.hideGCodeTab = self._settings.get_boolean("hideGCodeTab")
+        self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
         self._logger.info("hideGCodeTab: %s" % self.hideGCodeTab)
 
     def on_after_startup(self):
@@ -65,8 +65,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_settings_save(self, data):
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
-        self.hideTempTab = self._settings.get_boolean("hideTempTab")
-        self.hideGCodeTab = self._settings.get_boolean("hideGCodeTab")
+        self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
+        self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
 
     # #~~ AssetPlugin mixin
 
