@@ -184,7 +184,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
-                if self.suppress105:
+                if self.suppressM105:
                     self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
                     return (self.statusCommand, )
 
