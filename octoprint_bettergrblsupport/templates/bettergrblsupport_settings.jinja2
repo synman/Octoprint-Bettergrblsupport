@@ -1,17 +1,68 @@
 <form class="form-horizontal">
-    <h4>UI Options</h4>
-    <div class="control-group">
-        <div class="controls">
-            <label class="checkbox">
-            <input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab
-            </label>
-        </div>
-    </div>
-    <div class="control-group">
-        <div class="controls">
-            <label class="checkbox">
-            <input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab
-            </label>
-        </div>
-    </div>
+	<h4>UI Options</h4>
+	<hr>
+		<div class="control-group">
+				<div class="controls">
+						<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
+						</label>
+				</div>
+		</div>
+
+		<h4>Grbl Options</h4>
+		<hr>
+		<label class="control-label">Hello Command</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.helloCommand">
+				<br>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
+				</label>
+		</div>
+
+		<br>
+
+		<div class="control-group">
+			<label class="control-label">Status Command</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.statusCommand">
+					<br>
+					<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePolling"> Disable status polling while printing
+					</label>
+			</div>
+		</div>
+
+		<label class="control-label">Position Command</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.positionCommand">
+				<br>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM114"> Replace M114 requests with above
+				</label>
+		</div>
+
+		<br>
+		
+		<label class="control-label">Dwell Command</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.dwellCommand">
+				<br>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
+				</label>
+				<br>
+				<label class="checkbox">
+				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
+				</label>
+		</div>
+
+		<br>
+
+
+		<p>* Server restart is required for this setting change to take effect</p>
 </form>

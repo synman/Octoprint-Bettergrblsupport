@@ -14,9 +14,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.StartupPlugin,
                               octoprint.plugin.EventHandlerPlugin):
 
-    # def __init__(self):
-    #     hideTempTab = True
-    #     hideGCodeTab = True
+    def __init__(self):
+        self.hideTempTab = True
+        self.hideGCodeTab = True
+        self.helloCommand = "M5"
+        self.statusCommand = "?$G"
+        self.dwellCommand = "G4 P0"
+        self.positionCommand = "?"
+        self.suppressM114 = True
+        self.suppressM400 = True
+        self.suppressM105 = True
+        self.suppressM115 = True
+        self.suppressM110 = True
+        self.disablePolling = True
 
     # def on_settings_initialized(self):
     #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
@@ -27,29 +37,38 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def on_after_startup(self):
 
-        hideTemptab = self._settings.get_boolean("[hideTempTab]")
-        hideGCodeTab = self._settings.get_boolean("[hideGCodeTab]")
+        self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
+        self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
+        self.helloCommand = self._settings.get(["helloCommand"])
+        self.statusCommand = self._settings.get(["statusCommand"])
+        self.dwellCommand = self._settings.get(["dwellCommand"])
+        self.positionCommand = self._settings.get(["positionCommand"])
+        self.suppressM105 = self._settings.get_boolean(["suppressM105"])
+        self.suppressM114 = self._settings.get_boolean(["suppressM114"])
+        self.suppressM115 = self._settings.get_boolean(["suppressM115"])
+        self.suppressM110 = self._settings.get_boolean(["suppressM110"])
+        self.suppressM400 = self._settings.get_boolean(["suppressM400"])
+        self.disablePolling = self._settings.get_boolean(["disablePolling"])
 
-        self._settings.global_set_boolean(["feature", "temperatureGraph"], not hideTempTab)
-        self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not hideGCodeTab)
+        self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
+        self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], False)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
 
-        self._settings.global_set_boolean(["gcodeViewer", "enabled"], not hideGCodeTab)
+        self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
 
         self._settings.global_set_boolean(["serial", "capabilities", "autoreport_sdstatus"], False)
         self._settings.global_set_boolean(["serial", "capabilities", "autoreport_temp"], False)
         self._settings.global_set_boolean(["serial", "capabilities", "busy_protocol"], False)
         self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
         self._settings.global_set_boolean(["serial", "firmwareDetection"], False)
-        self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
 
         self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "idle"], 0)
         self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "long"], 0)
         self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "printing"], 0)
 
-        if hideTempTab:
+        if self.hideTempTab:
             self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
         else:
             self._settings.global_set(["appearance", "components", "disabled", "tab"], [])
@@ -57,7 +76,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
 
         self._settings.global_set(["serial", "checksumRequiringCommands"], [])
-        self._settings.global_set(["serial", "helloCommand"], "M5")
+        self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
         self._settings.global_set(["serial", "supportResendsWithoutOk"], "never")
 
         self._settings.save()
@@ -66,8 +85,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_settings_defaults(self):
         return dict(
+            firstTime = True,
             hideTempTab = True,
             hideGCodeTab = True,
+            helloCommand = "M5",
+            statusCommand = "?$G",
+            dwellCommand = "G4 P0",
+            positionCommand = "?",
+            suppressM114 = True,
+            suppressM400 = True,
+            suppressM105 = True,
+            suppressM115 = True,
+            suppressM110 = True,
+            disablePolling = True
         )
 
     # def on_settings_save(self, data):
@@ -96,7 +126,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_template_vars(self):
         return dict(hideTempTab=self._settings.get_boolean(["hideTempTab"]),
-                    hideGCodeTab=self._settings.get_boolean(["hideGCodeTab"]))
+                    hideGCodeTab=self._settings.get_boolean(["hideGCodeTab"]),
+                    disablePolling=self._settings.get_boolean(["disablePolling"]),
+                    suppressM105=self._settings.get_boolean(["suppressM105"]),
+                    suppressM110=self._settings.get_boolean(["suppressM110"]),
+                    suppressM115=self._settings.get_boolean(["suppressM115"]),
+                    suppressM400=self._settings.get_boolean(["suppressM400"]),
+                    suppressM114=self._settings.get_boolean(["suppressM114"]),
+                    positionCommand=self._settings.get(["positionCommand"]),
+                    statusCommand=self._settings.get(["statusCommand"]),
+                    dwellCommand=self._settings.get(["dwellCommand"]),
+                    helloCommand=self._settings.get(["helloCommand"]))
 
     # #-- EventHandlerPlugin mix-in
 
@@ -127,37 +167,38 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
          # rewrite M115 as M5 (hello)
 
-        if cmd.upper().startswith('M115'):
-            self._logger.debug('Rewriting M115 as M5')
-            return ('M5', )
+        if self.suppressM115 and cmd.upper().startswith('M115'):
+            self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
+            return (self.helloCommand, )
 
          # suppress reset line #s
 
-        if cmd.upper().startswith('M110'):
+        if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
             return (None, )
 
         # suppress temperature if printer is printing
 
         if cmd.upper().startswith('M105'):
-            if self._printer.is_printing():
+            if self.disablePolling and self._printer.is_printing():
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
-                self._logger.debug('Rewriting M105 as ?$G')
-                return ('?$G', )
+                if self.suppress105:
+                    self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
+                    return (self.statusCommand, )
 
          # Wait for moves to finish before turning off the spindle
 
-        if cmd.upper().startswith('M400'):
-            self._logger.debug('Rewriting M400 as G4 P0')
-            return ('G4 P0', )
+        if self.suppressM400 and cmd.upper().startswith('M400'):
+            self._logger.debug('Rewriting M400 as %s' % self.dwellCommand)
+            return (self.dwellCommand, )
 
          # rewrite current position
 
-        if cmd.upper().startswith('M114'):
-            self._logger.debug('Rewriting M114 as ?')
-            return ('?', )
+        if self.suppressM114 and cmd.upper().startswith('M114'):
+            self._logger.debug('Rewriting M114 as %s' % self.positionCommand)
+            return (self.positionCommand, )
 
          # soft reset / resume (stolen from Marlin)
 
