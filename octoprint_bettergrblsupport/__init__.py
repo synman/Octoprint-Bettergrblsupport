@@ -213,11 +213,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
 
-        if 'MPos' in line:
+        if 'MPos' in line or 'WPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
 
-            match = re.search(r'MPos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
+            match = re.search(r'[WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
 
             if match is None:
                 log.warning('Bad data %s', line.rstrip())
@@ -227,7 +227,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # It needs a different format. Put both on the same line so the GRBL info is not lost
              # and is accessible for "controls" to read.
 
-            response = 'ok X:{0} Y:{1} Z:{2} E:0'.format(*match.groups())
+            response = 'ok X:{0} Y:{1} Z:{2} E:0 {line}'.format(*match.groups())
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
             return response
