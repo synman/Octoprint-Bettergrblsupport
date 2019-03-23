@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
+from octoprint.events import Events
 
 import octoprint.plugin
 import re
@@ -58,15 +59,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
 
         self._settings.global_set_boolean(["serial", "capabilities", "autoreport_sdstatus"], False)
-        self._settings.global_set_boolean(["serial", "capabilities", "autoreport_temp"], False)
-        self._settings.global_set_boolean(["serial", "capabilities", "busy_protocol"], False)
-        self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
-        self._settings.global_set_boolean(["serial", "firmwareDetection"], False)
-        self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
 
-        self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "idle"], 0)
-        self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "long"], 0)
-        self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "printing"], 0)
+        # self._settings.global_set_boolean(["serial", "capabilities", "autoreport_temp"], False)
+        # self._settings.global_set_boolean(["serial", "capabilities", "busy_protocol"], False)
+        # self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
+        # self._settings.global_set_boolean(["serial", "firmwareDetection"], False)
+
+        self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
+        self._settings.global_set(["serial", "checksumRequiringCommands"], [])
+
+        # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "idle"], 0)
+        # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "long"], 0)
+        # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "printing"], 0)
 
         if self.hideTempTab:
             self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
@@ -75,9 +79,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
 
-        self._settings.global_set(["serial", "checksumRequiringCommands"], [])
         self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
-        self._settings.global_set(["serial", "supportResendsWithoutOk"], "never")
+        self._settings.global_set(["serial", "supportResendsWithoutOk"], "detect")
 
         self._settings.save()
 
@@ -141,22 +144,22 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     # #-- EventHandlerPlugin mix-in
 
     def on_event(self, event, payload):
-        subscribed_events = 'FileSelected FileDeselected'
-
+        subscribed_events = Events.FILE_SELECTED + Events.FILE_DESELECTED
         if subscribed_events.find(event) == -1:
             return
 
-        if event == 'FileSelected':
-            selected_file = self._settings.global_get_basefolder("uploads") + '/' + payload['path']
-            f = open(selected_file, 'r')
-
-            for line in f:
-                self._logger.info("[%s]" % line.strip())
-
-            self._logger.info('finished reading [%s]', selected_file)
+        # 'FileSelected'
+        if event == Events.FILE_SELECTED:
+            # selected_file = self._settings.global_get_basefolder("uploads") + '/' + payload['path']
+            # f = open(selected_file, 'r')
+            #
+            # for line in f:
+            #     self._logger.info("[%s]" % line.strip())
+            #
+            # self._logger.info('finished reading [%s]', selected_file)
             return
 
-        if event == 'FileDeselected':
+        if event == Events.FILE_DESELECTED:
             return
 
         return
@@ -209,7 +212,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         return None
 
-    # #-- gcode received hook
+    # #-- gcode received hook (
+    # original author:  https://github.com/mic159
+    # source: https://github.com/mic159/octoprint-grbl-plugin)
 
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
 
