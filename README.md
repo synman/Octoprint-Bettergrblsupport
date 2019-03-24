@@ -48,3 +48,7 @@ Pay special attention to the following config.yaml configuration parameters:
 * plugins / _disabled / printer_safety_check
 * appearance / components / disabled / tab 
 * gcodeViewer
+
+![Configuration UI](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/Screen%20Shot%202019-03-23%20at%209.51.54%20PM.png?raw=true)
+
+![Configuration UI](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/Screen%20Shot%202019-03-23%20at%209.51.54%20PM.png?raw=true)
