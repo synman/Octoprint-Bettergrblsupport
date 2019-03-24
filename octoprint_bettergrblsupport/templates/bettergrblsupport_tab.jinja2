@@ -1,0 +1,33 @@
+
+<div class="settings">
+  <form class="form-horizontal">
+    <div class="settings-group">
+      <div class="settings-controls">
+        <div class="input-append">
+          <label class="settings-label">Length</label>
+          <input type="number" step="1.0"
+                               class="input-mini text-right"
+                               data-bind="value: length"
+                               placeholder="100">
+          <span class="add-on">mm</span>
+        </div>
+      </div>
+      <label class="settings-label">Width</label>
+      <div class="settings-controls">
+        <div class="input-append">
+          <input type="number" step="1.0"
+                               class="input-mini text-right"
+                               data-bind="value: width"
+                               placeholder="100">
+          <span class="add-on">mm</span>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div>
+	<div class="row-fluid btn-group" style="text-align: center;padding-top: 20px;">
+		<button class="btn" data-bind="click: function() {doFrame()}">FRAME</button>
+	</div>
+</div>

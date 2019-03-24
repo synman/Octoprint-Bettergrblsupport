@@ -8,8 +8,10 @@ import octoprint.plugin
 import re
 import logging
 import json
+import flask
 
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
+                              octoprint.plugin.SimpleApiPlugin,
                               octoprint.plugin.AssetPlugin,
                               octoprint.plugin.TemplatePlugin,
                               octoprint.plugin.StartupPlugin,
@@ -143,7 +145,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             suppressM115 = True,
             suppressM110 = True,
             disablePolling = True,
-            customControls = True
+            customControls = True,
+            frame_length = 100,
+            frame_width = 100
         )
 
     # def on_settings_save(self, data):
@@ -309,6 +313,43 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + before
         else:
             return 'ok'
+
+    def send_bounding_box(self, x, y):
+
+        if not self._printer.is_ready():
+            return
+
+        self._printer.commands("G00 G17 G40 G21 G54")
+        self._printer.commands("G91")
+        self._printer.commands("$32=0")
+        self._printer.commands("M4 S1")
+        self._printer.commands("M8")
+
+        self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2 * -1, y / 2))
+
+        self._printer.commands("G91")
+        self._printer.commands("G0 X{} F4000 S1".format(x))
+        self._printer.commands("G0Y{:f} S1".format(y * -1))
+        self._printer.commands("G0 X{} S1".format(x * -1))
+        self._printer.commands("G0 Y{} S1".format(y))
+        self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2, y / 2 * -1))
+
+        self._printer.commands("M9")
+        self._printer.commands("G1S0")
+        self._printer.commands("$32=1")
+        self._printer.commands("M5")
+        self._printer.commands("M2")
+
+    def get_api_commands(self):
+        return dict(
+            frame=[]
+        )
+
+    def on_api_command(self, command, data):
+        if command == "frame":
+            # self._logger.info("api command")
+            self._logger.info("api command: {} data: {}".format(command, data))
+            self.send_bounding_box(float(data.get("length")), float(data.get("width")))
 
     # #~~ Softwareupdate hook
 
