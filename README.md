@@ -16,7 +16,7 @@ This plugin was inspired by mic159's Grbl Support plugin (https://plugins.octopr
 * Adds Laser Commands and State sections to the Control tab
 * Suppresses status update reporting during GCODE streaming
 * No need to ignore firmware errors or track down other Octoprint nuance settings
-* Automatically disables Model Size Detection
+* AutomConfiguration UIatically disables Model Size Detection
 * Automatically disables sending checksums
 * Automatically disables the Printer Safety Check plugin
 
@@ -48,3 +48,11 @@ Pay special attention to the following config.yaml configuration parameters:
 * plugins / _disabled / printer_safety_check
 * appearance / components / disabled / tab 
 * gcodeViewer
+
+## Screenshots
+
+![Main UI](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/Screen%20Shot%202019-03-23%20at%209.52.24%20PM.png?raw=true)
+
+![Configuration UI](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/Screen%20Shot%202019-03-23%20at%209.51.54%20PM.png?raw=true)
+
+![Workspace](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/IMG_20190323_214259.jpg?raw=true)
