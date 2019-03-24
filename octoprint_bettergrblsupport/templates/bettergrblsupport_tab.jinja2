@@ -26,14 +26,8 @@
   </form>
 </div>
 
-<div id="webcam_rotator_frame" data-bind="css: { webcam_rotated: settings.webcam_rotate90(), webcam_unrotated: !settings.webcam_rotate90() }" class="webcam_unrotated">
-            <div class="webcam_fixed_ratio ratio169" data-bind="css: webcamRatioClass">
-                <div class="webcam_fixed_ratio_inner">
-                    <img id="webcam_image" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }, event: { load: onWebcamLoaded, error: onWebcamErrored }, visible: !webcamError()" class="flipH flipV" src="/webcam/?action=stream&amp;1553445782374">
-                </div>
-            </div>
-			</div>
-		</div>
+<div class="webcam_fixed_ratio_inner">
+    <img id="webcam_image_framing" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream&amp;1553445782374">
 </div>
 
 <div>
