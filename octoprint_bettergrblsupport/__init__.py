@@ -7,7 +7,7 @@ from octoprint.events import Events
 import octoprint.plugin
 import re
 import logging
-
+import json
 
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.AssetPlugin,
@@ -18,6 +18,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def __init__(self):
         self.hideTempTab = True
         self.hideGCodeTab = True
+        self.customControls = True
         self.helloCommand = "M5"
         self.statusCommand = "?$G"
         self.dwellCommand = "G4 P0"
@@ -28,6 +29,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.suppressM115 = True
         self.suppressM110 = True
         self.disablePolling = True
+
+        self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F6000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
     # def on_settings_initialized(self):
     #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
@@ -40,6 +43,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
+        self.customControls = self._settings.get_boolean(["customControls"])
+
         self.helloCommand = self._settings.get(["helloCommand"])
         self.statusCommand = self._settings.get(["statusCommand"])
         self.dwellCommand = self._settings.get(["dwellCommand"])
@@ -53,38 +58,75 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
         self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
-        self._settings.global_set_boolean(["feature", "modelSizeDetection"], False)
-        self._settings.global_set_boolean(["feature", "sdSupport"], False)
-
         self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
 
-        self._settings.global_set_boolean(["serial", "capabilities", "autoreport_sdstatus"], False)
+        self._settings.global_set_boolean(["feature", "modelSizeDetection"], False)
+        self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
+        self._settings.global_set(["serial", "checksumRequiringCommands"], [])
+
+        self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
+
+
+        # self._settings.global_set_boolean(["feature", "sdSupport"], False)
+        # self._settings.global_set_boolean(["serial", "capabilities", "autoreport_sdstatus"], False)
 
         # self._settings.global_set_boolean(["serial", "capabilities", "autoreport_temp"], False)
         # self._settings.global_set_boolean(["serial", "capabilities", "busy_protocol"], False)
         # self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
         # self._settings.global_set_boolean(["serial", "firmwareDetection"], False)
 
-        self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
-        self._settings.global_set(["serial", "checksumRequiringCommands"], [])
 
         # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "idle"], 0)
         # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "long"], 0)
         # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "printing"], 0)
+
+        # self._settings.global_set(["serial", "supportResendsWithoutOk"], "detect")
 
         if self.hideTempTab:
             self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
         else:
             self._settings.global_set(["appearance", "components", "disabled", "tab"], [])
 
-        self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
-
         self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
-        self._settings.global_set(["serial", "supportResendsWithoutOk"], "detect")
+
+        controls = self._settings.global_get(["controls"])
+
+        if self.customControls and not controls:
+            self._logger.info("injecting custom controls")
+            self._settings.global_set(["controls"], json.loads(self.customControlsJson))
+        else:
+            if not self.customControls and controls:
+                self._logger.info("clearing custom controls")
+                self._settings.global_set(["controls"], [])
 
         self._settings.save()
 
     # #~~ SettingsPlugin mixin
+
+    # def myprint(self, l):
+    #     if isinstance(l, list):
+    #         self._logger.info("list")
+    #         for i in l:
+    #
+    #             if type(i) is dict:
+    #                 self.printDict(i)
+    #             else:
+    #                 self._logger.info("{0} : {1}".format(type(i), i))
+    #
+    #
+    # def printDict(self, d):
+    #
+    #     for k, v in d.iteritems():
+    #         if isinstance(v, dict):
+    #             self._logger.info("dict key={0} (dict)".format(k))
+    #
+    #             printDict(v)
+    #         else:
+    #             if isinstance(v, list):
+    #                 self._logger.info("dict key={0} (list)".format(k))
+    #                 self.myprint(v)
+    #             else:
+    #                 self._logger.info("{0} : {1} : {2}".format(k, v, type(v)))
 
     def get_settings_defaults(self):
         return dict(
@@ -100,7 +142,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             suppressM105 = True,
             suppressM115 = True,
             suppressM110 = True,
-            disablePolling = True
+            disablePolling = True,
+            customControls = True
         )
 
     # def on_settings_save(self, data):
@@ -130,6 +173,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def get_template_vars(self):
         return dict(hideTempTab=self._settings.get_boolean(["hideTempTab"]),
                     hideGCodeTab=self._settings.get_boolean(["hideGCodeTab"]),
+                    customControls=self._settings.get_boolean(["customControls"]),
                     disablePolling=self._settings.get_boolean(["disablePolling"]),
                     suppressM105=self._settings.get_boolean(["suppressM105"]),
                     suppressM110=self._settings.get_boolean(["suppressM110"]),
@@ -225,7 +269,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             match = re.search(r'[WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
 
             if match is None:
-                log.warning('Bad data %s', line.rstrip())
+                self._logger.warning('Bad data %s', line.rstrip())
                 return line
 
              # OctoPrint records positions in some instances.
