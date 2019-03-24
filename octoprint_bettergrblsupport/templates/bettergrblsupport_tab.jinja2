@@ -3,35 +3,40 @@
   <form class="form-horizontal">
     <div class="settings-group">
       <div class="settings-controls">
-        <div class="input-append">
-          <label class="settings-label">Length</label>
-          <input type="number" step="1.0"
-                               class="input-mini text-right"
-                               data-bind="value: length"
-                               placeholder="100">
-          <span class="add-on">mm</span>
-        </div>
-      </div>
-      <label class="settings-label">Width</label>
-      <div class="settings-controls">
-        <div class="input-append">
-          <input type="number" step="1.0"
-                               class="input-mini text-right"
-                               data-bind="value: width"
-                               placeholder="100">
-          <span class="add-on">mm</span>
-        </div>
+        <table class="input-append" border=0 align="center" width="100%">
+          <tr class="settings-label">
+            <td align="right" valign="bottom">
+              <label>Length&nbsp;</label>
+            </td>
+            <td width="75%">
+              <input type="number" step="1.0"
+                                   class="input-mini text-right"
+                                   data-bind="value: length"
+                                   placeholder="100">
+              <span class="add-on">mm</span>
+            </td>
+            <td rowspan=2 align="center">
+              <button class="btn" data-bind="click: function() {doFrame()}">Draw Frame</button>
+            </td>
+          </tr>
+          <tr class="settings-label">
+            <td align="right" valign="bottom">
+              <label>Width&nbsp;</label>
+            </td>
+            <td>
+              <input type="number" step="1.0"
+                                   class="input-mini text-right"
+                                   data-bind="value: width"
+                                   placeholder="100">
+              <span class="add-on">mm</span>
+            </td>
+          </tr>
+        </table>
       </div>
     </div>
   </form>
 </div>
-
+<hr>
 <div class="webcam_fixed_ratio_inner">
-    <img id="webcam_image_framing" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream&amp;1553445782374">
-</div>
-
-<div>
-	<div class="row-fluid btn-group" style="text-align: center;padding-top: 20px;">
-		<button class="btn" data-bind="click: function() {doFrame()}">FRAME</button>
-	</div>
+    <img id="webcam_image_framing" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream">
 </div>
