@@ -347,7 +347,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def on_api_command(self, command, data):
         if command == "frame":
-            # self._logger.info("api command")
             self._logger.info("api command: {} data: {}".format(command, data))
             self.send_bounding_box(float(data.get("length")), float(data.get("width")))
 
