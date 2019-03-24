@@ -54,3 +54,5 @@ Pay special attention to the following config.yaml configuration parameters:
 ![Main UI](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/Screen%20Shot%202019-03-23%20at%209.52.24%20PM.png?raw=true)
 
 ![Configuration UI](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/Screen%20Shot%202019-03-23%20at%209.51.54%20PM.png?raw=true)
+
+![Workspace](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/IMG_20190323_214259.jpg?raw=true)
