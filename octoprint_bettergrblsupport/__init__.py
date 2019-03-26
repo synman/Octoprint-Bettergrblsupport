@@ -304,7 +304,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             response = 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(*match.groups(), original=line)
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
-            self._logger.info("groups=" + match.groups())
+            # self._logger.info("groups=" + match.groups())
             # self.grblX = match.groups()[0]
             # self.grblY = match.groups()[1]
 
@@ -321,7 +321,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
         if not match is None:
-            self._logger.info("sgroups=" + match.groups())
+            for group in match.groups():
+                self._logger.info("sgroups=" + group)
 
 
         if not line.rstrip().endswith('ok'):
