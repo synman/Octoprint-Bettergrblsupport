@@ -18,6 +18,9 @@ $(function() {
       self.distances = ko.observableArray([0.1, 1, 10, 100]);
       self.distance = ko.observable(10);
 
+      self.is_printing = ko.observable(false);
+      self.is_operational = ko.observable(false);
+
       tab = document.getElementById("tab_plugin_bettergrblsupport_link");
       tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
 
@@ -60,7 +63,44 @@ $(function() {
         });
       };
 
-      // self.doFrame();
+      self.doFrame = function() {
+        var o;
+        var x = document.getElementsByName("frameOrigin");
+        var i;
+        for (i = 0; i < x.length; i++) {
+          if (x[i].checked) {
+            o = x[i].id;
+            break;
+          }
+        }
+
+        $.ajax({
+          url: API_BASEURL + "plugin/bettergrblsupport",
+          type: "POST",
+          dataType: "json",
+          data: JSON.stringify({
+            command: "frame",
+            length: self.length(),
+            width: self.width(),
+            origin: o
+          }),
+          contentType: "application/json; charset=UTF-8",
+          error: function (data, status) {
+            var options = {
+              title: "Framing failed.",
+              text: data.responseText,
+              hide: true,
+              buttons: {
+                sticker: false,
+                closer: true
+              },
+              type: "error"
+            };
+
+            new PNotify(options);
+          }
+        });
+      };
 
       self.onBeforeBinding = function() {
         self.length(self.settings.settings.plugins.bettergrblsupport.frame_length());
@@ -68,6 +108,9 @@ $(function() {
 
         self.distance(self.settings.settings.plugins.bettergrblsupport.distance());
         self.distances(self.settings.settings.plugins.bettergrblsupport.distances());
+
+        self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
+        self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
 
         var x = document.getElementsByName("frameOrigin");
 
@@ -78,6 +121,19 @@ $(function() {
             break;
           }
         }
+      };
+
+      self.fromCurrentData = function (data) {
+          self._processStateData(data.state);
+      };
+
+      self.fromHistoryData = function (data) {
+          self._processStateData(data.state);
+      };
+
+      self._processStateData = function (data) {
+          self.is_printing(data.flags.printing);
+          self.is_operational(data.flags.operational);
       };
     }
 

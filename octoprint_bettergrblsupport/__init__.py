@@ -32,6 +32,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.suppressM110 = True
         self.disablePolling = True
 
+        self.grblState = None
+        self.grblX = 0
+        self.grblY = 0
+
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F6000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
     # def on_settings_initialized(self):
@@ -68,6 +72,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
 
+        # establish initial state for printer status
+        self._settings.set_boolean(["is_printing"], self._printer.is_printing())
+        self._settings.set_boolean(["is_operational"], self._printer.is_operational())
 
         # self._settings.global_set_boolean(["feature", "sdSupport"], False)
         # self._settings.global_set_boolean(["serial", "capabilities", "autoreport_sdstatus"], False)
@@ -150,7 +157,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             frame_width = 100,
             frame_origin = None,
             distance = 10,
-            distances = [.1, 1, 10, 100]
+            distances = [.1, 1, 10, 100],
+            is_printing = False,
+            is_operational = False
         )
 
     # def on_settings_save(self, data):
@@ -195,6 +204,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     # #-- EventHandlerPlugin mix-in
 
     def on_event(self, event, payload):
+
+        is_printing = self._printer.is_printing()
+        is_operational = self._printer.is_operational()
+
+        if self._settings.get_boolean(["is_printing"]) != is_printing or self._settings.get_boolean(["is_operational"]) != is_operational:
+            self._settings.set_boolean(["is_printing"], is_printing)
+            self._settings.set_boolean(["is_operational"], is_operational)
+            self._settings.save()
+
         subscribed_events = Events.FILE_SELECTED + Events.FILE_DESELECTED
         if subscribed_events.find(event) == -1:
             return
@@ -286,6 +304,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             response = 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(*match.groups(), original=line)
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
+            self._logger.info("groups=" + match.groups())
+            # self.grblX = match.groups()[0]
+            # self.grblY = match.groups()[1]
+
             return response
 
         if line.startswith('Grbl'):
@@ -296,6 +318,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # This makes Octoprint recognise the startup message as a successful connection.
 
             return 'ok ' + line
+
+        match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
+        if not match is None:
+            self._logger.info("sgroups=" + match.groups())
+
 
         if not line.rstrip().endswith('ok'):
             return line
@@ -317,8 +344,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         else:
             return 'ok'
 
-    def send_bounding_box(self, x, y):
 
+
+    def send_bounding_box(self, x, y):
         if not self._printer.is_ready():
             return
 
@@ -349,6 +377,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_api_command(self, command, data):
+
+        # catch-all (should revisit state management) for validating printer State
+        if not self._printer.is_operational() or self._printer.is_printing():
+            self._logger.info("ignoring command - printer is not available")
+            return
+
         if command == "frame":
             self._logger.info("api command: {} data: {}".format(command, data))
             self.send_bounding_box(float(data.get("length")), float(data.get("width")))
@@ -358,6 +392,24 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set(["frame_origin"], data.get("origin"))
 
             self._settings.save()
+
+            return
+
+        if command == "move":
+            # do move stuff
+            self._logger.info("move")
+
+        if command == "origin":
+            # do origin stuff
+            self._logger.info("origin")
+
+        if command == "toggleWeak":
+            # do laser stuff
+            self._logger.info("toggleWeak")
+
+        if command == "toggleState":
+            # do state stuff
+            self._logger.info("toggleState")
 
     # #~~ Softwareupdate hook
 
