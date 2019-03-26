@@ -1,43 +1,147 @@
 
-<div class="settings">
-  <form class="form-horizontal">
-    <div class="settings-group">
-      <div class="settings-controls">
-        <table class="input-append" border=0 align="center" width="100%">
-          <tr class="settings-label">
-            <td align="right" valign="bottom">
-              <label>Length&nbsp;</label>
-            </td>
-            <td width="75%">
-              <input type="number" step="1.0"
-                                   class="input-mini text-right"
-                                   data-bind="value: length"
-                                   placeholder="100">
-              <span class="add-on">mm</span>
-            </td>
-            <td rowspan=2 align="center">
-              <button class="btn" data-bind="click: function() {doFrame()}">Draw Frame</button>
-            </td>
-          </tr>
-          <tr class="settings-label">
-            <td align="right" valign="bottom">
-              <label>Width&nbsp;</label>
-            </td>
-            <td>
-              <input type="number" step="1.0"
-                                   class="input-mini text-right"
-                                   data-bind="value: width"
-                                   placeholder="100">
-              <span class="add-on">mm</span>
-            </td>
-          </tr>
-        </table>
-      </div>
-    </div>
-  </form>
-</div>
-<hr>
 <div class="webcam_fixed_ratio_inner">
     <img id="webcam_image_framing" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream">
 </div>
 <hr>
+<div class="settings">
+  <form class="form-horizontal">
+    <div class="settings-group">
+      <div class="settings-controls">
+        <h4>Framing</h4>
+        <table border=1 width="100%" cellpadding=10><tr><td>
+          <table class="input-append" border=0 align="center" width="100%" cellspacing="10">
+            <tr class="settings-label">
+              <td>
+                <table align="center" border=0>
+                  <tr class="settings-label">
+                    <td align="right" valign="middle">
+                      <label>Length&nbsp;</label>
+                    </td>
+                    <td>
+                      <input type="number" step="1.0"
+                                           class="input-mini text-right"
+                                           data-bind="value: length"
+                                           placeholder="100">
+                      <span class="add-on">mm</span>
+                    </td>
+                  </tr>
+                  <tr><td>&nbsp;</td></tr>
+                  <tr class="settings-label">
+                    <td align="right" valign="middle">
+                      <label>Width&nbsp;</label>
+                    </td>
+                    <td>
+                      <input type="number" step="1.0"
+                                           class="input-mini text-right"
+                                           data-bind="value: width"
+                                           placeholder="100">
+                      <span class="add-on">mm</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+              <td align="center" width="100%">
+                <table align="center" border=0 cellpadding=0>
+                  <tr>
+                    <td colspan=3 align="center" valign="bottom">
+                      <label>Starting Position</label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center">
+                      <table border=1><tr><td>
+                        <table border=0 align="center">
+                          <tr>
+                            <td align="center" style="padding: 0px 5px 5px 5px;" valign="middle"><input id="topLeft" name="frameOrigin" type="radio"/></td>
+                            <td align="center" style="padding: 0px 10px 5px 10px;" valign="middle"><input id="topCenter" name="frameOrigin" type="radio"/></td>
+                            <td align="center" style="padding: 0px 5px 5px 5px;" valign="middle"><input id="topRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                          <tr>
+                            <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="centerLeft" name="frameOrigin" type="radio"/></td>
+                            <td align="center" style="padding: 5px 10px 5px 10px;" valign="middle"><input id="center" name="frameOrigin" type="radio" checked/></td>
+                            <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="centerRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                          <tr>
+                            <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="bottomLeft" name="frameOrigin" type="radio"/></td>
+                            <td align="center" style="padding: 5px 10px 5px 10px;" valign="middle"><input id="bottomCenter" name="frameOrigin" type="radio"/></td>
+                            <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="bottomRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                        </table>
+                      </td></tr></table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+              <td align="center">
+                <button class="btn" data-bind="click: function() {doFrame()}">Draw Frame</button>
+              </td>
+            </tr>
+          </table>
+        </td></tr></table>
+      </div>
+      <h4>Control</h4>
+      <table border=0><tr><td>
+      <table border=1><tr><td>
+        <table class="jog-panel">
+          <tr>
+            <td colspan=2><h5>X/Y</h5></td>
+            <td align="right" style="padding: 0px 5px 0px 0px;" >
+              <button class="btn box" data-bind="click: function() {setOrigin()}">
+                <i class="fa fa-crosshairs"></i>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0px 0px 10px 0px;" colspan=3 align="center">
+              <button class="btn box" data-bind="click: function() {moveHead('up')}">
+                <i class="fa fa-arrow-up"></i>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0px 0px 10px 5px;"  align="right">
+              <button class="btn box" data-bind="click: function() {moveHead('left')}">
+                <i class="fa fa-arrow-left"></i>
+              </button>
+            </td>
+            <td style="padding: 0px 0px 10px 0px;" align="center">
+              <button class="btn box" data-bind="click: function() {moveHead('home')}">
+                <i class="fa fa-home"></i>
+              </button>
+            </td>
+            <td style="padding: 0px 0px 10px 0px;" align="left">
+              <button class="btn box" data-bind="click: function() {moveHead('right')}">
+                <i class="fa fa-arrow-right"></i>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0px 0px 20px 0px;" colspan=3 align="center">
+              <button class="btn box" data-bind="click: function() {moveHead('down')}">
+                <i class="fa fa-arrow-down"></i>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td colspan=3 class="distance">
+              <span class="btn-group" data-toggle="buttons-radio">
+                <!-- ko foreach: distances -->
+                  <button type="button" class="btn distance" data-bind="text: $data, click: function() { jogDistance($data) }, css: { active: $root.distance() === $data }"></button>
+                <!-- /ko -->
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td></tr></table>
+      </td>
+      <td rowspan=5 align="center" width="50%">
+        <button style="width: 100px" class="btn" data-bind="click: function() { toggleWeak() }">Weak Laser</button>
+        <br>
+        <br>
+        <br>
+        <button style="width: 100px" class="btn" data-bind="click: function() { toggleWeak() }">Sleep</button>
+      </td>
+      </tr></table>
+    </div>
+  </form>
+</div>

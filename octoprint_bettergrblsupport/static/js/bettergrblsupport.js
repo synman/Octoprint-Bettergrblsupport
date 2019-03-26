@@ -6,19 +6,32 @@
  */
 $(function() {
     function BettergrblsupportViewModel(parameters) {
-        var self = this;
+      var self = this;
 
       // assign the injected parameters, e.g.:
-      self.settings = parameters[0]
-      self.loginState = parameters[1]
+      self.settings = parameters[0];
+      self.loginState = parameters[1];
 
-      self.length = ko.observable("100")
-      self.width = ko.observable("100")
+      self.length = ko.observable("100");
+      self.width = ko.observable("100");
+
+      self.distances = ko.observableArray([0.1, 1, 10, 100]);
+      self.distance = ko.observable(10);
 
       tab = document.getElementById("tab_plugin_bettergrblsupport_link");
-      tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Framing");
+      tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
 
       self.doFrame = function() {
+        var o;
+        var x = document.getElementsByName("frameOrigin");
+        var i;
+        for (i = 0; i < x.length; i++) {
+          if (x[i].checked) {
+            o = x[i].id;
+            break;
+          }
+        }
+
         $.ajax({
           url: API_BASEURL + "plugin/bettergrblsupport",
           type: "POST",
@@ -26,7 +39,8 @@ $(function() {
           data: JSON.stringify({
             command: "frame",
             length: self.length(),
-            width: self.width()
+            width: self.width(),
+            origin: o
           }),
           contentType: "application/json; charset=UTF-8",
           error: function (data, status) {
@@ -51,7 +65,20 @@ $(function() {
       self.onBeforeBinding = function() {
         self.length(self.settings.settings.plugins.bettergrblsupport.frame_length());
         self.width(self.settings.settings.plugins.bettergrblsupport.frame_width());
-      }
+
+        self.distance(self.settings.settings.plugins.bettergrblsupport.distance());
+        self.distances(self.settings.settings.plugins.bettergrblsupport.distances());
+
+        var x = document.getElementsByName("frameOrigin");
+
+        var i;
+        for (i = 0; i < x.length; i++) {
+          if (x[i].id == self.settings.settings.plugins.bettergrblsupport.frame_origin()) {
+            x[i].checked = true;
+            break;
+          }
+        }
+      };
     }
 
     /* view model class, parameters for constructor, container to bind to

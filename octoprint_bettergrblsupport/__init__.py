@@ -147,7 +147,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             disablePolling = True,
             customControls = True,
             frame_length = 100,
-            frame_width = 100
+            frame_width = 100,
+            frame_origin = None,
+            distance = 10,
+            distances = [.1, 1, 10, 100]
         )
 
     # def on_settings_save(self, data):
@@ -349,6 +352,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "frame":
             self._logger.info("api command: {} data: {}".format(command, data))
             self.send_bounding_box(float(data.get("length")), float(data.get("width")))
+
+            self._settings.set(["frame_length"], data.get("length"))
+            self._settings.set(["frame_width"], data.get("width"))
+            self._settings.set(["frame_origin"], data.get("origin"))
+
+            self._settings.save()
 
     # #~~ Softwareupdate hook
 
