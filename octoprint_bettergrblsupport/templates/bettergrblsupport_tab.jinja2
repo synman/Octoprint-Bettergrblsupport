@@ -1,8 +1,4 @@
 
-<div class="webcam_fixed_ratio_inner">
-    <img id="webcam_image_framing" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream">
-</div>
-<hr>
 <div class="settings">
   <form class="form-horizontal">
     <div class="settings-group">
@@ -79,8 +75,11 @@
           </table>
         </td></tr></table>
       </div>
+      <div class="webcam_fixed_ratio_inner" style="padding: 10px 0px 0px 0px;">
+          <img id="webcam_image_framing" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream">
+      </div>
       <h4>Control</h4>
-      <table border=0><tr><td>
+      <table border=0 align="center"><tr><td>
       <table border=1><tr><td>
         <table class="jog-panel">
           <tr>
@@ -133,8 +132,8 @@
           </tr>
         </table>
       </td></tr></table>
-      </td>
-      <td rowspan=5 align="center" width="50%">
+    </td>
+      <td rowspan=5 align="center" valign="middle" style="padding: 0px 0px 0px 100px;">
         <button style="width: 100px" class="btn" data-bind="click: function() { toggleWeak() }">Weak Laser</button>
         <br>
         <br>
