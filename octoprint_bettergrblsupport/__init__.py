@@ -315,10 +315,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return response
 
 
-            match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
-            if not match is None:
-                self._logger.info("groups 0 = " + str(match.groups(0)))
-                self._logger.info("groups 1 = " + str(match.groups(1)))
+        match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
+        if not match is None:
+            self._logger.info("groups 0 = " + str(match.groups(0)))
+            self._logger.info("groups 1 = " + str(match.groups(1)))
 
 
 
