@@ -35,6 +35,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblState = None
         self.grblX = 0
         self.grblY = 0
+        self.grblSpeed = 0
+        self.grblPowerLevel = 0
+
 
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F6000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
@@ -291,7 +294,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
 
-            match = re.search(r'[WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
+            # match = re.search(r'[WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
+            match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
 
             if match is None:
                 self._logger.warning('Bad data %s', line.rstrip())
@@ -307,6 +311,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info("group 0 = " + str(match.groups(1)[0]))
             self._logger.info("group 1 = " + str(match.groups(1)[1]))
             self._logger.info("group 2 = " + str(match.groups(1)[2]))
+            self._logger.info("group 2 = " + str(match.groups(1)[3]))
 
             return response
 
