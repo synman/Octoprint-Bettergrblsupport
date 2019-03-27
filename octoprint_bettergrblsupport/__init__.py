@@ -304,30 +304,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             response = 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(*match.groups(), original=line)
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
-            x = 0
-            for item in match.groups():
-                self._logger.info("%s=%s".format(x, item))
-
-                # if x == 0:
-                #     elif x == 1:
-                #         self._logger.info("1=")
-                x = x + 1
-
             self._logger.info("group 0 = " + str(match.groups(1)[0]))
-            self._logger.info("group 1 = " + str(match.groups(2)))
-            self._logger.info("group 2 = " + str(match.groups(3)))
-
-            # self._logger.info("groups=" + match.groups())
-            # self.grblX = match.groups()[0]
-            # self.grblY = match.groups()[1]
+            self._logger.info("group 1 = " + str(match.groups(1)[1]))
+            self._logger.info("group 2 = " + str(match.groups(1)[2]))
 
             return response
 
 
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
         if not match is None:
-            self._logger.info("groups 0 = " + str(match.groups(1)))
-            self._logger.info("groups 1 = " + str(match.groups(2)))
+            self._logger.info("groups 0 = " + str(match.groups(1)[0]))
+            self._logger.info("groups 1 = " + str(match.groups(1)[1]))
 
 
 
@@ -401,9 +388,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "frame":
-            origin = data.get("origin")
+            origin = data.get("origin").strip()
 
-            if (origin.strip() == "grblCenter"):
+            if (origin == "grblCenter"):
                 self.send_bounding_box_center(float(data.get("length")), float(data.get("width")))
 
             self._settings.set(["frame_length"], data.get("length"))
