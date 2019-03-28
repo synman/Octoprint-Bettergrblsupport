@@ -86,7 +86,7 @@
           <tr>
             <td colspan=2><h5>&nbsp;X/Y</h5></td>
             <td align="right" style="padding: 0px 5px 0px 0px;" >
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() { setOrigin() }">
+              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('origin') }">
                 <i class="fa fa-crosshairs"></i>
               </button>
             </td>
@@ -126,7 +126,7 @@
             <td colspan=3 class="distance">
               <span class="btn-group" data-toggle="buttons-radio">
                 <!-- ko foreach: distances -->
-                  <button type="button" class="btn distance" data-bind="text: $data, click: function() { jogDistance($data) }, css: { active: $root.distance() === $data }"></button>
+                  <button type="button" class="btn distance" data-bind="click: function() { $root.distance($data) }, text: $data, css: { active: $root.distance() === $data }"></button>
                 <!-- /ko -->
               </span>
             </td>
@@ -137,9 +137,15 @@
       <td rowspan=5 align="center" valign="middle" style="padding: 0px 0px 0px 100px;">
         <button id="grblLaserButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
         <br>
-        <!-- <br> -->
         <br>
-        <button id="grblStateButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleState() }">Sleep</button>
+        <br>
+        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('sleep') }">Sleep</button>
+        <br>
+        <br>
+        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('unlock') }">Unlock</button>
+        <br>
+        <br>
+        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('reset') }">Reset</button>
       </td>
       </tr></table>
     </div>

@@ -95,7 +95,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # self._settings.global_set(["serial", "supportResendsWithoutOk"], "detect")
 
         if self.hideTempTab:
-            self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature"])
+            self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature", "control"])
         else:
             self._settings.global_set(["appearance", "components", "disabled", "tab"], [])
 
@@ -114,31 +114,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.save()
 
     # #~~ SettingsPlugin mixin
-
-    # def myprint(self, l):
-    #     if isinstance(l, list):
-    #         self._logger.info("list")
-    #         for i in l:
-    #
-    #             if type(i) is dict:
-    #                 self.printDict(i)
-    #             else:
-    #                 self._logger.info("{0} : {1}".format(type(i), i))
-    #
-    #
-    # def printDict(self, d):
-    #
-    #     for k, v in d.iteritems():
-    #         if isinstance(v, dict):
-    #             self._logger.info("dict key={0} (dict)".format(k))
-    #
-    #             printDict(v)
-    #         else:
-    #             if isinstance(v, list):
-    #                 self._logger.info("dict key={0} (list)".format(k))
-    #                 self.myprint(v)
-    #             else:
-    #                 self._logger.info("{0} : {1} : {2}".format(k, v, type(v)))
 
     def get_settings_defaults(self):
         return dict(
@@ -308,21 +283,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             response = 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(*match.groups(), original=line)
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
-            self._logger.info("group 0 = " + str(match.groups(1)[0]))
-            self._logger.info("group 1 = " + str(match.groups(1)[1]))
-            self._logger.info("group 2 = " + str(match.groups(1)[2]))
-            self._logger.info("group 2 = " + str(match.groups(1)[3]))
+            self.grblState = str(match.groups(1)[0])
+            self.grblX = match.groups(1)[1]
+            self.grblY = match.groups(1)[2]
 
             return response
 
-
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
         if not match is None:
-            self._logger.info("groups 0 = " + str(match.groups(1)[0]))
-            self._logger.info("groups 1 = " + str(match.groups(1)[1]))
-
-
-
+            self.grblSpeed = match.groups(1)[0]
+            self.grblPowerLevel = match.groups(1)[1]
 
         if line.startswith('Grbl'):
 
@@ -382,7 +352,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_api_commands(self):
         return dict(
-            frame=[]
+            frame=[],
+            toggleWeak=[],
+            origin=[],
+            move=[],
+            sleep=[],
+            reset=[],
+            unlock=[]
         )
 
     def on_api_command(self, command, data):
@@ -403,24 +379,76 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set(["frame_origin"], data.get("origin"))
 
             self._settings.save()
-
             return
 
         if command == "move":
             # do move stuff
-            self._logger.info("move")
+            direction = data.get("direction")
+            distance = data.get("distance")
+
+            self._logger.info("move {} {}".format(direction, distance))
+
+            if direction == "home":
+                self._printer.commands("G91")
+                self._printer.commands("G28 X0 Y0")
+                self._printer.commands("G90")
+
+            if direction == "up":
+                self._printer.commands("G91")
+                self._printer.commands("G1 Y{} F6000".format(distance))
+                self._printer.commands("G90")
+
+            if direction == "down":
+                self._printer.commands("G91")
+                self._printer.commands("G1 Y{} F6000".format(distance * -1))
+                self._printer.commands("G90")
+
+            if direction == "left":
+                self._printer.commands("G91")
+                self._printer.commands("G1 X{} F6000".format(distance * -1))
+                self._printer.commands("G90")
+
+            if direction == "right":
+                self._printer.commands("G91")
+                self._printer.commands("G1 X{} F6000".format(distance))
+                self._printer.commands("G90")
+
+            return
+
 
         if command == "origin":
             # do origin stuff
-            self._logger.info("origin")
+            self._printer.commands("$10=0")
+            self._printer.commands("G28.1")
+            self._printer.commands("G92 X0 Y0 Z0")
+
+            return
 
         if command == "toggleWeak":
             # do laser stuff
-            self._logger.info("toggleWeak")
+            if self.grblPowerLevel == 0:
+                self._printer.commands("$32=0")
+                self._printer.commands("M4 S1")
+                res = "Laser Off"
+            else:
+                self._printer.commands("$32=1")
+                self._printer.commands("M5")
+                res = "Weak Laser"
 
-        if command == "toggleState":
-            # do state stuff
-            self._logger.info("toggleState")
+            return flask.jsonify({'res' : res})
+
+        if command == "sleep":
+            self._printer.commands("$SLP")
+            return
+
+        if command == "unlock":
+            self._printer.commands("$X")
+            return
+
+        if command == "reset":
+            self._printer.commands("M999")
+            return
+
 
     # #~~ Softwareupdate hook
 

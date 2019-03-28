@@ -47,8 +47,8 @@ $(function() {
           }),
           contentType: "application/json; charset=UTF-8",
           error: function (data, status) {
-            var options = {
-              title: "Framing failed.",
+            new PNotify({
+              title: "Framing failed!",
               text: data.responseText,
               hide: true,
               buttons: {
@@ -56,38 +56,27 @@ $(function() {
                 closer: true
               },
               type: "error"
-            };
-
-            new PNotify(options);
+            });
           }
         });
       };
 
-      self.doFrame = function() {
-        var o;
-        var x = document.getElementsByName("frameOrigin");
-        var i;
-        for (i = 0; i < x.length; i++) {
-          if (x[i].checked) {
-            o = x[i].id;
-            break;
-          }
-        }
-
+      self.toggleWeak = function() {
         $.ajax({
           url: API_BASEURL + "plugin/bettergrblsupport",
           type: "POST",
           dataType: "json",
           data: JSON.stringify({
-            command: "frame",
-            length: self.length(),
-            width: self.width(),
-            origin: o
+            command: "toggleWeak"
           }),
           contentType: "application/json; charset=UTF-8",
+          success: function(data) {
+            var btn = document.getElementById("grblLaserButton");
+            btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
+          },
           error: function (data, status) {
-            var options = {
-              title: "Framing failed.",
+            new PNotify({
+              title: "Framing failed!",
               text: data.responseText,
               hide: true,
               buttons: {
@@ -95,9 +84,57 @@ $(function() {
                 closer: true
               },
               type: "error"
-            };
+            });
+          }
+        });
+      };
 
-            new PNotify(options);
+      self.moveHead = function(direction) {
+        $.ajax({
+          url: API_BASEURL + "plugin/bettergrblsupport",
+          type: "POST",
+          dataType: "json",
+          data: JSON.stringify({
+            command: "move",
+            direction: direction,
+            distance: self.distance()
+          }),
+          contentType: "application/json; charset=UTF-8",
+          error: function (data, status) {
+            new PNotify({
+              title: "Move Head failed!",
+              text: data.responseText,
+              hide: true,
+              buttons: {
+                sticker: false,
+                closer: true
+              },
+              type: "error"
+            });
+          }
+        });
+      };
+
+      self.sendCommand = function(command) {
+        $.ajax({
+          url: API_BASEURL + "plugin/bettergrblsupport",
+          type: "POST",
+          dataType: "json",
+          data: JSON.stringify({
+            command: command
+          }),
+          contentType: "application/json; charset=UTF-8",
+          error: function (data, status) {
+            new PNotify({
+              title: "Unable to set origin / home!",
+              text: data.responseText,
+              hide: true,
+              buttons: {
+                sticker: false,
+                closer: true
+              },
+              type: "error"
+            });
           }
         });
       };
@@ -121,6 +158,16 @@ $(function() {
             break;
           }
         }
+      };
+
+      self.onTabChange = function (current, previous) {
+          var streamImg = document.getElementById("webcam_image_framing");
+
+          if (current == "#tab_plugin_bettergrblsupport") {
+              streamImg.src = "/webcam/?action=stream";
+          } else if (previous == "#tab_plugin_bettergrblsupport") {
+              streamImg.src = "about:blank";
+          }
       };
 
       self.fromCurrentData = function (data) {
