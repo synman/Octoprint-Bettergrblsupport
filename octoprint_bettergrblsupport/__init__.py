@@ -271,6 +271,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('Ignoring %s', cmd)
             return (None, )
 
+        # suppress initialize SD - M21
+        if cmd.upper().startswith('M21'):
+            self._logger.debug('Ignoring %s', cmd)
+            return (None,)
+
         # suppress temperature if printer is printing
 
         if cmd.upper().startswith('M105'):
@@ -368,14 +373,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok'
 
 
-    def send_frame_init_gcode():
+    def send_frame_init_gcode(self):
         self._printer.commands("G00 G17 G40 G21 G54")
         self._printer.commands("G91")
         self._printer.commands("$32=0")
         self._printer.commands("M4 S1")
         self._printer.commands("M8")
 
-    def send_frame_end_gcode():
+    def send_frame_end_gcode(self):
         self._printer.commands("M9")
         self._printer.commands("G1S0")
         self._printer.commands("$32=1")
@@ -386,7 +391,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not self._printer.is_ready():
             return
 
-        send_frame_init_gcode()
+        self.send_frame_init_gcode()
 
         self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2 * -1, y / 2))
 
@@ -397,13 +402,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G0 Y{} S1".format(y))
         self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2, y / 2 * -1))
 
-        send_frame_end_gcode()
+        self.send_frame_end_gcode()
 
     def send_bounding_box_lower_left(self, x, y):
         if not self._printer.is_ready():
             return
 
-        send_frame_init_gcode()
+        self.send_frame_init_gcode()
 
         self._printer.commands("G91")
         self._printer.commands("G0 Y{} F4000 S1".format(y))
@@ -411,7 +416,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G0 Y{} F4000 S1".format(y * -1))
         self._printer.commands("G0 X{} F4000 S1".format(x * -1))
 
-        send_frame_end_gcode()
+        self.send_frame_end_gcode()
 
     def get_api_commands(self):
         return dict(
@@ -436,6 +441,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if (origin == "grblCenter"):
                 self.send_bounding_box_center(float(data.get("length")), float(data.get("width")))
+
+            if (origin == "grblBottomLeft"):
+                self.send_bounding_box_lower_left(float(data.get("length")), float(data.get("width")))
 
             self._settings.set(["frame_length"], data.get("length"))
             self._settings.set(["frame_width"], data.get("width"))
@@ -478,7 +486,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             return
 
-
         if command == "origin":
             # do origin stuff
             self._printer.commands("$10=0")
@@ -497,6 +504,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("$32=1")
                 self._printer.commands("M5")
                 res = "Weak Laser"
+
+            self._logger.info("weak laser {}".format(res))
 
             return flask.jsonify({'res' : res})
 
