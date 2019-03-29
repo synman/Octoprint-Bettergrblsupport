@@ -7,6 +7,7 @@
 $(function() {
     function BettergrblsupportViewModel(parameters) {
       var self = this;
+      var fs = false;
 
       // assign the injected parameters, e.g.:
       self.settings = parameters[0];
@@ -182,6 +183,12 @@ $(function() {
           self.is_printing(data.flags.printing);
           self.is_operational(data.flags.operational);
       };
+
+      self.fsClick = function () {
+        console.log("fsClick");
+        var streamImg = document.getElementById("webcam_image_framing");
+        streamImg.classList.toggle("fullscreen");
+      }
     }
 
     /* view model class, parameters for constructor, container to bind to
