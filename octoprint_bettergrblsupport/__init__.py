@@ -19,8 +19,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def __init__(self):
         self.hideTempTab = True
+        self.hideControlTab = True
         self.hideGCodeTab = True
-        self.customControls = True
+        self.customControls = False
         self.helloCommand = "M5"
         self.statusCommand = "?$G"
         self.dwellCommand = "G4 P0"
@@ -51,6 +52,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
 
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
+        self.hideControlTab = self._settings.get_boolean(["hideControlTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
         self.customControls = self._settings.get_boolean(["customControls"])
 
@@ -65,15 +67,23 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.suppressM400 = self._settings.get_boolean(["suppressM400"])
         self.disablePolling = self._settings.get_boolean(["disablePolling"])
 
-        self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
-        self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
-        self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
+        # self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
+        # self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
+        # self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
 
+        # hardcoded global settings -- should revisit how I manage these
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
         self._settings.global_set(["serial", "checksumRequiringCommands"], [])
+        self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
 
-        self._settings.global_set(["plugins", "_disabled"], ["printer_safety_check"])
+        # disable the printer safety check plugin
+        disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
+
+        if "printer_safety_check" not in disabledPlugins:
+            disabledPlugins.append("printer_safety_check")
+
+        self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
 
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
@@ -94,22 +104,51 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # self._settings.global_set(["serial", "supportResendsWithoutOk"], "detect")
 
+        # process tabs marked as disabled
+        disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
+
         if self.hideTempTab:
-            self._settings.global_set(["appearance", "components", "disabled", "tab"], ["temperature", "control"])
+            if "temperature" not in disabledTabs:
+                disabledTabs.append("temperature")
         else:
-            self._settings.global_set(["appearance", "components", "disabled", "tab"], [])
+            if "temperature" in disabledTabs:
+                disabledTabs.remove("temperature")
 
-        self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
-
-        controls = self._settings.global_get(["controls"])
-
-        if self.customControls and not controls:
-            self._logger.info("injecting custom controls")
-            self._settings.global_set(["controls"], json.loads(self.customControlsJson))
+        if self.hideControlTab:
+            if "control" not in disabledTabs:
+                disabledTabs.append("control")
         else:
-            if not self.customControls and controls:
-                self._logger.info("clearing custom controls")
-                self._settings.global_set(["controls"], [])
+            if "control" in disabledTabs:
+                disabledTabs.remove("control")
+
+        if self.hideGCodeTab:
+            if "gcodeviewer" not in disabledTabs:
+                disabledTabs.append("gcodeviewer")
+        else:
+            if "gcodeviewer" in disabledTabs:
+                disabledTabs.remove("gcodeviewer")
+
+        self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
+
+        if not self.hideControlTab:
+            controls = self._settings.global_get(["controls"])
+
+            if self.customControls and not controls:
+                self._logger.info("injecting custom controls")
+                self._settings.global_set(["controls"], json.loads(self.customControlsJson))
+            else:
+                if not self.customControls and controls:
+                    self._logger.info("clearing custom controls")
+                    self._settings.global_set(["controls"], [])
+
+        # ensure i am always the first tab
+        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+
+        if "plugin_bettergrblsupport" in orderedTabs:
+            orderedTabs.remove("plugin_bettergrblsupport")
+
+        orderedTabs.insert(0, "plugin_bettergrblsupport")
+        self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
         self._settings.save()
 
@@ -117,8 +156,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_settings_defaults(self):
         return dict(
-            firstTime = True,
             hideTempTab = True,
+            hideControlTab = True,
             hideGCodeTab = True,
             helloCommand = "M5",
             statusCommand = "?$G",
@@ -166,6 +205,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_template_vars(self):
         return dict(hideTempTab=self._settings.get_boolean(["hideTempTab"]),
+                    hideControlTab=self._settings.get_boolean(["hideControlTab"]),
                     hideGCodeTab=self._settings.get_boolean(["hideGCodeTab"]),
                     customControls=self._settings.get_boolean(["customControls"]),
                     disablePolling=self._settings.get_boolean(["disablePolling"]),
@@ -324,16 +364,25 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok'
 
 
-
-    def send_bounding_box_center(self, x, y):
-        if not self._printer.is_ready():
-            return
-
+    def send_frame_init_gcode():
         self._printer.commands("G00 G17 G40 G21 G54")
         self._printer.commands("G91")
         self._printer.commands("$32=0")
         self._printer.commands("M4 S1")
         self._printer.commands("M8")
+
+    def send_frame_end_gcode():
+        self._printer.commands("M9")
+        self._printer.commands("G1S0")
+        self._printer.commands("$32=1")
+        self._printer.commands("M5")
+        self._printer.commands("M2")
+
+    def send_bounding_box_center(self, x, y):
+        if not self._printer.is_ready():
+            return
+
+        send_frame_init_gcode()
 
         self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2 * -1, y / 2))
 
@@ -344,11 +393,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G0 Y{} S1".format(y))
         self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2, y / 2 * -1))
 
-        self._printer.commands("M9")
-        self._printer.commands("G1S0")
-        self._printer.commands("$32=1")
-        self._printer.commands("M5")
-        self._printer.commands("M2")
+        send_frame_end_gcode()
+
+    def send_bounding_box_lower_left(self, x, y):
+        if not self._printer.is_ready():
+            return
+
+        send_frame_init_gcode()
+
+        self._printer.commands("G91")
+        self._printer.commands("G0 Y{} F4000 S1".format(y))
+        self._printer.commands("G0 X{} F4000 S1".format(x))
+        self._printer.commands("G0 Y{} F4000 S1".format(y * -1))
+        self._printer.commands("G0 X{} F4000 S1".format(x * -1))
+
+        send_frame_end_gcode()
 
     def get_api_commands(self):
         return dict(

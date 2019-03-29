@@ -8,7 +8,11 @@
 						<br>
 						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
 						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
+						<!-- ko ifnot: settings.plugins.bettergrblsupport.hideControlTab -->
+							<br>
+							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
+						<!-- /ko -->
 						</label>
 				</div>
 		</div>
