@@ -32,6 +32,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.suppressM115 = True
         self.suppressM110 = True
         self.disablePolling = True
+        self.disableModelSizeDetection = True
+        self.neverSendChecksum = True
+        self.reOrderTabs = True
+        self.disablePrinterSafety = True
 
         self.grblState = None
         self.grblX = 0
@@ -67,25 +71,33 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.suppressM400 = self._settings.get_boolean(["suppressM400"])
         self.disablePolling = self._settings.get_boolean(["disablePolling"])
 
+        self.disableModelSizeDetection = self._settings.get_boolean(["disableModelSizeDetection"])
+        self.neverSendChecksum = self._settings.get_boolean(["neverSendChecksum"])
+        self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
+
         # self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
         # self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
         # self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
 
         # hardcoded global settings -- should revisit how I manage these
-        self._settings.global_set_boolean(["feature", "modelSizeDetection"], False)
-        self._settings.global_set_boolean(["serial", "neverSendChecksum"], True)
-        self._settings.global_set(["serial", "checksumRequiringCommands"], [])
+        self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
+        self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
+
+        if self.neverSendChecksum:
+            self._settings.global_set(["serial", "checksumRequiringCommands"], [])
+
         self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
 
         # disable the printer safety check plugin
-        disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
-        if disabledPlugins == None:
-            disabledPlugins = []
+        if self.disablePrinterSafety:
+            disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
+            if disabledPlugins == None:
+                disabledPlugins = []
 
-        if "printer_safety_check" not in disabledPlugins:
-            disabledPlugins.append("printer_safety_check")
+            if "printer_safety_check" not in disabledPlugins:
+                disabledPlugins.append("printer_safety_check")
 
-        self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
+            self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
 
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
@@ -146,13 +158,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._settings.global_set(["controls"], [])
 
         # ensure i am always the first tab
-        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+        if self.reOrderTabs:
+            orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
 
-        if "plugin_bettergrblsupport" in orderedTabs:
-            orderedTabs.remove("plugin_bettergrblsupport")
+            if "plugin_bettergrblsupport" in orderedTabs:
+                orderedTabs.remove("plugin_bettergrblsupport")
 
-        orderedTabs.insert(0, "plugin_bettergrblsupport")
-        self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
+            orderedTabs.insert(0, "plugin_bettergrblsupport")
+            self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
         self._settings.save()
 
@@ -180,7 +193,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             distance = 10,
             distances = [.1, 1, 10, 100],
             is_printing = False,
-            is_operational = False
+            is_operational = False,
+            disableModelSizeDetection = True,
+            neverSendChecksum = True,
+            reOrderTabs = True,
+            disablePrinterSafety = True
         )
 
     # def on_settings_save(self, data):
@@ -221,6 +238,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     positionCommand=self._settings.get(["positionCommand"]),
                     statusCommand=self._settings.get(["statusCommand"]),
                     dwellCommand=self._settings.get(["dwellCommand"]),
+                    disableModelSizeDetection=self._settings.get(["disableModelSizeDetection"]),
+                    neverSendChecksum=self._settings.get(["neverSendChecksum"]),
+                    reOrderTabs=self._settings.get(["reOrderTabs"]),
+                    disablePrinterSafety=self._settings.get(["disablePrinterSafety"]),
                     helloCommand=self._settings.get(["helloCommand"]))
 
     # #-- EventHandlerPlugin mix-in
@@ -333,14 +354,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
             self.grblState = str(match.groups(1)[0])
-            self.grblX = match.groups(1)[1]
-            self.grblY = match.groups(1)[2]
+            self.grblX = int(match.groups(1)[1])
+            self.grblY = int(match.groups(1)[2])
 
             return response
 
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
         if not match is None:
-            self.grblSpeed = match.groups(1)[0]
+            self.grblSpeed = int(match.groups(1)[0])
             self.grblPowerLevel = int(match.groups(1)[1])
 
         if line.startswith('Grbl'):
@@ -457,7 +478,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             direction = data.get("direction")
             distance = data.get("distance")
 
-            self._logger.info("move {} {}".format(direction, distance))
+            self._logger.debug("move {} {}".format(direction, distance))
 
             if direction == "home":
                 self._printer.commands("G91")

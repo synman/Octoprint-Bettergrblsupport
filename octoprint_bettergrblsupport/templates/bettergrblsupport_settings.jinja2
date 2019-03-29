@@ -4,6 +4,8 @@
 		<div class="control-group">
 				<div class="controls">
 						<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
+						<br>
 						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
 						<br>
 						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
@@ -63,7 +65,13 @@
 				</label>
 				<br>
 				<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model Size Detection *
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.neverSendChecksum"> Never Send Checksums *
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
 				</label>
 		</div>
 
