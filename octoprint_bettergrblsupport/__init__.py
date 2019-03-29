@@ -497,7 +497,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "toggleWeak":
             # do laser stuff
             powerLevel = self.grblPowerLevel
-            self._logger.info("weak laser initial {} - {}".format(powerLevel, self.grblPowerLevel))
+            self._logger.info("weak laser initial {} - {} - {} = {}".format(powerLevel, self.grblPowerLevel, type(0), type(powerLevel)))
 
             if powerLevel == 0:
                 self._printer.commands("$32=0")
