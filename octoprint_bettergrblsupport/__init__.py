@@ -80,7 +80,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # disable the printer safety check plugin
         disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
         if disabledPlugins == None:
-            disabledPlugins = new List()
+            disabledPlugins = []
 
         if "printer_safety_check" not in disabledPlugins:
             disabledPlugins.append("printer_safety_check")
@@ -109,7 +109,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # process tabs marked as disabled
         disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
         if disabledTabs == None:
-            disabledTabs = new List()
+            disabledTabs = []
 
         if self.hideTempTab:
             if "temperature" not in disabledTabs:
