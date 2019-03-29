@@ -7,10 +7,11 @@
 }
 
 .fullscreen img {
-	width: 100%;
-	height: auto;
-	margin-left: -50vw;
-	margin-right: -50vw;
-	position: relative;
-	max-width: 100vw;
+	left: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  max-width: 100vw;
+  position: relative;
+  right: 50%;
+  width: 100vw;
 }
