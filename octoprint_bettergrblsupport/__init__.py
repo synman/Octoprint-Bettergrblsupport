@@ -500,12 +500,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("$32=0")
                 self._printer.commands("M4 S1")
                 res = "Laser Off"
+                self._logger.info("weak laser ON {} - {}".format(self.grblPowerLevel, res))
             else:
                 self._printer.commands("$32=1")
                 self._printer.commands("M5")
                 res = "Weak Laser"
-
-            self._logger.info("weak laser {} - {}".format(self.grblPowerLevel, res))
+                self._logger.info("weak laser OFF {} - {}".format(self.grblPowerLevel, res))
 
             return flask.jsonify({'res' : res})
 
