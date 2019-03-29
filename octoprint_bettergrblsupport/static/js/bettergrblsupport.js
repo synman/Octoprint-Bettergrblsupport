@@ -161,6 +161,8 @@ $(function() {
       };
 
       self.onTabChange = function (current, previous) {
+          alert("current=" + current + " previous=" + previous);
+          
           var streamImg = document.getElementById("webcam_image_framing");
 
           if (current == "#tab_plugin_bettergrblsupport") {
