@@ -341,7 +341,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
         if not match is None:
             self.grblSpeed = match.groups(1)[0]
-            self.grblPowerLevel = match.groups(1)[1]
+            self.grblPowerLevel = int(match.groups(1)[1])
 
         if line.startswith('Grbl'):
 
@@ -497,18 +497,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "toggleWeak":
             # do laser stuff
             powerLevel = self.grblPowerLevel
-            self._logger.info("weak laser initial {} - {} - {} = {}".format(powerLevel, self.grblPowerLevel, type(0), type(powerLevel)))
 
             if powerLevel == 0:
                 self._printer.commands("$32=0")
                 self._printer.commands("M4 S1")
                 res = "Laser Off"
-                self._logger.info("weak laser ON {} - {}".format(powerLevel, res))
             else:
                 self._printer.commands("$32=1")
                 self._printer.commands("M5")
                 res = "Weak Laser"
-                self._logger.info("weak laser OFF {} - {}".format(powerLevel, res))
 
             return flask.jsonify({'res' : res})
 

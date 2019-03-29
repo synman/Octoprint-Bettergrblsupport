@@ -164,7 +164,7 @@ $(function() {
           var streamImg = document.getElementById("webcam_image_framing");
 
           if (current == "#tab_plugin_bettergrblsupport") {
-              streamImg.src = "/webcam/?action=stream";
+              streamImg.src = "/webcam/?action=stream&" + Math.floor(Math.random() * 1000000);   ;
               alert("current=" + current + " previous=" + previous);
           } else if (previous == "#tab_plugin_bettergrblsupport") {
               streamImg.src = "about:blank";
