@@ -1,10 +1,14 @@
 
+<div class="webcam_fixed_ratio_inner" style="padding: 10px 0px 0px 0px;">
+    <img id="webcam_image_framing" data-bind="click: function() { fsClick() }, css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream">
+</div>
+
 <div class="settings">
   <form class="form-horizontal">
     <div class="settings-group">
       <div class="settings-controls">
         <!-- <h4>Framing</h4> -->
-        <table border=1 width="100%" style="padding: 0px 10px 10px 10px;"><tr><td>
+        <table border=0 width="100%" style="padding: 0px 10px 10px 10px;"><tr><td>
           <table class="input-append" border=0 align="center" width="100%" cellspacing="10">
             <tr class="settings-label">
               <td>
@@ -76,12 +80,9 @@
           </table>
         </td></tr></table>
       </div>
-      <div class="webcam_fixed_ratio_inner" style="padding: 10px 0px 0px 0px;">
-          <img id="webcam_image_framing" data-bind="click: function() { fsClick() }, css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream">
-      </div>
       <h4>&nbsp;</h4>
       <table border=0 align="center"><tr><td>
-      <table border=1><tr><td>
+      <table border=0><tr><td>
         <table class="jog-panel">
           <tr>
             <td colspan=2><h5>&nbsp;X/Y</h5></td>
