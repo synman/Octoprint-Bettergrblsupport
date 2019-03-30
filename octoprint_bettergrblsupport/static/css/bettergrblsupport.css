@@ -15,3 +15,27 @@
   right: 50%;
   width: 100vw;
 }
+
+.inlineFullscreen {
+	overflow: hidden;
+}
+.inlineFullscreen #webcam_image {
+	z-index: 9998;
+}
+.inlineFullscreen #fullscreen-bar {
+	z-index: 9999;
+}
+.inlineFullscreen #webcam_container {
+	position: static;
+}
+.inlineFullscreen .webcam_fixed_ratio_inner {
+	height: 100vh !important;
+}
+.inlineFullscreen #webcam_rotator {
+	width: 100vw;
+	height: 100vh !important;
+	padding: 0;
+	position: absolute;
+	top: 0;
+	left: 0;
+}

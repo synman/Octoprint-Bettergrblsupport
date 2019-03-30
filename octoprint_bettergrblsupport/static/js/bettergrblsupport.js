@@ -9,6 +9,9 @@ $(function() {
       var self = this;
       var fs = false;
 
+      var $body = $('body');
+      var $container = $('.webcam_fixed_ratio_inner');
+
       // assign the injected parameters, e.g.:
       self.settings = parameters[0];
       self.loginState = parameters[1];
@@ -24,6 +27,14 @@ $(function() {
 
       tab = document.getElementById("tab_plugin_bettergrblsupport_link");
       tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
+
+      self.webcamFrameRatioClass = ko.pureComputed(function() {
+          if (self.settings.webcam_streamRatio() == "4:3") {
+              return "ratio43";
+          } else {
+              return "ratio169";
+          }
+      });
 
       self.doFrame = function() {
         var o;
@@ -187,9 +198,17 @@ $(function() {
       self.fsClick = function () {
         console.log("fsClick");
         var streamImg = document.getElementById("webcam_image_framing");
-        streamImg.classList.toggle("fullscreen");
+
+        $body.toggleClass('inlineFullscreen');
+        $container.toggleClass("inline fullscreen");
+        // streamImg.classList.toggle("fullscreen");
+      }
+
+      self.onWebcamFrameErrored = function() {
+        alert("webcam frame error");
       }
     }
+
 
     /* view model class, parameters for constructor, container to bind to
      * Please see http://docs.octoprint.org/en/master/plugins/viewmodels.html#registering-custom-viewmodels for more details
