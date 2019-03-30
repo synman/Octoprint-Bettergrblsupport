@@ -10,7 +10,19 @@ $(function() {
       var fs = false;
 
       var $body = $('body');
-      var $container = $('.webcam_fixed_ratio_inner');
+      var jogPanel = $('#jog_panel');
+      var framingPanel = $('#framing_panel');
+      var radioButtons = $('#radio_buttons');
+
+      var container;
+
+      if($(".webcam_fixed_ratio").length > 0) {
+        $container = $('.webcam_fixed_ratio');
+        // $fullscreenContainer = $("#webcam_rotator");
+      } else {
+        $container = $('#webcam_rotator_framing');
+        // $fullscreenContainer = $("#webcam_container");
+      }
 
       // assign the injected parameters, e.g.:
       self.settings = parameters[0];
@@ -202,6 +214,25 @@ $(function() {
         $body.toggleClass('inlineFullscreen');
         $container.toggleClass("inline fullscreen");
         // streamImg.classList.toggle("fullscreen");
+
+        if (jogPanel.is(':visible')) {
+          jogPanel.hide();
+        } else {
+          jogPanel.show();
+        }
+
+        if (framingPanel.is(':visible')) {
+          framingPanel.hide();
+        } else {
+          framingPanel.show();
+        }
+
+        if (radioButtons.is(':visible')) {
+          radioButtons.hide();
+        } else {
+          radioButtons.show();
+        }
+
       }
 
       self.onWebcamFrameErrored = function() {

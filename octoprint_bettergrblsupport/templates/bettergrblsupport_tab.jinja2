@@ -3,10 +3,14 @@
     <img id="webcam_image_framing" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream">
 </div> -->
 
-<div class="webcam_fixed_ratio" data-bind="css: webcamFrameRatioClass">
-    <div class="webcam_fixed_ratio_inner">
-        <img id="webcam_image_framing" data-bind="click: function() { fsClick() }, css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }, event: { error: onWebcamFrameErrored }">
+<div id="webcam_container_framing">
+  <div id="webcam_rotator_framing" data-bind="css: { webcam_rotated: settings.webcam_rotate90(), webcam_unrotated: !settings.webcam_rotate90() }">
+    <div class="webcam_fixed_ratio" data-bind="css: webcamFrameRatioClass">
+        <div class="webcam_fixed_ratio_inner">
+            <img id="webcam_image_framing" data-bind="click: function() { fsClick() }, css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }, event: { error: onWebcamFrameErrored }">
+        </div>
     </div>
+  </div>
 </div>
 
 <div class="settings">
@@ -18,7 +22,7 @@
           <table class="input-append" border=0 align="center" width="100%" cellspacing="10">
             <tr class="settings-label">
               <td>
-                <table align="center" border=0>
+                <table align="center" border=0 id="framing_panel">
                   <tr valign="top"><td align="left"><h5 style="vertical-align: top">&nbsp;Framing</h5></td></tr>
                   <tr class="settings-label">
                     <td align="right" valign="middle">
@@ -57,7 +61,7 @@
                   <tr>
                     <td align="center">
                       <table border=1><tr><td>
-                        <table border=0 align="center">
+                        <table border=0 align="center" id="radio_buttons">
                           <tr>
                             <td align="center" style="padding: 0px 5px 5px 5px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
                             <td align="center" style="padding: 0px 10px 5px 10px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" type="radio"/></td>
@@ -89,7 +93,7 @@
       <h4>&nbsp;</h4>
       <table border=0 align="center"><tr><td>
       <table border=0><tr><td>
-        <table class="jog-panel">
+        <table class="jog-panel" id="jog_panel">
           <tr>
             <td colspan=2><h5>&nbsp;X/Y</h5></td>
             <td align="right" style="padding: 0px 5px 0px 0px;" >

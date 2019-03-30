@@ -6,32 +6,93 @@
 	height: 100%;
 }
 
+.fullscreen {
+	pointer-events: all !important;
+	padding: 0 !important;
+	position: absolute !important;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: black;
+	z-index: 99;
+
+	display: -ms-flexbox;
+	display: -webkit-flex;
+	display: flex;
+	-webkit-flex-direction: row;
+	-ms-flex-direction: row;
+	flex-direction: row;
+	-webkit-flex-wrap: nowrap;
+	-ms-flex-wrap: nowrap;
+	flex-wrap: nowrap;
+	-webkit-justify-content: center;
+	-ms-flex-pack: center;
+	justify-content: center;
+	-webkit-align-content: center;
+	-ms-flex-line-pack: center;
+	align-content: center;
+	-webkit-align-items: center;
+	-ms-flex-align: center;
+}
+.fullscreen .webcam_fixed_ratio_inner {
+	display: -ms-flexbox;
+	display: -webkit-flex;
+	display: flex;
+	-webkit-flex-direction: row;
+	-ms-flex-direction: row;
+	flex-direction: row;
+	-webkit-flex-wrap: nowrap;
+	-ms-flex-wrap: nowrap;
+	flex-wrap: nowrap;
+	-webkit-justify-content: center;
+	-ms-flex-pack: center;
+	justify-content: center;
+	-webkit-align-content: center;
+	-ms-flex-line-pack: center;
+	align-content: center;
+	-webkit-align-items: center;
+	-ms-flex-align: center;
+}
 .fullscreen img {
-	left: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  max-width: 100vw;
-  position: relative;
-  right: 50%;
-  width: 100vw;
+	width: 100%;
+	height: auto;
+	object-fit: contain;
+	display: block;
+	z-index: 1000;
+	max-height: 100vh;
+	max-width: 100vw;
+}
+
+.fullscreen distance {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: -1;
+}
+
+_:-ms-lang(x), _:-webkit-full-screen, .fullscreen img {
+	width: auto;
+	height: 100%;
 }
 
 .inlineFullscreen {
 	overflow: hidden;
 }
-.inlineFullscreen #webcam_image {
+.inlineFullscreen #webcam_image_framing {
 	z-index: 9998;
 }
-.inlineFullscreen #fullscreen-bar {
-	z-index: 9999;
+
+.inlineFullscreen #webcam_container_framing {
+	position: fixed;
+	top: 0;
+	left: 0;
 }
-.inlineFullscreen #webcam_container {
-	position: static;
-}
+
 .inlineFullscreen .webcam_fixed_ratio_inner {
 	height: 100vh !important;
 }
-.inlineFullscreen #webcam_rotator {
+.inlineFullscreen #webcam_rotator_framing {
 	width: 100vw;
 	height: 100vh !important;
 	padding: 0;
