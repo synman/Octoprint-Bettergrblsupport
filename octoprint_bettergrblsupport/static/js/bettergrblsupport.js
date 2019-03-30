@@ -236,7 +236,7 @@ $(function() {
       }
 
       self.onWebcamFrameErrored = function() {
-        alert("webcam frame error");
+        // alert("webcam frame error");
       }
     }
 

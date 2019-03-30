@@ -408,7 +408,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("M5")
         self._printer.commands("M2")
 
-    def send_bounding_box_center(self, x, y):
+    def send_bounding_box_center(self, y, x):
         if not self._printer.is_ready():
             return
 
@@ -425,7 +425,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.send_frame_end_gcode()
 
-    def send_bounding_box_lower_left(self, x, y):
+    def send_bounding_box_lower_left(self, y, x):
         if not self._printer.is_ready():
             return
 
