@@ -38,8 +38,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.disablePrinterSafety = True
 
         self.grblState = None
-        self.grblX = 0
-        self.grblY = 0
+        self.grblX = float(0)
+        self.grblY = float(0)
         self.grblSpeed = 0
         self.grblPowerLevel = 0
 
@@ -354,8 +354,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
             self.grblState = str(match.groups(1)[0])
-            self.grblX = int(match.groups(1)[1])
-            self.grblY = int(match.groups(1)[2])
+            self.grblX = float(match.groups(1)[1])
+            self.grblY = float(match.groups(1)[2])
 
             # self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
             #                                                                 state=self.grblState,
