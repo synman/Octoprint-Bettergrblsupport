@@ -350,13 +350,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # It needs a different format. Put both on the same line so the GRBL info is not lost
              # and is accessible for "controls" to read.
 
-            response = 'ok X:{0} Y:{1} Z:{2} E:0 {original}'.format(*match.groups(), original=line)
+            response = 'ok X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
             self.grblState = str(match.groups(1)[0])
             self.grblX = float(match.groups(1)[1])
             self.grblY = float(match.groups(1)[2])
 
+            if grblState == ""
             # self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
             #                                                                 state=self.grblState,
             #                                                                 x=self.grblX,
