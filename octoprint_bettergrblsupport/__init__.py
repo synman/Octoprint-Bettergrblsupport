@@ -364,7 +364,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblX = float(match.groups(1)[1])
             self.grblY = float(match.groups(1)[2])
 
-            if self.grblState == "Sleep":
+            if self.grblState == "Sleep" or self.grblState == "Run":
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                 state=self.grblState,
                                                                                 x=self.grblX,
