@@ -357,12 +357,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblX = int(match.groups(1)[1])
             self.grblY = int(match.groups(1)[2])
 
+            # self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+            #                                                                 state=self.grblState,
+            #                                                                 x=self.grblX,
+            #                                                                 y=self.grblY,
+            #                                                                 speed=self.grblSpeed,
+            #                                                                 power=self.grblPowerLevel))
+
             return response
 
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
         if not match is None:
             self.grblSpeed = int(match.groups(1)[0])
             self.grblPowerLevel = int(match.groups(1)[1])
+
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                            state=self.grblState,
+                                                                            x=self.grblX,
+                                                                            y=self.grblY,
+                                                                            speed=self.grblSpeed,
+                                                                            power=self.grblPowerLevel))
 
         if line.startswith('Grbl'):
 
