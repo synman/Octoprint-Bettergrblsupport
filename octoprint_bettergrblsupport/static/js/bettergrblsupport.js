@@ -212,10 +212,10 @@ $(function() {
       self.onDataUpdaterPluginMessage = function(plugin, data) {
         console.log(plugin);
         console.log(data);
-      }
+      };
 
       self.fsClick = function () {
-        console.log("fsClick");
+        // console.log("fsClick");
         var streamImg = document.getElementById("webcam_image_framing");
 
         $body.toggleClass('inlineFullscreen');
