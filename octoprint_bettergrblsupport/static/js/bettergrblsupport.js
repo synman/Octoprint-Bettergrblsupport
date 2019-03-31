@@ -197,6 +197,7 @@ $(function() {
       };
 
       self.fromCurrentData = function (data) {
+        console.log(data);
           self._processStateData(data.state);
       };
 
