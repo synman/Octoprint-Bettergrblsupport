@@ -39,6 +39,12 @@ $(function() {
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
 
+      self.state = ko.observable("N/A");
+      self.xPos = ko.observable("0.00");
+      self.yPos = ko.observable("0.00");
+      self.power = ko.observable("0");
+      self.speed = ko.observable("0");
+
       tab = document.getElementById("tab_plugin_bettergrblsupport_link");
       tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
 
@@ -211,7 +217,13 @@ $(function() {
 
       self.onDataUpdaterPluginMessage = function(plugin, data) {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
-          console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " power=" + data.power + " speed=" + data.speed);
+          self.state(data.state);
+          self.xPos(Number.parseFloat(data.x).toFixed(2));
+          self.yPos(Number.parseFloat(data.y).toFixed(2));
+          self.power(data.power);
+          self.speed(data.speed);
+
+          // console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " power=" + data.power + " speed=" + data.speed);
         }
       };
 
