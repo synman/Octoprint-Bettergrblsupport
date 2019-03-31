@@ -60,7 +60,7 @@
                   </tr>
                   <tr>
                     <td align="center">
-                      <table border=1><tr><td>
+                      <table border=0><tr><td>
                         <table border=0 align="center" id="radio_buttons">
                           <tr>
                             <td align="center" style="padding: 0px 5px 5px 5px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
@@ -90,9 +90,24 @@
           </table>
         </td></tr></table>
       </div>
-      <h4>&nbsp;</h4>
-      <table border=0 align="center"><tr><td>
-      <table border=0><tr><td>
+      <!-- <h4>&nbsp;</h4> -->
+      <hr>
+      <table border=0 align="center" width="100%" >
+        <tr>
+          <td align="left" width="10%"><h4>
+            <!-- <table cellpadding=5>
+              <tr>
+                <td align="right">X:</td>
+                <td align="right">0000</td>
+              </tr>
+              <tr>
+                <td align="right">Y:</td>
+                <td align="right">0000</td>
+              </tr>
+            </table> -->
+          </td>
+        <td>
+      <!-- <table border=0><tr><td> -->
         <table class="jog-panel" id="jog_panel">
           <tr>
             <td colspan=2><h5>&nbsp;X/Y</h5></td>
@@ -143,9 +158,9 @@
             </td>
           </tr>
         </table>
-      </td></tr></table>
+      <!-- </td></tr></table> -->
     </td>
-      <td id="laser_buttons" rowspan=5 align="center" valign="middle" style="padding: 0px 0px 0px 100px;">
+      <td id="laser_buttons" rowspan=5 align="center" valign="middle" width="50%">
         <button id="grblLaserButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
         <br>
         <br>
