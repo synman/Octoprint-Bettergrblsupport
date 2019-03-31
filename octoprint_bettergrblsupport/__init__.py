@@ -335,6 +335,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
 
+        if line.startswith('Grbl'):
+             # Hack to make Arduino based GRBL work.
+             # When the serial port is opened, it resets and the "hello" command
+             # is not processed.
+             # This makes Octoprint recognise the startup message as a successful connection.
+            return 'ok ' + line
+
         if 'MPos' in line or 'WPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
@@ -357,7 +364,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblX = float(match.groups(1)[1])
             self.grblY = float(match.groups(1)[2])
 
-            if grblState == ""
+            # if grblState == ""
             # self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
             #                                                                 state=self.grblState,
             #                                                                 x=self.grblX,
@@ -378,15 +385,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             y=self.grblY,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel))
-
-        if line.startswith('Grbl'):
-
-             # Hack to make Arduino based GRBL work.
-             # When the serial port is opened, it resets and the "hello" command
-             # is not processed.
-             # This makes Octoprint recognise the startup message as a successful connection.
-
-            return 'ok ' + line
 
         if not line.rstrip().endswith('ok'):
             return line
