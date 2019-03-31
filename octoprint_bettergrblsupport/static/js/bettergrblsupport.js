@@ -13,6 +13,8 @@ $(function() {
       var jogPanel = $('#jog_panel');
       var framingPanel = $('#framing_panel');
       var radioButtons = $('#radio_buttons');
+      var frameButton = $('#frame_button');
+      var laserButtons = $('#laser_buttons');
 
       var container;
 
@@ -233,6 +235,17 @@ $(function() {
           radioButtons.show();
         }
 
+        if (frameButton.is(':visible')) {
+          frameButton.hide();
+        } else {
+          frameButton.show();
+        }
+
+        if (laserButtons.is(':visible')) {
+          laserButtons.hide();
+        } else {
+          laserButtons.show();
+        }
       }
 
       self.onWebcamFrameErrored = function() {

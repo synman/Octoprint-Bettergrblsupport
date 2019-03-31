@@ -83,7 +83,7 @@
                   </tr>
                 </table>
               </td>
-              <td align="center" style="padding: 0px 20px 0px 20px;">
+              <td id="frame_button" align="center" style="padding: 0px 20px 0px 20px;">
                 <button class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { doFrame() }">Draw Frame</button>
               </td>
             </tr>
@@ -145,7 +145,7 @@
         </table>
       </td></tr></table>
     </td>
-      <td rowspan=5 align="center" valign="middle" style="padding: 0px 0px 0px 100px;">
+      <td id="laser_buttons" rowspan=5 align="center" valign="middle" style="padding: 0px 0px 0px 100px;">
         <button id="grblLaserButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
         <br>
         <br>
