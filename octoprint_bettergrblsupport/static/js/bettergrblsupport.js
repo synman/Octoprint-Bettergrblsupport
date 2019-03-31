@@ -210,7 +210,7 @@ $(function() {
       };
 
       self.onDataUpdaterPluginMessage = function(plugin, data) {
-        if (plugin == 'bettergrblsupport') {
+        if (plugin == 'bettergrblsupport' and data.type == 'grbl_state') {
           console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " power=" + data.power + " speed=" + data.speed);
         }
       };
