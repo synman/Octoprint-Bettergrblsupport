@@ -211,8 +211,9 @@ $(function() {
       };
 
       self.onDataUpdaterPluginMessage = function(plugin, data) {
-        console.log(plugin);
-        console.log(data);
+        if (plugin == 'bettergrblsupport') {
+          console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " power=" + data.power + " speed=" + data.speed);
+        }
       };
 
       self.fsClick = function () {
