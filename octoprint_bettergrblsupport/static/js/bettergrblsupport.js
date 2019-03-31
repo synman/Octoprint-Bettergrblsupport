@@ -40,10 +40,10 @@ $(function() {
       self.is_operational = ko.observable(false);
 
       self.state = ko.observable("N/A");
-      self.xPos = ko.observable("0.00");
-      self.yPos = ko.observable("0.00");
-      self.power = ko.observable("0");
-      self.speed = ko.observable("0");
+      self.xPos = ko.observable("N/A");
+      self.yPos = ko.observable("N/A");
+      self.power = ko.observable("N/A");
+      self.speed = ko.observable("N/A");
 
       tab = document.getElementById("tab_plugin_bettergrblsupport_link");
       tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
