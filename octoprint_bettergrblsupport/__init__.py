@@ -262,12 +262,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set_boolean(["is_operational"], is_operational)
             self._settings.save()
 
-        subscribed_events = Events.FILE_SELECTED +
-                            Events.FILE_DESELECTED +
-                            Events.PRINT_CANCELLED +
-                            Events.PRINT_FAILED +
-                            Events.PRINT_DONE
-
+        subscribed_events = Events.FILE_SELECTED + Events.FILE_DESELECTED + Events.PRINT_CANCELLED + Events.PRINT_FAILED + Events.PRINT_DONE
         if subscribed_events.find(event) == -1:
             return
 
