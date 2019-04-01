@@ -4,6 +4,9 @@
 from __future__ import absolute_import
 from octoprint.events import Events
 
+# import sys
+import time
+
 import octoprint.plugin
 import re
 import logging
@@ -42,6 +45,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblY = float(0)
         self.grblSpeed = 0
         self.grblPowerLevel = 0
+
+        self.timeRef = 0
+
+        # self.grblLastX = sys.float_info.min
+        # self.grblLastY = sys.float_info.min
 
 
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F6000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
@@ -200,11 +208,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             disablePrinterSafety = True
         )
 
-    # def on_settings_save(self, data):
-    #     octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-    #
-    #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
-    #     self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
+    def on_settings_save(self, data):
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+        self.on_after_startup()
 
     # #~~ AssetPlugin mixin
 
@@ -262,13 +268,44 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
-            # selected_file = self._settings.global_get_basefolder("uploads") + '/' + payload['path']
-            # f = open(selected_file, 'r')
-            #
-            # for line in f:
-            #     self._logger.info("[%s]" % line.strip())
-            #
-            # self._logger.info('finished reading [%s]', selected_file)
+            selected_file = self._settings.global_get_basefolder("uploads") + '/' + payload['path']
+            f = open(selected_file, 'r')
+
+            minX = float(0)
+            minY = float(0)
+            maxX = float(0)
+            maxY = float(0)
+
+            x = float(0)
+            y = float(0)
+
+            for line in f:
+                if line.startswith("G0") or line.startswith("G1"):
+                    match = re.search(r"^G[01].*X(-?[\d.]+).*", line)
+                    if not match is None:
+                        x = x + float(match.groups(1)[0])
+                        if x < minX:
+                            minX = x
+                        if x > maxX:
+                            maxX = x
+
+                    match = re.search(r"^G[01].*Y(-?[\d.]+).*", line)
+                    if not match is None:
+                        y = y + float(match.groups(1)[0])
+                        if y < minY:
+                            minY = y
+                        if y > maxY:
+                            maxY = y
+
+            length = maxY - minY
+            width = maxY - minX
+
+            self._logger.info('finished reading {} length={} width={}'.format(selected_file, length, width))
+
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_frame_size",
+                                                                            length=length,
+                                                                            width=width))
+
             return
 
         if event == Events.FILE_DESELECTED:
@@ -277,17 +314,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         return
 
     # #-- gcode sending hook
-
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
 
          # rewrite M115 as M5 (hello)
-
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
             return (self.helloCommand, )
 
          # suppress reset line #s
-
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
             return (None, )
@@ -298,9 +332,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return (None,)
 
         # suppress temperature if printer is printing
-
         if cmd.upper().startswith('M105'):
-            if self.disablePolling and self._printer.is_printing():
+            if self.disablePolling and (self._printer.is_printing() or self.grblState == "Run"):
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
@@ -308,31 +341,62 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
                     return (self.statusCommand, )
 
-         # Wait for moves to finish before turning off the spindle
-
+        # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
             self._logger.debug('Rewriting M400 as %s' % self.dwellCommand)
             return (self.dwellCommand, )
 
-         # rewrite current position
-
+        # rewrite current position
         if self.suppressM114 and cmd.upper().startswith('M114'):
             self._logger.debug('Rewriting M114 as %s' % self.positionCommand)
             return (self.positionCommand, )
 
-         # soft reset / resume (stolen from Marlin)
-
+        # soft reset / resume (stolen from Marlin)
         if cmd.upper().startswith('M999'):
             self._logger.info('Sending Soft Reset')
             # self._printer.commands("\x18")
             return ("\x18",)
+
+        # keep track of distance traveled
+        if cmd.startswith("G0") or cmd.startswith("G1"):
+            found = False
+            match = re.search(r"^G[01].*X(-?[\d.]+).*", cmd)
+            if not match is None:
+                self.grblX = self.grblX + float(match.groups(1)[0])
+                found = True
+
+            match = re.search(r"^G[01].*Y(-?[\d.]+).*", cmd)
+            if not match is None:
+                self.grblY = self.grblY + float(match.groups(1)[0])
+                found = True
+
+            match = re.search(r"^G[01].*F(-?[\d.]+).*", cmd)
+            if not match is None:
+                self.grblSpeed = int(match.groups(1)[0])
+                found = True
+
+            match = re.search(r"^G[01].*S(-?[\d.]+).*", cmd)
+            if not match is None:
+                self.grblPowerLevel = int(float(match.groups(1)[0]))
+                found = True
+
+            if found:
+                currentTime = int(round(time.time() * 1000))
+                if currentTime > self.timeRef + 500:
+                    # self._logger.info("x={} y={} f={} s={}".format(self.grblX, self.grblY, self.grblSpeed, self.grblPowerLevel))
+                    self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                                    state=self.grblState,
+                                                                                    x=self.grblX,
+                                                                                    y=self.grblY,
+                                                                                    speed=self.grblSpeed,
+                                                                                    power=self.grblPowerLevel))
+                    self.timeRef = currentTime
 
         return None
 
     # #-- gcode received hook (
     # original author:  https://github.com/mic159
     # source: https://github.com/mic159/octoprint-grbl-plugin)
-
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
 
         if line.startswith('Grbl'):

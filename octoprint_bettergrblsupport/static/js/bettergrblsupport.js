@@ -222,8 +222,14 @@ $(function() {
           self.yPos(Number.parseFloat(data.y).toFixed(2));
           self.power(data.power);
           self.speed(data.speed);
-
           // console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " power=" + data.power + " speed=" + data.speed);
+          return
+        }
+
+        if (plugin == 'bettergrblsupport' && data.type == 'grbl_frame_size') {
+          self.width(Number.parseFloat(data.width).toFixed(0));
+          self.length(Number.parseFloat(data.length).toFixed(0));
+          return
         }
       };
 
