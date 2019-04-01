@@ -285,7 +285,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             for line in f:
                 if line.startswith("G0") or line.startswith("G1"):
-                    match = re.search(r"^G[01].*X(-?[\d.]+).*", line)
+                    match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", line)
                     if not match is None:
                         x = x + float(match.groups(1)[0])
                         if x < minX:
@@ -293,7 +293,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         if x > maxX:
                             maxX = x
 
-                    match = re.search(r"^G[01].*Y(-?[\d.]+).*", line)
+                    match = re.search(r"^G[01].*Y\ *(-?[\d.]+).*", line)
                     if not match is None:
                         y = y + float(match.groups(1)[0])
                         if y < minY:
@@ -364,22 +364,22 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # keep track of distance traveled
         if cmd.startswith("G0") or cmd.startswith("G1"):
             found = False
-            match = re.search(r"^G[01].*X(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", cmd)
             if not match is None:
                 self.grblX = self.grblX + float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*Y(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[01].*Y\ *(-?[\d.]+).*", cmd)
             if not match is None:
                 self.grblY = self.grblY + float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*F(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[01].*F\ *(-?[\d.]+).*", cmd)
             if not match is None:
                 self.grblSpeed = int(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*S(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[01].*S\ *(-?[\d.]+).*", cmd)
             if not match is None:
                 self.grblPowerLevel = int(float(match.groups(1)[0]))
                 found = True
