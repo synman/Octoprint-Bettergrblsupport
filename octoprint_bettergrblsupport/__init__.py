@@ -412,7 +412,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + line
 
         # hack to force status updates
-        if line.startswith("[MSG:Pgm End]" and self.grblState == "Run":
+        if line.startswith("[MSG:Pgm End]") and self.grblState == "Run":
             if self.suppressM105:
                 self._printer.commands(self.statusCommand)
 
