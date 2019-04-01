@@ -262,9 +262,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set_boolean(["is_operational"], is_operational)
             self._settings.save()
 
-        subscribed_events = Events.FILE_SELECTED + Events.FILE_DESELECTED
+        subscribed_events = Events.FILE_SELECTED +
+                            Events.FILE_DESELECTED +
+                            Events.PRINT_CANCELLED +
+                            Events.PRINT_FAILED +
+                            Events.PRINT_DONE
+
         if subscribed_events.find(event) == -1:
             return
+
+        # restart probing
+        if (event == Events.PRINT_CANCELLED or event == Events.PRINT_FAILED or event == Events.PRINT_DONE) and self.grblState == 'Run':
+            if self.suppressM105:
+                self._printer.commands(self.statusCommand)
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
@@ -484,6 +494,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("$32=1")
         self._printer.commands("M5")
         self._printer.commands("M2")
+
+        if self.suppressM105:
+            self._printer.commands(self.statusCommand)
 
     def send_bounding_box_center(self, y, x):
         if not self._printer.is_ready():
