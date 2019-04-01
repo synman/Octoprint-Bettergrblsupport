@@ -268,7 +268,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
-            self.grblStatus = "Run"
+            self.grblState = "Run"
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
