@@ -262,14 +262,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set_boolean(["is_operational"], is_operational)
             self._settings.save()
 
-        subscribed_events = Events.FILE_SELECTED + Events.FILE_DESELECTED + Events.PRINT_CANCELLED + Events.PRINT_FAILED + Events.PRINT_DONE
+        subscribed_events = Events.FILE_SELECTED + Events.PRINT_STARTED
         if subscribed_events.find(event) == -1:
             return
 
-        # restart probing
-        # if (event == Events.PRINT_CANCELLED or event == Events.PRINT_FAILED or event == Events.PRINT_DONE) and self.grblState == 'Run':
-        #     if self.suppressM105:
-        #         self._printer.commands(self.statusCommand)
+        # 'PrintStarted'
+        if event == Events.PRINT_STARTED:
+            self.grblStatus = "Run"
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
