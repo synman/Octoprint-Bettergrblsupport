@@ -411,6 +411,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # This makes Octoprint recognise the startup message as a successful connection.
             return 'ok ' + line
 
+        # hack to force status updates
+        if line.startswith("[MSG:Pgm End]" and self.grblState == "Run":
+            if self.suppressM105:
+                self._printer.commands(self.statusCommand)
+
         if 'MPos' in line or 'WPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
@@ -490,8 +495,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("M5")
         self._printer.commands("M2")
 
-        if self.suppressM105:
-            self._printer.commands(self.statusCommand)
 
     def send_bounding_box_center(self, y, x):
         if not self._printer.is_ready():
