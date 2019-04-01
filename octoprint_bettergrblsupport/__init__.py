@@ -267,9 +267,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # restart probing
-        if (event == Events.PRINT_CANCELLED or event == Events.PRINT_FAILED or event == Events.PRINT_DONE) and self.grblState == 'Run':
-            if self.suppressM105:
-                self._printer.commands(self.statusCommand)
+        # if (event == Events.PRINT_CANCELLED or event == Events.PRINT_FAILED or event == Events.PRINT_DONE) and self.grblState == 'Run':
+        #     if self.suppressM105:
+        #         self._printer.commands(self.statusCommand)
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
@@ -338,7 +338,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if printer is printing
         if cmd.upper().startswith('M105'):
-            if self.disablePolling and (self._printer.is_printing() or self.grblState == "Run"):
+            if self.disablePolling and self._printer.is_printing():
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
@@ -412,9 +412,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + line
 
         # hack to force status updates
-        if line.startswith("[MSG:Pgm End]") and self.grblState == "Run":
-            if self.suppressM105:
-                self._printer.commands(self.statusCommand)
+        # if line.startswith("[MSG:Pgm End]") and self.grblState == "Run":
+        #     if self.suppressM105:
+        #         self._printer.commands(self.statusCommand)
 
         if 'MPos' in line or 'WPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
