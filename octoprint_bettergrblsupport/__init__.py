@@ -6,6 +6,7 @@ from octoprint.events import Events
 
 # import sys
 import time
+import math
 
 import octoprint.plugin
 import re
@@ -262,13 +263,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set_boolean(["is_operational"], is_operational)
             self._settings.save()
 
-        subscribed_events = Events.FILE_SELECTED + Events.PRINT_STARTED
+        subscribed_events = Events.FILE_SELECTED + Events.PRINT_STARTED + Events.PRINT_CANCELLED + Events.PRINT_DONE + Events.PRINT_FAILED
         if subscribed_events.find(event) == -1:
             return
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
             self.grblState = "Run"
+            return
+
+        # Print ended (finished / failed / cancelled)
+        if event == Events.PRINT_CANCELLED or event == Events.PRINT_DONE or event == Events.PRINT_FAILED:
+            self.grblState = "Idle"
+            return
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
@@ -301,10 +308,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         if y > maxY:
                             maxY = y
 
-            length = maxY - minY
-            width = maxY - minX
+            length = int(math.ceil(maxY - minY))
+            width = int(math.ceil(maxX - minX))
 
-            self._logger.info('finished reading {} length={} width={}'.format(selected_file, length, width))
+            self._logger.info('finished reading file length={} width={}'.format(length, width))
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_frame_size",
                                                                             length=length,
