@@ -6,19 +6,26 @@ This plugin was inspired by mic159's Grbl Support plugin (https://plugins.octopr
 
 **Better Grbl Support** utilizes mic159's gcode receiver parser (with minor changes at the moment) and does much, much more:
 
+* Replaces Octoprint's Control tab with its own Grbl Control tab
+* Execute bounding box (framing) routines based on origin location and supplied dimensions
+* Computes selected file dimensions and pre-populates framing length/width fields
+* Click on the webcam image to enlarge it to its native resolution
+* Updates Grbl state data automatically (State / X location / Y location / Speed / Power), even whle printing!
+* Weak Laser Toggle, Sleep, Reset, and Unlock buttons conveniently placed within the Grbl Control tab
 * Rewrites Octoprint's annoying hardcoded M115 (Hello) queries as M5 requests
 * Rewrites M105 (temperature updates) as Grbl status updates
 * Suppresses M110 (reset line #) requests
 * Rewrites M400 (Finish moves) using Grbl Dwell
 * Reswrites M114 (current position) using Grbl Positioning
 * Implements M999 for reseting Grbl (^X)
-* Hides the Octoprint Temperature and GCode Viewer tabs
-* Adds Laser Commands and State sections to the Control tab
+* Hides the Octoprint Control, Temperature and GCode Viewer tabs
+* Optionally adds Laser Commands and State sections to the Control tab
 * Suppresses status update reporting during GCODE streaming
 * No need to ignore firmware errors or track down other Octoprint nuance settings
-* AutomConfiguration UIatically disables Model Size Detection
+* Automatically disables Model Size Detection
 * Automatically disables sending checksums
 * Automatically disables the Printer Safety Check plugin
+* Most configuration options are configurable via Plugin Settings
 
 ## Setup
 
@@ -46,13 +53,10 @@ Pay special attention to the following config.yaml configuration parameters:
 * serial / checksumRequiringCommands
 * serial / helloCommand
 * plugins / _disabled / printer_safety_check
-* appearance / components / disabled / tab 
-* gcodeViewer
+* appearance / components / disabled / tab
 
 ## Screenshots
 
-![Main UI](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/Screen%20Shot%202019-03-23%20at%209.52.24%20PM.png?raw=true)
+![Main UI](https://plugins.octoprint.org/assets/img/plugins/bettergrblsupport/better_grbl_support_main.png)
 
-![Configuration UI](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/Screen%20Shot%202019-03-23%20at%209.51.54%20PM.png?raw=true)
-
-![Workspace](https://github.com/synman/Octoprint-Bettergrblsupport/blob/master/extras/IMG_20190323_214259.jpg?raw=true)
+![Configuration UI](https://plugins.octoprint.org/ssets/img/bettergrblsupport/better_grbl_support_settings.png)
