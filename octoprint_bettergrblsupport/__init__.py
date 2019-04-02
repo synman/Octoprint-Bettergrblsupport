@@ -255,13 +255,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def on_event(self, event, payload):
 
-        is_printing = self._printer.is_printing()
-        is_operational = self._printer.is_operational()
-
-        if self._settings.get_boolean(["is_printing"]) != is_printing or self._settings.get_boolean(["is_operational"]) != is_operational:
-            self._settings.set_boolean(["is_printing"], is_printing)
-            self._settings.set_boolean(["is_operational"], is_operational)
-            self._settings.save()
+        # is_printing = self._printer.is_printing()
+        # is_operational = self._printer.is_operational()
+        #
+        # if self._settings.get_boolean(["is_printing"]) != is_printing or self._settings.get_boolean(["is_operational"]) != is_operational:
+        #     self._settings.set_boolean(["is_printing"], is_printing)
+        #     self._settings.set_boolean(["is_operational"], is_operational)
+        #     self._settings.save()
 
         subscribed_events = Events.FILE_SELECTED + Events.PRINT_STARTED + Events.PRINT_CANCELLED + Events.PRINT_DONE + Events.PRINT_FAILED
         if subscribed_events.find(event) == -1:
@@ -501,37 +501,76 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("M5")
         self._printer.commands("M2")
 
+    def send_bounding_box_upper_left(self, y, x):
+        self._printer.commands("G91")
+        self._printer.commands("G0 X{:f} F4000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
+
+    def send_bounding_box_upper_center(self, y, x):
+        self._printer.commands("G91")
+        self._printer.commands("G0 X{:f} F4000 S1".format(x / 2))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x / 2))
+
+    def send_bounding_box_upper_right(self, y, x):
+        self._printer.commands("G91")
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x))
+
+    def send_bounding_box_center_left(self, y, x):
+        self._printer.commands("G91")
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y / 2))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y / 2))
 
     def send_bounding_box_center(self, y, x):
-        if not self._printer.is_ready():
-            return
-
-        self.send_frame_init_gcode()
-
         self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2 * -1, y / 2))
 
         self._printer.commands("G91")
         self._printer.commands("G0 X{} F4000 S1".format(x))
-        self._printer.commands("G0Y{:f} S1".format(y * -1))
+        self._printer.commands("G0 Y{:f} S1".format(y * -1))
         self._printer.commands("G0 X{} S1".format(x * -1))
         self._printer.commands("G0 Y{} S1".format(y))
         self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2, y / 2 * -1))
 
-        self.send_frame_end_gcode()
+    def send_bounding_box_center_right(self, y, x):
+        self._printer.commands("G91")
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y / 2 * -1))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y / 2 * -1))
 
     def send_bounding_box_lower_left(self, y, x):
-        if not self._printer.is_ready():
-            return
-
-        self.send_frame_init_gcode()
-
         self._printer.commands("G91")
-        self._printer.commands("G0 Y{} F4000 S1".format(y))
-        self._printer.commands("G0 X{} F4000 S1".format(x))
-        self._printer.commands("G0 Y{} F4000 S1".format(y * -1))
-        self._printer.commands("G0 X{} F4000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
 
-        self.send_frame_end_gcode()
+    def send_bounding_box_lower_center(self, y, x):
+        self._printer.commands("G91")
+        self._printer.commands("G0 X{:f} F4000 S1".format(x / 2 * -1))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x / 2 * -1))
+
+
+    def send_bounding_box_lower_right(self, y, x):
+        self._printer.commands("G91")
+        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
+        self._printer.commands("G0 X{:f} F4000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
 
     def get_api_commands(self):
         return dict(
@@ -547,18 +586,43 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_api_command(self, command, data):
 
         # catch-all (should revisit state management) for validating printer State
-        if not self._printer.is_operational() or self._printer.is_printing():
+        if not self._printer.is_ready():
             self._logger.info("ignoring command - printer is not available")
             return
 
         if command == "frame":
             origin = data.get("origin").strip()
 
+            self.send_frame_init_gcode()
+
+            if (origin == "grblTopLeft"):
+                self.send_bounding_box_upper_left(float(data.get("length")), float(data.get("width")))
+
+            if (origin == "grblTopCenter"):
+                self.send_bounding_box_upper_center(float(data.get("length")), float(data.get("width")))
+
+            if (origin == "grblTopRight"):
+                self.send_bounding_box_upper_right(float(data.get("length")), float(data.get("width")))
+
+            if (origin == "grblCenterLeft"):
+                self.send_bounding_box_center_left(float(data.get("length")), float(data.get("width")))
+
             if (origin == "grblCenter"):
                 self.send_bounding_box_center(float(data.get("length")), float(data.get("width")))
 
+            if (origin == "grblCenterRight"):
+                self.send_bounding_box_center_right(float(data.get("length")), float(data.get("width")))
+
             if (origin == "grblBottomLeft"):
                 self.send_bounding_box_lower_left(float(data.get("length")), float(data.get("width")))
+
+            if (origin == "grblBottomCenter"):
+                self.send_bounding_box_lower_center(float(data.get("length")), float(data.get("width")))
+
+            if (origin == "grblBottomRight"):
+                self.send_bounding_box_lower_right(float(data.get("length")), float(data.get("width")))
+
+            self.send_frame_end_gcode()
 
             self._settings.set(["frame_length"], data.get("length"))
             self._settings.set(["frame_width"], data.get("width"))
