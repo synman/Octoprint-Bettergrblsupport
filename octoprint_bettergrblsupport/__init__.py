@@ -593,7 +593,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "frame":
             # turn off our laser if it is on
             if self.grblPowerLevel != 0:
-                toggleWeak()
+                self.toggleWeak()
 
             origin = data.get("origin").strip()
 
@@ -684,7 +684,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "toggleWeak":
-            return flask.jsonify({'res' : toggleWeak()})
+            return flask.jsonify({'res' : self.toggleWeak()})
 
         if command == "sleep":
             self._printer.commands("$SLP")

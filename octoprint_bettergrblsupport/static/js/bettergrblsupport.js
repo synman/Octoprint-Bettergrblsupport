@@ -108,7 +108,7 @@ $(function() {
           },
           error: function (data, status) {
             new PNotify({
-              title: "Framing failed!",
+              title: "Laser action failed!",
               text: data.responseText,
               hide: true,
               buttons: {
