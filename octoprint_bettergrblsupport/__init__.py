@@ -593,7 +593,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "frame":
             # turn off our laser if it is on
             if self.grblPowerLevel != 0:
-                on_api_command("toggleWeak", None)
+                toggleWeak()
 
             origin = data.get("origin").strip()
 
@@ -684,22 +684,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "toggleWeak":
-            # do laser stuff
-            powerLevel = self.grblPowerLevel
-
-            if powerLevel == 0:
-                self._printer.commands("$32=0")
-                self._printer.commands("M4 S1")
-                res = "Laser Off"
-            else:
-                self._printer.commands("M9")
-                self._printer.commands("G1S0")
-                self._printer.commands("$32=1")
-                self._printer.commands("M5")
-                self._printer.commands("M2")
-                res = "Weak Laser"
-
-            return flask.jsonify({'res' : res})
+            return flask.jsonify({'res' : toggleWeak()})
 
         if command == "sleep":
             self._printer.commands("$SLP")
@@ -713,6 +698,23 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("M999")
             return
 
+    def toggleWeak(self):
+        # do laser stuff
+        powerLevel = self.grblPowerLevel
+
+        if powerLevel == 0:
+            self._printer.commands("$32=0")
+            self._printer.commands("M4 S1")
+            res = "Laser Off"
+        else:
+            self._printer.commands("M9")
+            self._printer.commands("G1S0")
+            self._printer.commands("$32=1")
+            self._printer.commands("M5")
+            self._printer.commands("M2")
+            res = "Weak Laser"
+
+        return res
 
     # #~~ Softwareupdate hook
 
