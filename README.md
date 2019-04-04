@@ -59,4 +59,4 @@ Pay special attention to the following config.yaml configuration parameters:
 
 ![Main UI](https://plugins.octoprint.org/assets/img/plugins/bettergrblsupport/better_grbl_support_main.png)
 
-![Configuration UI](https://plugins.octoprint.org/ssets/img/bettergrblsupport/better_grbl_support_settings.png)
+![Configuration UI](https://plugins.octoprint.org/assets/img/plugins/bettergrblsupport/better_grbl_support_settings.png)
