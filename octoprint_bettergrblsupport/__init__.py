@@ -185,9 +185,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.loadGrblErrorsAndAlarms()
 
     def loadGrblErrorsAndAlarms(self):
-        path = os.path.dirname(os.path.realpath(__file__)) +
-                os.path.sep + "static" +
-                os.path.sep + "txt" + os.path.sep
+        path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
 
         f = open(path + "grbl_errors.txt", 'r')
 
