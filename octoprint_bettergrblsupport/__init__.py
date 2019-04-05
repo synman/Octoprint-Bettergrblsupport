@@ -453,7 +453,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             match = re.search(r'error:\ *(-?[\d.]+)', line)
 
             if not match is None:
-                error = int(match.groups(1)[0])
+                error = match.groups(1)[0]
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
                                                                                 code=error,
                                                                                 description=self.grblErrors.get(error)))
