@@ -201,11 +201,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if not match is None:
                 self.grblAlarms[int(match.groups(1)[0])] = match.groups(1)[1]
 
-        for k, v in self.grblErrors.items():
-            self._logger.info("error id={} desc={}".format(k, v))
-
-        for k, v in self.grblAlarms.items():
-            self._logger.info("alarm id={} desc={}".format(k, v))
+        # for k, v in self.grblErrors.items():
+        #     self._logger.info("error id={} desc={}".format(k, v))
+        #
+        # for k, v in self.grblAlarms.items():
+        #     self._logger.info("alarm id={} desc={}".format(k, v))
 
 
     # #~~ SettingsPlugin mixin
@@ -445,6 +445,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # When the serial port is opened, it resets and the "hello" command
              # is not processed.
              # This makes Octoprint recognise the startup message as a successful connection.
+            return 'ok ' + line
+
+        # look for an error
+
+        if line.startswith('error:'):
+            match = re.search(r'error:\ *(-?[\d.]+)', line)
+
+            if not match is None:
+                error = int(match.groups(1)[0])
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
+                                                                                code=error,
+                                                                                description=grblErrors.get(error)))
             return 'ok ' + line
 
         # hack to force status updates

@@ -248,6 +248,21 @@ $(function() {
           self.length(Number.parseFloat(data.length).toFixed(0));
           return
         }
+
+        if (plugin == 'bettergrblsupport' && data.type == 'grbl_error') {
+          new PNotify({
+            title: "Grbl Error #{} Received".format(data.code),
+            text: data.description,
+            hide: true,
+            buttons: {
+              sticker: false,
+              closer: true
+            },
+            type: "error"
+          });
+
+          return
+        }
       };
 
       self.fsClick = function () {
