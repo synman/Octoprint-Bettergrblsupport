@@ -456,14 +456,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 error = int(match.groups(1)[0])
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
                                                                                 code=error,
-                                                                                description=grblErrors.get(error)))
+                                                                                description=self.grblErrors.get(error)))
+
+                self._logger.info("error received: {} = {}".format(error, self.grblErrors.get(error)))
+
             return 'ok ' + line
 
         # hack to force status updates
-        # if line.startswith("[MSG:Pgm End]") and self.grblState == "Run":
-        #     if self.suppressM105:
-        #         self._printer.commands(self.statusCommand)
-
         if 'MPos' in line or 'WPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
