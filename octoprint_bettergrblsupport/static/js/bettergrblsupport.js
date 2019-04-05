@@ -252,13 +252,28 @@ $(function() {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_error') {
           new PNotify({
             title: "Grbl Error #" + data.code + " Received",
-            text: "<br>" + data.description + <br>,
+            text: "<br>" + data.description + "<br>"",
             hide: false,
             buttons: {
               sticker: true,
               closer: true
             },
             type: "error"
+          });
+
+          return
+        }
+
+        if (plugin == 'bettergrblsupport' && data.type == 'grbl_alarm') {
+          new PNotify({
+            title: "Grbl Alarm #" + data.code + " Received",
+            text: "<br>" + data.description + "<br>",
+            hide: false,
+            buttons: {
+              sticker: true,
+              closer: true
+            },
+            type: "notice"
           });
 
           return
