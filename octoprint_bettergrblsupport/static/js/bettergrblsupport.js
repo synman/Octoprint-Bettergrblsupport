@@ -252,10 +252,10 @@ $(function() {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_error') {
           new PNotify({
             title: "Grbl Error #" + data.code + " Received",
-            text: data.description,
+            text: "<br>" + data.description,
             hide: true,
             buttons: {
-              sticker: false,
+              sticker: true,
               closer: true
             },
             type: "error"
