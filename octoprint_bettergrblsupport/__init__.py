@@ -185,16 +185,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.loadGrblErrorsAndAlarms()
 
     def loadGrblErrorsAndAlarms(self):
-        path = os.path.dirname(os.path.realpath(__file__))
+        path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "txt" + os.path.sep
 
-        f = open(path + os.path.sep + "grbl_errors.txt", 'r')
+        f = open(path + "grbl_errors.txt", 'r')
 
         for line in f:
             match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
             if not match is None:
                 self.grblErrors[int(match.groups(1)[0])] = match.groups(1)[1]
 
-        f = open(path + os.path.sep + "grbl_alarms.txt", 'r')
+        f = open(path + "grbl_alarms.txt", 'r')
 
         for line in f:
             match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
