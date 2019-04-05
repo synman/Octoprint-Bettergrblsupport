@@ -591,10 +591,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "frame":
-            # turn off our laser if it is on
-            if self.grblPowerLevel != 0:
-                self.toggleWeak()
-
             origin = data.get("origin").strip()
 
             self.send_frame_init_gcode()
