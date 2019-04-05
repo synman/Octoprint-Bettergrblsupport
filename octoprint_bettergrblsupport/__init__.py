@@ -7,6 +7,7 @@ from octoprint.events import Events
 # import sys
 import time
 import math
+import os
 
 import octoprint.plugin
 import re
@@ -48,6 +49,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblPowerLevel = 0
 
         self.timeRef = 0
+
+        self.grblErrors = {}
+        self.grblAlarms = {}
 
         # self.grblLastX = sys.float_info.min
         # self.grblLastY = sys.float_info.min
@@ -177,6 +181,32 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
         self._settings.save()
+
+        self.loadGrblErrorsAndAlarms()
+
+    def loadGrblErrorsAndAlarms(self):
+        path = os.path.dirname(os.path.realpath(__file__))
+
+        f = open(path + os.path.sep + "grbl_errors.txt", 'r')
+
+        for line in f:
+            match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
+            if not match is None:
+                self.grblErrors[int(match.groups(1)[0])] = match.groups(1)[1]
+
+        f = open(path + os.path.sep + "grbl_alarms.txt", 'r')
+
+        for line in f:
+            match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
+            if not match is None:
+                self.grblAlarms[int(match.groups(1)[0])] = match.groups(1)[1]
+
+        for k, v in self.grblErrors.items():
+            self._logger.info("error id={} desc={}".format(k, v))
+
+        for k, v in self.grblAlarms.items():
+            self._logger.info("alarm id={} desc={}".format(k, v))
+
 
     # #~~ SettingsPlugin mixin
 
