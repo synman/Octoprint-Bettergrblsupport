@@ -580,7 +580,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             move=[],
             sleep=[],
             reset=[],
-            unlock=[]
+            unlock=[],
+            homing=[]
         )
 
     def on_api_command(self, command, data):

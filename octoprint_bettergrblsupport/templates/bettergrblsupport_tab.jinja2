@@ -177,7 +177,9 @@
       <td id="laser_buttons" rowspan=5 align="center" valign="middle" width="30%">
         <button id="grblLaserButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
         <br>
+        <br>
         <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('homing') }">Home</button>
+        <br>
         <br>
         <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('sleep') }">Sleep</button>
         <br>
