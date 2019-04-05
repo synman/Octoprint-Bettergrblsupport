@@ -694,6 +694,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("M999")
             return
 
+        if command == "homing":
+            self._printer.commands("$H")
+            return
+
     def toggleWeak(self):
         # do laser stuff
         powerLevel = self.grblPowerLevel
