@@ -107,10 +107,10 @@ $(function() {
             command: "toggleWeak"
           }),
           contentType: "application/json; charset=UTF-8",
-          // success: function(data) {
-          //   var btn = document.getElementById("grblLaserButton");
-          //   btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
-          // },
+          success: function(data) {
+            var btn = document.getElementById("grblLaserButton");
+            btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
+          },
           error: function (data, status) {
             new PNotify({
               title: "Laser action failed!",
@@ -227,13 +227,11 @@ $(function() {
           self.yPos(Number.parseFloat(data.y).toFixed(2));
           self.speed(data.speed);
 
-          if (data.power == "0" && self.power != "0") {
+          if (data.power == "0" && self.power() != "0") {
             var btn = document.getElementById("grblLaserButton");
-            console.log("laser is off");
             btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
           } else {
-            if (self.power == "0" && data.power != "0") {
-              console.log("laser is on");
+            if (self.power() == "0" && data.power != "0") {
               var btn = document.getElementById("grblLaserButton");
               btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
             }
