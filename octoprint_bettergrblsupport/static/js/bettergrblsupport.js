@@ -229,9 +229,11 @@ $(function() {
 
           if (data.power == "0" && self.power != "0") {
             var btn = document.getElementById("grblLaserButton");
+            console.log("laser is off");
             btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
           } else {
             if (self.power == "0" && data.power != "0") {
+              console.log("laser is on");
               var btn = document.getElementById("grblLaserButton");
               btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
             }
