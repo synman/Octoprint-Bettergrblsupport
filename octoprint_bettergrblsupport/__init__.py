@@ -52,6 +52,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblErrors = {}
         self.grblAlarms = {}
+        self.grblSettings = {}
 
         # self.grblLastX = sys.float_info.min
         # self.grblLastY = sys.float_info.min
@@ -480,6 +481,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if "reset to continue" in line.lower():
             self._printer.commands("M999")
             return 'ok ' + line
+
+        # grbl settings
+        if line.startswith("$"):
+            match = re.search(r'^[$](-?[\d\.]+)=(-?[\d\.]+)', line)
+
+            if not match is None:
+                settingsId = int(match.groups(1)[0])
+                settingsValue = match.groups(1)[1]
+
+                grblSettings.update({settingsId: settingsValue})
+                self._logger.info("setting id={} value={}".format(settingsId, settingsValue))
+                
+                return line
 
 
         # hack to force status updates
