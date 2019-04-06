@@ -252,7 +252,7 @@ $(function() {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_error') {
           new PNotify({
             title: "Grbl Error #" + data.code + " Received",
-            text: "<br>" + data.description + "<br>",
+            text: data.description,
             hide: false,
             buttons: {
               sticker: true,
@@ -267,7 +267,7 @@ $(function() {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_alarm') {
           new PNotify({
             title: "Grbl Alarm #" + data.code + " Received",
-            text: "<br>" + data.description + "<br>",
+            text: data.description,
             hide: false,
             buttons: {
               sticker: true,

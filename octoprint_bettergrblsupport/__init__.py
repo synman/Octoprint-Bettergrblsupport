@@ -448,9 +448,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + line
 
         # look for an error
-
-        if line.startswith('error:'):
-            match = re.search(r'error:\ *(-?[\d.]+)', line)
+        if line.lower().startswith('error:'):
+            match = re.search(r'error:\ *(-?[\d.]+)', line.lower())
 
             if not match is None:
                 error = int(match.groups(1)[0])
@@ -459,6 +458,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 description=self.grblErrors.get(error)))
 
                 self._logger.info("error received: {} = {}".format(error, self.grblErrors.get(error)))
+
+            return 'ok ' + line
+
+        # look for an alarm
+        if line.lower().startswith('alarm:'):
+            match = re.search(r'alarm:\ *(-?[\d.]+)', line.lower())
+
+            if not match is None:
+                error = int(match.groups(1)[0])
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_alarm",
+                                                                                code=error,
+                                                                                description=self.grblAlarms.get(error)))
+
+                self._logger.info("alarm received: {} = {}".format(error, self.grblAlarms.get(error)))
+                self._printer.commands("M999")
 
             return 'ok ' + line
 
