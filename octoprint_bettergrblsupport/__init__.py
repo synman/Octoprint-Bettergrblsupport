@@ -52,11 +52,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblErrors = {}
         self.grblAlarms = {}
+        self.grblSettingsNames = {}
         self.grblSettings = {}
-
-        # self.grblLastX = sys.float_info.min
-        # self.grblLastY = sys.float_info.min
-
 
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F6000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
@@ -68,7 +65,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     #     self._logger.info("hideGCodeTab: %s" % self.hideGCodeTab)
 
     def on_after_startup(self):
-
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
         self.hideControlTab = self._settings.get_boolean(["hideControlTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
@@ -202,6 +198,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if not match is None:
                 self.grblAlarms[int(match.groups(1)[0])] = match.groups(1)[1]
 
+        f = open(path + "grbl_settings.txt", 'r')
+
+        for line in f:
+            match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
+            if not match is None:
+                self.grblSettingsNames[int(match.groups(1)[0])] = match.groups(1)[1]
+
         # for k, v in self.grblErrors.items():
         #     self._logger.info("error id={} desc={}".format(k, v))
         #
@@ -210,7 +213,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     # #~~ SettingsPlugin mixin
-
     def get_settings_defaults(self):
         return dict(
             hideTempTab = True,
@@ -245,18 +247,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.on_after_startup()
 
     # #~~ AssetPlugin mixin
-
     def get_assets(self):
-
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-
         return dict(js=['js/bettergrblsupport.js'],
                     css=['css/bettergrblsupport.css'],
                     less=['less/bettergrblsupport.less'])
 
     # #~~ TemplatePlugin mixin
-
     def get_template_configs(self):
         return [
             dict(type="settings", custom_bindings=False)
@@ -283,7 +281,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     helloCommand=self._settings.get(["helloCommand"]))
 
     # #-- EventHandlerPlugin mix-in
-
     def on_event(self, event, payload):
 
         # is_printing = self._printer.is_printing()
@@ -491,10 +488,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 settingsValue = match.groups(1)[1]
 
                 self.grblSettings.update({settingsId: settingsValue})
-                self._logger.info("setting id={} value={}".format(settingsId, settingsValue))
+                self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
                 return line
-
 
         # hack to force status updates
         if 'MPos' in line or 'WPos' in line:
