@@ -490,9 +490,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 settingsId = int(match.groups(1)[0])
                 settingsValue = match.groups(1)[1]
 
-                grblSettings.update({settingsId: settingsValue})
+                self.grblSettings.update({settingsId: settingsValue})
                 self._logger.info("setting id={} value={}".format(settingsId, settingsValue))
-                
+
                 return line
 
 
