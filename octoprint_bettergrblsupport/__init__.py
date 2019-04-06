@@ -360,7 +360,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
          # rewrite M115 as M5 (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
-            return (self.helloCommand, )
+            # return (self.helloCommand, )
+            return "$$"
 
          # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
@@ -472,7 +473,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 description=self.grblAlarms.get(error)))
 
                 self._logger.info("alarm received: {} = {}".format(error, self.grblAlarms.get(error)))
-                self._printer.commands("M999")
 
             return 'ok ' + line
 
