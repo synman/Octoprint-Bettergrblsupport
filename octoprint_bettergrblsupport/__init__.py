@@ -477,7 +477,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + line
 
         # auto reset
-        if "reset to continue" in line.trim().lower():
+        if "reset to continue" in line.lower():
             self._printer.commands("M999")
             return 'ok ' + line
 
