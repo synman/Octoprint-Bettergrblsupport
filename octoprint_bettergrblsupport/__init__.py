@@ -476,6 +476,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             return 'ok ' + line
 
+        # auto reset
+        if "reset to continue" in line.trim().lower():
+            self._printer.commands("M999")
+            return 'ok ' + line
+
+
         # hack to force status updates
         if 'MPos' in line or 'WPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
