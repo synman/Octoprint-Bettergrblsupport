@@ -271,7 +271,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def serializeGrblSettings(self):
         ret = ""
         for id, data in self.grblSettings.items():
-            ret = ret + "{}|{}|{}\n".format(id, data[0], data[1])
+            ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
         self._logger.info("[\n{}\n]".format(ret))
         return ret

@@ -49,7 +49,6 @@ $(function() {
       self.onBeforeBinding = function() {
         // initialize stuff here
         self.grblSettingsText(self.settings.settings.plugins.bettergrblsupport.grblSettingsText());
-        return;
       };
 
       self.fromCurrentData = function (data) {
