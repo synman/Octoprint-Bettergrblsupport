@@ -263,25 +263,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         ]
 
     def get_template_vars(self):
-        return dict(hideTempTab=self._settings.get_boolean(["hideTempTab"]),
-                    hideControlTab=self._settings.get_boolean(["hideControlTab"]),
-                    hideGCodeTab=self._settings.get_boolean(["hideGCodeTab"]),
-                    customControls=self._settings.get_boolean(["customControls"]),
-                    disablePolling=self._settings.get_boolean(["disablePolling"]),
-                    suppressM105=self._settings.get_boolean(["suppressM105"]),
-                    suppressM110=self._settings.get_boolean(["suppressM110"]),
-                    suppressM115=self._settings.get_boolean(["suppressM115"]),
-                    suppressM400=self._settings.get_boolean(["suppressM400"]),
-                    suppressM114=self._settings.get_boolean(["suppressM114"]),
-                    positionCommand=self._settings.get(["positionCommand"]),
-                    statusCommand=self._settings.get(["statusCommand"]),
-                    dwellCommand=self._settings.get(["dwellCommand"]),
-                    disableModelSizeDetection=self._settings.get(["disableModelSizeDetection"]),
-                    neverSendChecksum=self._settings.get(["neverSendChecksum"]),
-                    reOrderTabs=self._settings.get(["reOrderTabs"]),
-                    disablePrinterSafety=self._settings.get(["disablePrinterSafety"]),
-                    helloCommand=self._settings.get(["helloCommand"]),
-                    grblSettings=self.grblSettings)
+        return dict(grblSettings=self.grblSettings,
+                    grblSettingsText=self.serializeGrblSettings())
+
+    def serializeGrblSettings(self):
+        ret = ""
+        for id, data in self.grblSettings.items():
+            ret = ret + "{}|{}|{}\n".format(id, data[0], data[1])
+
+        return ret
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):

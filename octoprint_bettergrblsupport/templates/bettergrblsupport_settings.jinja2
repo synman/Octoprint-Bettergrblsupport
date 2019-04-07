@@ -84,13 +84,15 @@
 				<td>Value</td>
 				<td>Description</td>
 			</tr>
-			<!-- ko foreach: settings.plugins.bettergrblsupport.grblSettings -->
+			<!-- ko foreach: plugin_bettergrblsupport_grblSettings -->
 				<tr>
 					<td colspan=3>
-						<label class="control-label" data-bind="text: settingsId, attr: { 'for': settingsId }"></label>
+						<label class="control-label" data-bind="text: settingsId"></label>
 					</td>
 				</tr>
 			<!-- /ko -->
 		</table>
+		<br>
+		<p class="control-label" data-bind="text: plugin_better_grbl_support_grblSettingsText"/>
 
 </form>
