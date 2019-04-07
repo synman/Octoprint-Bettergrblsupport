@@ -478,7 +478,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
                 self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
-                self._settings.set("grblSettingsText", self.serializeGrblSettings())
+                self._settings.set(["grblSettingsText"], self.serializeGrblSettings())
                 self._settings.save()
 
                 return line
