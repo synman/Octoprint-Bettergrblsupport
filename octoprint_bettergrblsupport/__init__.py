@@ -55,6 +55,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSettingsNames = {}
         self.grblSettings = {}
 
+        self.ignoreErrors = False
+
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F6000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
     # def on_settings_initialized(self):
@@ -278,20 +280,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     neverSendChecksum=self._settings.get(["neverSendChecksum"]),
                     reOrderTabs=self._settings.get(["reOrderTabs"]),
                     disablePrinterSafety=self._settings.get(["disablePrinterSafety"]),
-                    helloCommand=self._settings.get(["helloCommand"]))
+                    helloCommand=self._settings.get(["helloCommand"]),
+                    grblSettings=self.grblSettings)
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
-
-        # is_printing = self._printer.is_printing()
-        # is_operational = self._printer.is_operational()
-        #
-        # if self._settings.get_boolean(["is_printing"]) != is_printing or self._settings.get_boolean(["is_operational"]) != is_operational:
-        #     self._settings.set_boolean(["is_printing"], is_printing)
-        #     self._settings.set_boolean(["is_operational"], is_operational)
-        #     self._settings.save()
-
         subscribed_events = Events.FILE_SELECTED + Events.PRINT_STARTED + Events.PRINT_CANCELLED + Events.PRINT_DONE + Events.PRINT_FAILED
+
         if subscribed_events.find(event) == -1:
             return
 
@@ -447,7 +442,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + line
 
         # look for an error
-        if line.lower().startswith('error:'):
+        if not self.ignoreErrors and line.lower().startswith('error:'):
             match = re.search(r'error:\ *(-?[\d.]+)', line.lower())
 
             if not match is None:
@@ -487,7 +482,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 settingsId = int(match.groups(1)[0])
                 settingsValue = match.groups(1)[1]
 
-                self.grblSettings.update({settingsId: settingsValue})
+                self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
                 self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
                 return line
@@ -507,7 +502,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # OctoPrint records positions in some instances.
              # It needs a different format. Put both on the same line so the GRBL info is not lost
              # and is accessible for "controls" to read.
-
             response = 'ok X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
@@ -526,6 +520,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return response
 
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
+
         if not match is None:
             self.grblSpeed = int(match.groups(1)[0])
             self.grblPowerLevel = int(match.groups(1)[1])
@@ -541,14 +536,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return line
 
         if line.startswith('{'):
-
              # Regular ACKs
              # {0/0}ok
              # {5/16}ok
 
             return 'ok'
         elif '{' in line:
-
              # Ack with return data
              # F300S1000{0/0}ok
 
@@ -556,7 +549,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + before
         else:
             return 'ok'
-
 
     def send_frame_init_gcode(self):
         self._printer.commands("G00 G17 G40 G21 G54")
@@ -739,6 +731,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "origin":
             # do origin stuff
+            self.ignoreErrors = True
+
             self._printer.commands("$10=0")
             self._printer.commands("G28.1")
             self._printer.commands("G92 X0 Y0 Z0")
@@ -748,6 +742,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("$10=0")
             self._printer.commands("G28.1")
             self._printer.commands("G92 X0 Y0 Z0")
+
+            self.ignoreErrors = False
 
             return
 
