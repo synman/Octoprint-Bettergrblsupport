@@ -4,16 +4,16 @@
 		<div class="control-group">
 				<div class="controls">
 						<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
+						<input type="checkbox" data-bind="checked: reOrderTabs"> Grbl Control is always first tab *
 						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
+						<input type="checkbox" data-bind="checked: hideTempTab"> Hide the Octoprint Temperature tab *
 						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
+						<input type="checkbox" data-bind="checked: hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
 						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
-						<!-- ko ifnot: settings.plugins.bettergrblsupport.hideControlTab -->
+						<input type="checkbox" data-bind="checked: hideControlTab"> Hide the Octoprint Control tab *
+						<!-- ko ifnot: hideControlTab -->
 							<br>
-							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
+							<input type="checkbox" data-bind="checked: customControls"> Add Laser Controls and State to Control tab *
 						<!-- /ko -->
 						</label>
 				</div>
@@ -23,10 +23,10 @@
 		<hr>
 		<label class="control-label">Hello Command</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.helloCommand">
+				<input type="text" class="input-mini" data-bind="value: helloCommand">
 				<br>
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
+					<input type="checkbox" data-bind="checked: suppressM115"> Replace M115 requests with above
 				</label>
 		</div>
 
@@ -35,22 +35,22 @@
 		<div class="control-group">
 			<label class="control-label">Status Command</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.statusCommand">
+					<input type="text" class="input-mini" data-bind="value: statusCommand">
 					<br>
 					<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
+					<input type="checkbox" data-bind="checked: suppressM105"> Replace M105 requests with above
 					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePolling"> Disable status polling while printing
+					<input type="checkbox" data-bind="checked: disablePolling"> Disable status polling while printing
 					</label>
 			</div>
 		</div>
 
 		<label class="control-label">Position Command</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.positionCommand">
+				<input type="text" class="input-mini" data-bind="value: positionCommand">
 				<br>
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM114"> Replace M114 requests with above
+					<input type="checkbox" data-bind="checked: suppressM114"> Replace M114 requests with above
 				</label>
 		</div>
 
@@ -58,20 +58,20 @@
 
 		<label class="control-label">Dwell Command</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.dwellCommand">
+				<input type="text" class="input-mini" data-bind="value: dwellCommand">
 				<br>
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
+					<input type="checkbox" data-bind="checked: suppressM400"> Replace M400 requests with above
 				</label>
 				<br>
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
+					<input type="checkbox" data-bind="checked: suppressM110"> Suppress M110 requests
 					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model Size Detection *
+					<input type="checkbox" data-bind="checked: disableModelSizeDetection"> Disable Model Size Detection *
 					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.neverSendChecksum"> Never Send Checksums *
+					<input type="checkbox" data-bind="checked: neverSendChecksum"> Never Send Checksums *
 					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
+					<input type="checkbox" data-bind="checked: disablePrinterSafety"> Disable Printer Safety Check Plugin *
 				</label>
 		</div>
 		<br>
@@ -80,6 +80,6 @@
 		<hr>
 
 		<br>
-		<label class="control-label" data-bind="text: plugin_bettergrblsupport_grblSettingsText"/>
+		<label class="control-label" data-bind="text: grblSettingsText"/>
 
 </form>

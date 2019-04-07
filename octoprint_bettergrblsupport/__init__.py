@@ -241,37 +241,39 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             disableModelSizeDetection = True,
             neverSendChecksum = True,
             reOrderTabs = True,
-            disablePrinterSafety = True
+            disablePrinterSafety = True,
+            grblSettingsText = ""
         )
 
     def on_settings_save(self, data):
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+        # reload our config
         self.on_after_startup()
 
     # #~~ AssetPlugin mixin
     def get_assets(self):
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-        return dict(js=['js/bettergrblsupport.js'],
-                    css=['css/bettergrblsupport.css'],
-                    less=['less/bettergrblsupport.less'])
+        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js'],
+                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css'],
+                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less"])
 
     # #~~ TemplatePlugin mixin
     def get_template_configs(self):
         return [
-            dict(type="settings", custom_bindings=False)
+            dict(type="settings", template="bettergrblsupport_settings.jinja2", custom_bindings=True)
         ]
 
-    def get_template_vars(self):
-        grblSettings = self.serializeGrblSettings()
-        return dict(grblSettingsText=grblSettings)
+    # def get_template_vars(self):
+    #     return dict(grblSettingsText=self.serializeGrblSettings())
 
     def serializeGrblSettings(self):
         ret = ""
-        for id in sorted(self.grblSettings.iterkeys():
-            ret = ret + "{}|{}|{}\n".format(id, self.grblSettings[id][0], self.grblSettings[id][1])
+        for id, data in self.grblSettings.items():
+            ret = ret + "{}|{}|{}\n".format(id, data[0], data[1])
 
-        self._logger.info("\n" + ret)
+        self._logger.info("[\n{}\n]".format(ret))
         return ret
 
     # #-- EventHandlerPlugin mix-in
@@ -475,6 +477,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
                 self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
+
+                self._settings.set("grblSettingsText", self.serializeGrblSettings())
+                self._settings.save()
 
                 return line
 
