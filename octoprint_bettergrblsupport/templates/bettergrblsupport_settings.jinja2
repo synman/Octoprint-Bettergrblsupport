@@ -74,9 +74,23 @@
 					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
 				</label>
 		</div>
-
 		<br>
-
-
 		<p>* Server restart is required for this setting change to take effect</p>
+		<h4>Grbl Settings</h4>
+		<hr>
+		<table>
+			<tr>
+				<td>Id</td>
+				<td>Value</td>
+				<td>Description</td>
+			</tr>
+			<!-- ko foreach: grblSettings -->
+			<tr>
+				<td colspan=3>
+					<label class="control-label" data-bind="text: $data"></label>
+				</td>
+			</tr>
+			<!-- /ko -->
+		</table>
+
 </form>
