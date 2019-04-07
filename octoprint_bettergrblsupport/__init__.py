@@ -263,14 +263,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         ]
 
     def get_template_vars(self):
-        return dict(grblSettings=self.grblSettings,
-                    grblSettingsText=self.serializeGrblSettings())
+        return dict(grblSettingsText=self.serializeGrblSettings())
 
     def serializeGrblSettings(self):
         ret = ""
         for id, data in self.grblSettings.items():
             ret = ret + "{}|{}|{}\n".format(id, data[0], data[1])
 
+        self._logger.info(ret)
         return ret
 
     # #-- EventHandlerPlugin mix-in
