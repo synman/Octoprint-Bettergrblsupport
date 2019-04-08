@@ -242,10 +242,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             neverSendChecksum = True,
             reOrderTabs = True,
             disablePrinterSafety = True,
-            grblSettingsText = ""
+            grblSettingsText = "This space intentionally left blank"
         )
 
     def on_settings_save(self, data):
+        self._logger.info("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
         # reload our config
@@ -270,7 +271,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def serializeGrblSettings(self):
         ret = ""
-        for id, data in self.grblSettings.items():
+        for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
             ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
         self._logger.info("[\n{}\n]".format(ret))

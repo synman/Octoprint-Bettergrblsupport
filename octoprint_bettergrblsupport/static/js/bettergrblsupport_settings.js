@@ -16,7 +16,7 @@ $(function() {
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
 
-      self.grblSettingsText = ko.observable("No Settings Found");
+      self.grblSettings = ko.observableArray([]);
 
       // self.toggleWeak = function() {
       //   $.ajax({
@@ -48,7 +48,24 @@ $(function() {
 
       self.onBeforeBinding = function() {
         // initialize stuff here
-        self.grblSettingsText(self.settings.settings.plugins.bettergrblsupport.grblSettingsText());
+        var grblSettings = self.settings.settings.plugins.bettergrblsupport.grblSettingsText().split("||");
+        var settingsSize = grblSettings.length - 1;
+        for (var i = 0; i < settingsSize; i++) {
+          var setting = grblSettings[i].split("|");
+          self.grblSettings.push({
+              id: setting[0],
+              value: setting[1],
+              description: setting[2]
+          });
+          // var settingSize = setting.length;
+          // for (var x = 0; i < settingSize; i++) {
+          //
+          // }
+
+          console.log(grblSettings[i]);
+        }
+
+        // self.grblSettingsText(self.settings.settings.plugins.bettergrblsupport.grblSettingsText());
       };
 
       self.fromCurrentData = function (data) {
@@ -84,6 +101,6 @@ $(function() {
     OCTOPRINT_VIEWMODELS.push([
       BettergrblsupportSettingsViewModel,
       [ "settingsViewModel", "loginStateViewModel" ],
-        "#settings_plugin_bettergrblsupport_settings"
+        "#settings_plugin_bettergrblsupport"
       ]);
 });
