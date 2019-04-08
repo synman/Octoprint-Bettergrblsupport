@@ -83,22 +83,25 @@
 
 		<h4>Grbl Settings</h4>
 		<hr>
-		<table>
-			<thead>
-				<tr>
-					<th>Id</th>
-					<th>Value</th>
-					<th>Description</th>
-				</tr>
-			</thead>
-			<tbody data-bind="foreach: grblSettings">
-				<tr>
-					<td data-bind="text: id"></td>
-					<td data-bind="text: value"></td>
-					<td data-bind="text: description"></td>
-				</tr>
-			</tbody>
-		</table>
-		<!-- <label class="control-label" data-bind="text: grblSettingsText"/> -->
+		<center>
+			<table width=90% border=0 cellpadding=3>
+				<thead>
+					<tr>
+						<th align="center" width=10%>Id</th>
+						<th align="center" width=20%>Value</th>
+						<th align="left" width=70%>Description</th>
+					</tr>
+				</thead>
+				<tbody data-bind="foreach: grblSettings">
+					<tr>
+						<td align="center" data-bind="text: id"></td>
+						<td align="center"><input type="text" class="input-mini" data-bind="value: value"></td>
+						<!-- <td data-bind="text: value"></td> -->
+						<td align="left" data-bind="text: description"></td>
+					</tr>
+				</tbody>
+			</table>
+
+		</center>
 
 </form>
