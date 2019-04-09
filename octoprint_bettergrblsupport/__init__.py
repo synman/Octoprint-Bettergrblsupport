@@ -182,6 +182,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.save()
 
         self.loadGrblErrorsAndAlarms()
+        self.deSerializeGrblSettings()
 
     def loadGrblErrorsAndAlarms(self):
         path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
@@ -242,7 +243,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             neverSendChecksum = True,
             reOrderTabs = True,
             disablePrinterSafety = True,
-            grblSettingsText = "This space intentionally left blank"
+            grblSettingsText = "This space intentionally left blank",
+            grblSettingsBackup = ""
         )
 
     def on_settings_save(self, data):
@@ -251,6 +253,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # reload our config
         self.on_after_startup()
+
+        # refresh our grbl settings
+        self._printer.commands("$$")
 
     # #~~ AssetPlugin mixin
     def get_assets(self):
@@ -274,8 +279,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
             ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
-        self._logger.info("[\n{}\n]".format(ret))
+        # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
         return ret
+
+    def deSerializeGrblSettings(self):
+        settings = self._settings.get(["grblSettingsText"])
+
+        for setting in settings.split("||"):
+            if len(setting.strip()) > 0:
+                # self._logger.info("deSerializeGrblSettings=[{}]".format(setting))
+                set = setting.split("|")
+                if not set is None:
+                    self.grblSettings.update({int(set[0]): [set[1], self.grblSettingsNames.get(int(set[0]))]})
+        return
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
@@ -477,10 +493,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 settingsValue = match.groups(1)[1]
 
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
-                self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
+                # self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
-                self._settings.set(["grblSettingsText"], self.serializeGrblSettings())
-                self._settings.save()
+                if settingsId >= 132:
+                    self._settings.set(["grblSettingsText"], self.serializeGrblSettings())
+                    self._settings.save()
 
                 return line
 
@@ -641,7 +658,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             sleep=[],
             reset=[],
             unlock=[],
-            homing=[]
+            homing=[],
+            updateGrblSetting=[],
+            backupGrblSettings=[],
+            restoreGrblSettings=[]
         )
 
     def on_api_command(self, command, data):
@@ -763,13 +783,44 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("$H")
             return
 
+        if command == "updateGrblSetting":
+            self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
+            self.grblSettings.update({int(data.get("id").strip()): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id").strip()))]})
+
+            self._printer.commands("$$")
+            return
+
+        if command == "backupGrblSettings":
+            self._settings.set(["grblSettingsBackup"], self.serializeGrblSettings())
+            self._settings.save()
+
+            self._logger.info("backupGrblSettings={}".format(self.serializeGrblSettings()))
+
+            return
+
+        if command == "restoreGrblSettings":
+            settings = self._settings.get(["grblSettingsBackup"])
+
+            if settings is None or len(settings.strip()) == 0:
+                return
+
+            for setting in settings.split("||"):
+                if len(setting.strip()) > 0:
+                    set = setting.split("|")
+                    # self._logger.info("restoreGrblSettings: {}".format(set))
+                    command = "${}={}".format(set[0], set[1])
+                    self._printer.commands(command)
+
+            time.sleep(1)
+            return flask.jsonify({'res' : settings})
+
     def toggleWeak(self):
         # do laser stuff
         powerLevel = self.grblPowerLevel
 
         if powerLevel == 0:
             self._printer.commands("$32=0")
-            self._printer.commands("M4 S1")
+            self._printer.commands("M4 F1000 S1")
             res = "Laser Off"
         else:
             self._printer.commands("M9")

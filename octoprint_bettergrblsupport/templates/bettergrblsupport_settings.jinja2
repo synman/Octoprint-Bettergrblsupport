@@ -77,7 +77,6 @@
 
 		<br>
 
-
 		<p>* Server restart is required for this setting change to take effect</p>
 		<br>
 
@@ -95,11 +94,21 @@
 				<tbody data-bind="foreach: grblSettings">
 					<tr>
 						<td align="center" data-bind="text: id"></td>
-						<td align="center"><input type="text" class="input-mini" data-bind="value: value"></td>
+						<!-- <td align="center"><input type="text" class="input-min" data-bind="value: value" onchange="updateSetting('boo','hoo')"></td> -->
+						<td align="center"><input type="text" class="input-min" data-bind="numeric, value: value, event: { change: $parent.updateSetting(id, value, oldvalue) }"></td>
 						<!-- <td data-bind="text: value"></td> -->
 						<td align="left" data-bind="text: description"></td>
 					</tr>
 				</tbody>
+				<tr><td colspan=3>&nbsp;</td></tr>
+				<tr>
+					<td colspan=2>
+						<button class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { backupSettings() }">Backup Settings</button>
+					</td>
+					<td align="right">
+						<button class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { restoreSettings() }">Restore Settings</button>
+					</td>
+				</tr>
 			</table>
 
 		</center>
