@@ -42,6 +42,7 @@ $(function() {
       self.state = ko.observable("N/A");
       self.xPos = ko.observable("N/A");
       self.yPos = ko.observable("N/A");
+      self.zPos = ko.observable("N/A");
       self.power = ko.observable("N/A");
       self.speed = ko.observable("N/A");
 
@@ -225,6 +226,7 @@ $(function() {
           self.state(data.state);
           self.xPos(Number.parseFloat(data.x).toFixed(2));
           self.yPos(Number.parseFloat(data.y).toFixed(2));
+          self.zPos(Number.parseFloat(data.z).toFixed(2));
           self.speed(data.speed);
 
           if (data.power == "0" && self.power() != "0") {

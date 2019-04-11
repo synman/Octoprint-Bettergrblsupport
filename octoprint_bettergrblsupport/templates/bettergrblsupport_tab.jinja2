@@ -109,6 +109,12 @@
                 <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
                 <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: yPos()"></strong></td>
               </tr>
+              <!-- ko if: settings.settings.plugins.bettergrblsupport.showZ -->
+                <tr>
+                  <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
+                  <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
+                </tr>
+              <!-- /ko -->
               <tr>
                 <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
                 <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
