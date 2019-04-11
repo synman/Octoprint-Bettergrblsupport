@@ -239,7 +239,7 @@ $(function() {
 
           self.power(data.power);
 
-          // console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " power=" + data.power + " speed=" + data.speed);
+          console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
           return
         }
 

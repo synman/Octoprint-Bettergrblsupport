@@ -128,21 +128,7 @@ $(function() {
               },
               type: "success"
             });
-
-            self.grblSettings.removeAll();
-
-            var grblSettings = data["res"].split("||");
-            var settingsSize = grblSettings.length - 1;
-
-            for (var i = 0; i < settingsSize; i++) {
-              var setting = grblSettings[i].split("|");
-              self.grblSettings.push({
-                  id: setting[0],
-                  value: setting[1],
-                  oldvalue: setting[1],
-                  description: setting[2]
-              });
-            }
+            self.pushGrblSettings(data["res"]);
           },
           error: function (data, status) {
             new PNotify({
@@ -161,10 +147,18 @@ $(function() {
 
       self.onBeforeBinding = function() {
         // initialize stuff here
-        var grblSettings = self.settings.settings.plugins.bettergrblsupport.grblSettingsText().split("||");
+        self.pushGrblSettings(self.settings.settings.plugins.bettergrblsupport.grblSettingsText();
+      };
+
+      self.pushGrblSettings = function(grblSettingsText) {
+        self.grblSettings.removeAll();
+
+        var grblSettings = grblSettingsText.split("||");
         var settingsSize = grblSettings.length - 1;
+
         for (var i = 0; i < settingsSize; i++) {
           var setting = grblSettings[i].split("|");
+
           self.grblSettings.push({
               id: setting[0],
               value: setting[1],
@@ -172,7 +166,7 @@ $(function() {
               description: setting[2]
           });
         }
-      };
+      }
 
       self.fromCurrentData = function (data) {
           self._processStateData(data.state);

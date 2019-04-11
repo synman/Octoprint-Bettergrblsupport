@@ -10,6 +10,8 @@
 						<br>
 						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
 						<br>
+						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.showZ"> Show Z Axis on Grbl Control tab
+						<br>
 						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
 						<!-- ko ifnot: settings.settings.plugins.bettergrblsupport.hideControlTab -->
 							<br>
@@ -106,7 +108,7 @@
 						<button class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { backupSettings() }">Backup Settings</button>
 					</td>
 					<td align="right">
-						<button class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { restoreSettings() }">Restore Settings</button>
+						<button class="btn" data-bind="enable: is_operational() && !is_printing() && settings.settings.plugins.bettergrblsupport.grblSettingsBackup().length > 0, click: function() { restoreSettings() }">Restore Settings</button>
 					</td>
 				</tr>
 			</table>
