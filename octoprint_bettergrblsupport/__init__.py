@@ -430,7 +430,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             match = re.search(r"^G[01].*S\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                self.grblPowerLevel = int(float(match.groups(1)[0]))
+                grblPowerLevel = int(float(match.groups(1)[0]))
+
+                # make sure we post all power on / off events
+                if (grblPowerLevel == 0 and self.grbPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
+                    self.timeRef = 0;
+
+                self.grblPowerLevel = grblPowerLevel
                 found = True
 
             if found:
@@ -589,16 +595,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("$32=1")
         self._printer.commands("M5")
         self._printer.commands("M2")
-
-        time.sleep(1)
-
-        self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
-                                                                        state=self.grblState,
-                                                                        x=self.grblX,
-                                                                        y=self.grblY,
-                                                                        z=self.grblZ,
-                                                                        speed=self.grblSpeed,
-                                                                        power=self.grblPowerLevel))
 
     def send_bounding_box_upper_left(self, y, x):
         self._printer.commands("G91")
