@@ -147,7 +147,7 @@ $(function() {
 
       self.onBeforeBinding = function() {
         // initialize stuff here
-        self.pushGrblSettings(self.settings.settings.plugins.bettergrblsupport.grblSettingsText();
+        self.pushGrblSettings(self.settings.settings.plugins.bettergrblsupport.grblSettingsText());
       };
 
       self.pushGrblSettings = function(grblSettingsText) {
