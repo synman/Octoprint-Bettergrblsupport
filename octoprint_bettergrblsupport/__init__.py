@@ -436,7 +436,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if found:
                 currentTime = int(round(time.time() * 1000))
                 if currentTime > self.timeRef + 500:
-                    self._logger.info("x={} y={} z={} f={} s={}".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
+                    # self._logger.info("x={} y={} z={} f={} s={}".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                     self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                     state=self.grblState,
                                                                                     x=self.grblX,
@@ -589,6 +589,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("$32=1")
         self._printer.commands("M5")
         self._printer.commands("M2")
+
+        time.sleep(1)
+
+        self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                        state=self.grblState,
+                                                                        x=self.grblX,
+                                                                        y=self.grblY,
+                                                                        z=self.grblZ,
+                                                                        speed=self.grblSpeed,
+                                                                        power=self.grblPowerLevel))
 
     def send_bounding_box_upper_left(self, y, x):
         self._printer.commands("G91")
