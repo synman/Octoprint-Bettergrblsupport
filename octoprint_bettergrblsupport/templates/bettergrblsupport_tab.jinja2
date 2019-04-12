@@ -109,6 +109,12 @@
                 <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
                 <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: yPos()"></strong></td>
               </tr>
+              <!-- ko if: settings.settings.plugins.bettergrblsupport.showZ -->
+                <tr>
+                  <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
+                  <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
+                </tr>
+              <!-- /ko -->
               <tr>
                 <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
                 <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
@@ -177,6 +183,8 @@
       <td id="laser_buttons" rowspan=5 align="center" valign="middle" width="30%">
         <button id="grblLaserButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
         <br>
+        <br>
+        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('homing') }">Home</button>
         <br>
         <br>
         <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('sleep') }">Sleep</button>

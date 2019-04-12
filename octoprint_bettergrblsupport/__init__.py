@@ -7,6 +7,7 @@ from octoprint.events import Events
 # import sys
 import time
 import math
+import os
 
 import octoprint.plugin
 import re
@@ -40,20 +41,25 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.neverSendChecksum = True
         self.reOrderTabs = True
         self.disablePrinterSafety = True
+        self.showZ = False
 
         self.grblState = None
         self.grblX = float(0)
         self.grblY = float(0)
+        self.grblZ = float(0)
         self.grblSpeed = 0
         self.grblPowerLevel = 0
 
         self.timeRef = 0
 
-        # self.grblLastX = sys.float_info.min
-        # self.grblLastY = sys.float_info.min
+        self.grblErrors = {}
+        self.grblAlarms = {}
+        self.grblSettingsNames = {}
+        self.grblSettings = {}
 
+        self.ignoreErrors = False
 
-        self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F6000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
+        self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F4000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
     # def on_settings_initialized(self):
     #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
@@ -63,7 +69,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     #     self._logger.info("hideGCodeTab: %s" % self.hideGCodeTab)
 
     def on_after_startup(self):
-
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
         self.hideControlTab = self._settings.get_boolean(["hideControlTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
@@ -178,8 +183,41 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.save()
 
-    # #~~ SettingsPlugin mixin
+        self.loadGrblErrorsAndAlarms()
+        self.deSerializeGrblSettings()
 
+    def loadGrblErrorsAndAlarms(self):
+        path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
+
+        f = open(path + "grbl_errors.txt", 'r')
+
+        for line in f:
+            match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
+            if not match is None:
+                self.grblErrors[int(match.groups(1)[0])] = match.groups(1)[1]
+
+        f = open(path + "grbl_alarms.txt", 'r')
+
+        for line in f:
+            match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
+            if not match is None:
+                self.grblAlarms[int(match.groups(1)[0])] = match.groups(1)[1]
+
+        f = open(path + "grbl_settings.txt", 'r')
+
+        for line in f:
+            match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
+            if not match is None:
+                self.grblSettingsNames[int(match.groups(1)[0])] = match.groups(1)[1]
+
+        # for k, v in self.grblErrors.items():
+        #     self._logger.info("error id={} desc={}".format(k, v))
+        #
+        # for k, v in self.grblAlarms.items():
+        #     self._logger.info("alarm id={} desc={}".format(k, v))
+
+
+    # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
         return dict(
             hideTempTab = True,
@@ -206,64 +244,62 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             disableModelSizeDetection = True,
             neverSendChecksum = True,
             reOrderTabs = True,
-            disablePrinterSafety = True
+            disablePrinterSafety = True,
+            grblSettingsText = "This space intentionally left blank",
+            grblSettingsBackup = "",
+            showZ = False
         )
 
     def on_settings_save(self, data):
+        self._logger.info("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+        # reload our config
         self.on_after_startup()
 
+        # refresh our grbl settings
+        self._printer.commands("$$")
+
     # #~~ AssetPlugin mixin
-
     def get_assets(self):
-
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-
-        return dict(js=['js/bettergrblsupport.js'],
-                    css=['css/bettergrblsupport.css'],
-                    less=['less/bettergrblsupport.less'])
+        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js'],
+                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css'],
+                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less"])
 
     # #~~ TemplatePlugin mixin
-
     def get_template_configs(self):
         return [
-            dict(type="settings", custom_bindings=False)
+            dict(type="settings", template="bettergrblsupport_settings.jinja2", custom_bindings=True)
         ]
 
-    def get_template_vars(self):
-        return dict(hideTempTab=self._settings.get_boolean(["hideTempTab"]),
-                    hideControlTab=self._settings.get_boolean(["hideControlTab"]),
-                    hideGCodeTab=self._settings.get_boolean(["hideGCodeTab"]),
-                    customControls=self._settings.get_boolean(["customControls"]),
-                    disablePolling=self._settings.get_boolean(["disablePolling"]),
-                    suppressM105=self._settings.get_boolean(["suppressM105"]),
-                    suppressM110=self._settings.get_boolean(["suppressM110"]),
-                    suppressM115=self._settings.get_boolean(["suppressM115"]),
-                    suppressM400=self._settings.get_boolean(["suppressM400"]),
-                    suppressM114=self._settings.get_boolean(["suppressM114"]),
-                    positionCommand=self._settings.get(["positionCommand"]),
-                    statusCommand=self._settings.get(["statusCommand"]),
-                    dwellCommand=self._settings.get(["dwellCommand"]),
-                    disableModelSizeDetection=self._settings.get(["disableModelSizeDetection"]),
-                    neverSendChecksum=self._settings.get(["neverSendChecksum"]),
-                    reOrderTabs=self._settings.get(["reOrderTabs"]),
-                    disablePrinterSafety=self._settings.get(["disablePrinterSafety"]),
-                    helloCommand=self._settings.get(["helloCommand"]))
+    # def get_template_vars(self):
+    #     return dict(grblSettingsText=self.serializeGrblSettings())
+
+    def serializeGrblSettings(self):
+        ret = ""
+        for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
+            ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
+
+        # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
+        return ret
+
+    def deSerializeGrblSettings(self):
+        settings = self._settings.get(["grblSettingsText"])
+
+        for setting in settings.split("||"):
+            if len(setting.strip()) > 0:
+                # self._logger.info("deSerializeGrblSettings=[{}]".format(setting))
+                set = setting.split("|")
+                if not set is None:
+                    self.grblSettings.update({int(set[0]): [set[1], self.grblSettingsNames.get(int(set[0]))]})
+        return
 
     # #-- EventHandlerPlugin mix-in
-
     def on_event(self, event, payload):
-
-        # is_printing = self._printer.is_printing()
-        # is_operational = self._printer.is_operational()
-        #
-        # if self._settings.get_boolean(["is_printing"]) != is_printing or self._settings.get_boolean(["is_operational"]) != is_operational:
-        #     self._settings.set_boolean(["is_printing"], is_printing)
-        #     self._settings.set_boolean(["is_operational"], is_operational)
-        #     self._settings.save()
-
         subscribed_events = Events.FILE_SELECTED + Events.PRINT_STARTED + Events.PRINT_CANCELLED + Events.PRINT_DONE + Events.PRINT_FAILED
+
         if subscribed_events.find(event) == -1:
             return
 
@@ -330,7 +366,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
          # rewrite M115 as M5 (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
-            return (self.helloCommand, )
+            # return (self.helloCommand, )
+            return "$$"
 
          # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
@@ -369,7 +406,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return ("\x18",)
 
         # keep track of distance traveled
-        if cmd.startswith("G0") or cmd.startswith("G1"):
+        if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startswith("M4"):
             found = False
             match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", cmd)
             if not match is None:
@@ -381,24 +418,42 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblY = self.grblY + float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*F\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[01].*Z\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                self.grblSpeed = int(match.groups(1)[0])
+                self.grblZ = self.grblZ + float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*S\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][014].*F\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                self.grblPowerLevel = int(float(match.groups(1)[0]))
+                grblSpeed = int(match.groups(1)[0])
+
+                # make sure we post all speed on / off events
+                if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
+                    self.timeRef = 0;
+
+                self.grblSpeed = grblSpeed
+                found = True
+
+            match = re.search(r"^[GM][014].*S\ *(-?[\d.]+).*", cmd)
+            if not match is None:
+                grblPowerLevel = int(float(match.groups(1)[0]))
+
+                # make sure we post all power on / off events
+                if (grblPowerLevel == 0 and self.grblPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
+                    self.timeRef = 0;
+
+                self.grblPowerLevel = grblPowerLevel
                 found = True
 
             if found:
                 currentTime = int(round(time.time() * 1000))
                 if currentTime > self.timeRef + 500:
-                    # self._logger.info("x={} y={} f={} s={}".format(self.grblX, self.grblY, self.grblSpeed, self.grblPowerLevel))
+                    # self._logger.info("x={} y={} z={} f={} s={}".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                     self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                     state=self.grblState,
                                                                                     x=self.grblX,
                                                                                     y=self.grblY,
+                                                                                    z=self.grblZ,
                                                                                     speed=self.grblSpeed,
                                                                                     power=self.grblPowerLevel))
                     self.timeRef = currentTime
@@ -417,11 +472,57 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # This makes Octoprint recognise the startup message as a successful connection.
             return 'ok ' + line
 
-        # hack to force status updates
-        # if line.startswith("[MSG:Pgm End]") and self.grblState == "Run":
-        #     if self.suppressM105:
-        #         self._printer.commands(self.statusCommand)
+        # look for an error
+        if not self.ignoreErrors and line.lower().startswith('error:'):
+            match = re.search(r'error:\ *(-?[\d.]+)', line.lower())
 
+            if not match is None:
+                error = int(match.groups(1)[0])
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
+                                                                                code=error,
+                                                                                description=self.grblErrors.get(error)))
+
+                self._logger.info("error received: {} = {}".format(error, self.grblErrors.get(error)))
+
+            return 'ok ' + line
+
+        # look for an alarm
+        if line.lower().startswith('alarm:'):
+            match = re.search(r'alarm:\ *(-?[\d.]+)', line.lower())
+
+            if not match is None:
+                error = int(match.groups(1)[0])
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_alarm",
+                                                                                code=error,
+                                                                                description=self.grblAlarms.get(error)))
+
+                self._logger.info("alarm received: {} = {}".format(error, self.grblAlarms.get(error)))
+
+            return 'ok ' + line
+
+        # auto reset
+        if "reset to continue" in line.lower():
+            self._printer.commands("M999")
+            return 'ok ' + line
+
+        # grbl settings
+        if line.startswith("$"):
+            match = re.search(r'^[$](-?[\d\.]+)=(-?[\d\.]+)', line)
+
+            if not match is None:
+                settingsId = int(match.groups(1)[0])
+                settingsValue = match.groups(1)[1]
+
+                self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
+                # self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
+
+                if settingsId >= 132:
+                    self._settings.set(["grblSettingsText"], self.serializeGrblSettings())
+                    self._settings.save()
+
+                return line
+
+        # hack to force status updates
         if 'MPos' in line or 'WPos' in line:
              # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
              # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
@@ -436,25 +537,27 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # OctoPrint records positions in some instances.
              # It needs a different format. Put both on the same line so the GRBL info is not lost
              # and is accessible for "controls" to read.
-
             response = 'ok X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
             self._logger.debug('[%s] rewrote as [%s]', line.strip(), response.strip())
 
             self.grblState = str(match.groups(1)[0])
             self.grblX = float(match.groups(1)[1])
             self.grblY = float(match.groups(1)[2])
+            self.grblZ = float(match.groups(1)[3])
 
             if self.grblState == "Sleep" or self.grblState == "Run":
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                 state=self.grblState,
                                                                                 x=self.grblX,
                                                                                 y=self.grblY,
+                                                                                z=self.grblZ,
                                                                                 speed=self.grblSpeed,
                                                                                 power=self.grblPowerLevel))
 
             return response
 
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
+
         if not match is None:
             self.grblSpeed = int(match.groups(1)[0])
             self.grblPowerLevel = int(match.groups(1)[1])
@@ -463,6 +566,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             state=self.grblState,
                                                                             x=self.grblX,
                                                                             y=self.grblY,
+                                                                            z=self.grblZ,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel))
 
@@ -470,14 +574,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return line
 
         if line.startswith('{'):
-
              # Regular ACKs
              # {0/0}ok
              # {5/16}ok
 
             return 'ok'
         elif '{' in line:
-
              # Ack with return data
              # F300S1000{0/0}ok
 
@@ -486,91 +588,91 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         else:
             return 'ok'
 
-
     def send_frame_init_gcode(self):
         self._printer.commands("G00 G17 G40 G21 G54")
         self._printer.commands("G91")
         self._printer.commands("$32=0")
-        self._printer.commands("M4 S1")
+        self._printer.commands("M4 F1000 S1")
         self._printer.commands("M8")
 
     def send_frame_end_gcode(self):
         self._printer.commands("M9")
         self._printer.commands("G1S0")
+        self._printer.commands("M4 F0 S0")
         self._printer.commands("$32=1")
         self._printer.commands("M5")
         self._printer.commands("M2")
 
     def send_bounding_box_upper_left(self, y, x):
         self._printer.commands("G91")
-        self._printer.commands("G0 X{:f} F4000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
 
     def send_bounding_box_upper_center(self, y, x):
         self._printer.commands("G91")
-        self._printer.commands("G0 X{:f} F4000 S1".format(x / 2))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x / 2))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2))
 
     def send_bounding_box_upper_right(self, y, x):
         self._printer.commands("G91")
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x))
 
     def send_bounding_box_center_left(self, y, x):
         self._printer.commands("G91")
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y / 2))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y / 2))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2))
 
     def send_bounding_box_center(self, y, x):
-        self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2 * -1, y / 2))
+        self._printer.commands("G0 X{:f} Y{:f} F4000".format(x / 2 * -1, y / 2))
 
         self._printer.commands("G91")
-        self._printer.commands("G0 X{} F4000 S1".format(x))
+        self._printer.commands("G0 X{} F2000 S1".format(x))
         self._printer.commands("G0 Y{:f} S1".format(y * -1))
         self._printer.commands("G0 X{} S1".format(x * -1))
         self._printer.commands("G0 Y{} S1".format(y))
-        self._printer.commands("G0 X{:f} Y{:f} F6000".format(x / 2, y / 2 * -1))
+        self._printer.commands("G0 X{:f} Y{:f} F4000".format(x / 2, y / 2 * -1))
 
     def send_bounding_box_center_right(self, y, x):
         self._printer.commands("G91")
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y / 2 * -1))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y / 2 * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2 * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2 * -1))
 
     def send_bounding_box_lower_left(self, y, x):
         self._printer.commands("G91")
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
 
     def send_bounding_box_lower_center(self, y, x):
         self._printer.commands("G91")
-        self._printer.commands("G0 X{:f} F4000 S1".format(x / 2 * -1))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x / 2 * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2 * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2 * -1))
 
 
     def send_bounding_box_lower_right(self, y, x):
         self._printer.commands("G91")
-        self._printer.commands("G0 X{:f} F4000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y))
-        self._printer.commands("G0 X{:f} F4000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F4000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
 
     def get_api_commands(self):
         return dict(
@@ -580,7 +682,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             move=[],
             sleep=[],
             reset=[],
-            unlock=[]
+            unlock=[],
+            homing=[],
+            updateGrblSetting=[],
+            backupGrblSettings=[],
+            restoreGrblSettings=[]
         )
 
     def on_api_command(self, command, data):
@@ -645,51 +751,46 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "up":
                 self._printer.commands("G91")
-                self._printer.commands("G1 Y{} F6000".format(distance))
+                self._printer.commands("G1 Y{} F4000".format(distance))
                 self._printer.commands("G90")
 
             if direction == "down":
                 self._printer.commands("G91")
-                self._printer.commands("G1 Y{} F6000".format(distance * -1))
+                self._printer.commands("G1 Y{} F4000".format(distance * -1))
                 self._printer.commands("G90")
 
             if direction == "left":
                 self._printer.commands("G91")
-                self._printer.commands("G1 X{} F6000".format(distance * -1))
+                self._printer.commands("G1 X{} F4000".format(distance * -1))
                 self._printer.commands("G90")
 
             if direction == "right":
                 self._printer.commands("G91")
-                self._printer.commands("G1 X{} F6000".format(distance))
+                self._printer.commands("G1 X{} F4000".format(distance))
                 self._printer.commands("G90")
 
             return
 
         if command == "origin":
             # do origin stuff
+            self.ignoreErrors = True
+
             self._printer.commands("$10=0")
             self._printer.commands("G28.1")
             self._printer.commands("G92 X0 Y0 Z0")
 
+            time.sleep(1)
+
+            self._printer.commands("$10=0")
+            self._printer.commands("G28.1")
+            self._printer.commands("G92 X0 Y0 Z0")
+
+            self.ignoreErrors = False
+
             return
 
         if command == "toggleWeak":
-            # do laser stuff
-            powerLevel = self.grblPowerLevel
-
-            if powerLevel == 0:
-                self._printer.commands("$32=0")
-                self._printer.commands("M4 S1")
-                res = "Laser Off"
-            else:
-                self._printer.commands("M9")
-                self._printer.commands("G1S0")
-                self._printer.commands("$32=1")
-                self._printer.commands("M5")
-                self._printer.commands("M2")
-                res = "Weak Laser"
-
-            return flask.jsonify({'res' : res})
+            return flask.jsonify({'res' : self.toggleWeak()})
 
         if command == "sleep":
             self._printer.commands("$SLP")
@@ -703,6 +804,58 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("M999")
             return
 
+        if command == "homing":
+            if self.grblPowerLevel > 0 and self.grblState == "Idle":
+                self.toggleWeak();
+
+            self._printer.commands("$H")
+            return
+
+        if command == "updateGrblSetting":
+            self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
+            self.grblSettings.update({int(data.get("id")): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id")))]})
+            self._printer.commands("$$")
+            return
+
+        if command == "backupGrblSettings":
+            self._settings.set(["grblSettingsBackup"], self.serializeGrblSettings())
+            self._settings.save()
+            return
+
+        if command == "restoreGrblSettings":
+            settings = self._settings.get(["grblSettingsBackup"])
+
+            if settings is None or len(settings.strip()) == 0:
+                return
+
+            for setting in settings.split("||"):
+                if len(setting.strip()) > 0:
+                    set = setting.split("|")
+                    # self._logger.info("restoreGrblSettings: {}".format(set))
+                    command = "${}={}".format(set[0], set[1])
+                    self._printer.commands(command)
+
+            time.sleep(1)
+            return flask.jsonify({'res' : settings})
+
+    def toggleWeak(self):
+        # do laser stuff
+        powerLevel = self.grblPowerLevel
+
+        if powerLevel == 0:
+            self._printer.commands("$32=0")
+            self._printer.commands("M4 F1000 S1")
+            res = "Laser Off"
+        else:
+            self._printer.commands("M9")
+            self._printer.commands("G1S0")
+            self._printer.commands("M4 F0 S0")
+            self._printer.commands("$32=1")
+            self._printer.commands("M5")
+            self._printer.commands("M2")
+            res = "Weak Laser"
+
+        return res
 
     # #~~ Softwareupdate hook
 

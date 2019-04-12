@@ -42,6 +42,7 @@ $(function() {
       self.state = ko.observable("N/A");
       self.xPos = ko.observable("N/A");
       self.yPos = ko.observable("N/A");
+      self.zPos = ko.observable("N/A");
       self.power = ko.observable("N/A");
       self.speed = ko.observable("N/A");
 
@@ -57,6 +58,11 @@ $(function() {
       });
 
       self.doFrame = function() {
+        // toggle power if it is on
+        if (self.power != 0) {
+          self.toggleWeak();
+        }
+
         var o;
         var x = document.getElementsByName("frameOrigin");
         var i;
@@ -108,7 +114,7 @@ $(function() {
           },
           error: function (data, status) {
             new PNotify({
-              title: "Framing failed!",
+              title: "Laser action failed!",
               text: data.responseText,
               hide: true,
               buttons: {
@@ -220,15 +226,72 @@ $(function() {
           self.state(data.state);
           self.xPos(Number.parseFloat(data.x).toFixed(2));
           self.yPos(Number.parseFloat(data.y).toFixed(2));
-          self.power(data.power);
+          self.zPos(Number.parseFloat(data.z).toFixed(2));
           self.speed(data.speed);
-          // console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " power=" + data.power + " speed=" + data.speed);
+
+          if (data.power == "0" && self.power() != "0") {
+            var btn = document.getElementById("grblLaserButton");
+            btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
+          } else {
+            if (self.power() == "0" && data.power != "0") {
+              var btn = document.getElementById("grblLaserButton");
+              btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
+            }
+          }
+
+          self.power(data.power);
+          // console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
           return
         }
 
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_frame_size') {
-          self.width(Number.parseFloat(data.width).toFixed(0));
-          self.length(Number.parseFloat(data.length).toFixed(0));
+          width = Number.parseFloat(data.width).toFixed(0);
+          length = Number.parseFloat(data.length).toFixed(0);
+
+          self.width(width);
+          self.length(length);
+
+          new PNotify({
+            title: "Frame Size Computed",
+            text: "Dimension are " + width + "W x " + length + "L",
+            hide: true,
+            buttons: {
+              sticker: false,
+              closer: true
+            },
+            type: "success"
+          });
+
+          return
+        }
+
+        if (plugin == 'bettergrblsupport' && data.type == 'grbl_error') {
+          new PNotify({
+            title: "Grbl Error #" + data.code + " Received",
+            text: data.description,
+            hide: false,
+            buttons: {
+              sticker: true,
+              closer: true
+            },
+            type: "error"
+          });
+
+          return
+        }
+
+        if (plugin == 'bettergrblsupport' && data.type == 'grbl_alarm') {
+          new PNotify({
+            title: "Grbl Alarm #" + data.code + " Received",
+            text: data.description,
+            hide: false,
+            buttons: {
+              sticker: true,
+              closer: true
+            },
+            type: "notice"
+          });
+
           return
         }
       };
