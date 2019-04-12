@@ -4,19 +4,23 @@
 
 This plugin was inspired by mic159's Grbl Support plugin (https://plugins.octoprint.org/plugins/octoprint-grbl-plugin/).  His plugin gets you 90% of the way there for adding Grbl support to Octoprint but had a couple limitations and lacked some bells and whistles from a UI and configuration perspective.
 
-**Better Grbl Support** utilizes mic159's gcode receiver parser (with minor changes at the moment) and does much, much more:
+**Better Grbl Support** utilizes mic159's gcode receiver parser (with significant modifications) and does much, much more:
 
 * Replaces Octoprint's Control tab with its own Grbl Control tab
 * Execute bounding box (framing) routines based on origin location and supplied dimensions
 * Computes selected file dimensions and pre-populates framing length/width fields
+* Converts Grbl error and alarm #s to meaningful descriptions 
+* Grbl Homing support
+* Modify all Grbl ($$) settings via Better Grbl Support settings
+* Backup and restore Grbl ($$) settings
 * Click on the webcam image to enlarge it to its native resolution
-* Updates Grbl state data automatically (State / X location / Y location / Speed / Power), even whle printing!
+* Visually updates State / X / Y / Z / Speed / Power dynamically, even while printing!
 * Weak Laser Toggle, Sleep, Reset, and Unlock buttons conveniently placed within the Grbl Control tab
 * Rewrites Octoprint's annoying hardcoded M115 (Hello) queries as M5 requests
 * Rewrites M105 (temperature updates) as Grbl status updates
 * Suppresses M110 (reset line #) requests
 * Rewrites M400 (Finish moves) using Grbl Dwell
-* Reswrites M114 (current position) using Grbl Positioning
+* Rewrites M114 (current position) using Grbl Positioning
 * Implements M999 for reseting Grbl (^X)
 * Hides the Octoprint Control, Temperature and GCode Viewer tabs
 * Optionally adds Laser Commands and State sections to the Control tab
@@ -34,11 +38,9 @@ or manually using this URL:
 
     https://github.com/synman/OctoPrint-Bettergrblsupport/archive/master.zip
 
-**NOTE:** Installing this pluging directly from the URL above ensures you always have the latest version, but this comes with risk.  I do not follow a traditional gitflow which means commits to the master branch may not be fully tested and could cause unforeseen issues. Proceed at your own risk.  
-
 ## Configuration
 
-There are some meaningful caveots regarding the installation and configuration of this plugin.  If you use it in a multi-printer / profile environment it will very likely cause problems for your other profiles as it makes **GLOBAL** configration changes behind the scenes.  A future version may resolve this, but understand that currently multi-profile installations are not currently supported.
+There are some meaningful caveats regarding the installation and configuration of this plugin.  If you use it in a multi-printer / profile environment it will very likely cause problems for your other profiles as it makes **GLOBAL** configuration changes behind the scenes.  A future version may resolve this, but understand that currently multi-profile installations are not currently supported.
 
 Furthermore, a number of global configuration changes are made blindly and I have no way of reverting these changes.  Be prepared to manually edit your config.yaml and/or manually revert global settings if you uninstall / disable this plugin to restore your Octoprint installation to its prior state.
 
