@@ -406,7 +406,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return ("\x18",)
 
         # keep track of distance traveled
-        if cmd.startswith("G0") or cmd.startswith("G1"):
+        if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startsWith("M4"):
             found = False
             match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", cmd)
             if not match is None:
@@ -423,12 +423,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblZ = self.grblZ + float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*F\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][014].*F\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                self.grblSpeed = int(match.groups(1)[0])
+                grblSpeed = int(match.groups(1)[0])
+
+                # make sure we post all speed on / off events
+                if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
+                    self.timeRef = 0;
+
+                self.grblSpeed = grblSpeed
                 found = True
 
-            match = re.search(r"^G[01].*S\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][014].*S\ *(-?[\d.]+).*", cmd)
             if not match is None:
                 grblPowerLevel = int(float(match.groups(1)[0]))
 
