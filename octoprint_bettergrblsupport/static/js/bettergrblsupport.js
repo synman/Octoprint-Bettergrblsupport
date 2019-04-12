@@ -254,7 +254,7 @@ $(function() {
           new PNotify({
             title: "Frame Size Computed",
             text: "Dimension are " + width + "W x " + length + "L",
-            hide: false,
+            hide: true,
             buttons: {
               sticker: false,
               closer: true
