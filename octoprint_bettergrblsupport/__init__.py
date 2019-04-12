@@ -805,7 +805,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "homing":
-            if self.grbPowerLevel > 0 and self.grblState == "Idle":
+            if self.grblPowerLevel > 0 and self.grblState == "Idle":
                 self.toggleWeak();
 
             self._printer.commands("$H")
