@@ -406,7 +406,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return ("\x18",)
 
         # keep track of distance traveled
-        if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startsWith("M4"):
+        if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startswith("M4"):
             found = False
             match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", cmd)
             if not match is None:
