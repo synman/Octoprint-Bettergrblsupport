@@ -246,7 +246,8 @@ $(function() {
 
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_frame_size') {
           width = Number.parseFloat(data.width).toFixed(0);
-          length = Number.parseFloat(data.length).toFixed(0)
+          length = Number.parseFloat(data.length).toFixed(0);
+
           self.width(width);
           self.length(length);
 
@@ -294,46 +295,45 @@ $(function() {
           return
         }
       };
-    };
 
-    self.fsClick = function () {
-      // console.log("fsClick");
-      var streamImg = document.getElementById("webcam_image_framing");
+      self.fsClick = function () {
+        // console.log("fsClick");
+        var streamImg = document.getElementById("webcam_image_framing");
 
-      $body.toggleClass('inlineFullscreen');
-      $container.toggleClass("inline fullscreen");
-      // streamImg.classList.toggle("fullscreen");
+        $body.toggleClass('inlineFullscreen');
+        $container.toggleClass("inline fullscreen");
+        // streamImg.classList.toggle("fullscreen");
 
-      if (jogPanel.is(':visible')) {
-        jogPanel.hide();
-      } else {
-        jogPanel.show();
+        if (jogPanel.is(':visible')) {
+          jogPanel.hide();
+        } else {
+          jogPanel.show();
+        }
+
+        if (framingPanel.is(':visible')) {
+          framingPanel.hide();
+        } else {
+          framingPanel.show();
+        }
+
+        if (radioButtons.is(':visible')) {
+          radioButtons.hide();
+        } else {
+          radioButtons.show();
+        }
+
+        if (frameButton.is(':visible')) {
+          frameButton.hide();
+        } else {
+          frameButton.show();
+        }
+
+        if (laserButtons.is(':visible')) {
+          laserButtons.hide();
+        } else {
+          laserButtons.show();
+        }
       }
-
-      if (framingPanel.is(':visible')) {
-        framingPanel.hide();
-      } else {
-        framingPanel.show();
-      }
-
-      if (radioButtons.is(':visible')) {
-        radioButtons.hide();
-      } else {
-        radioButtons.show();
-      }
-
-      if (frameButton.is(':visible')) {
-        frameButton.hide();
-      } else {
-        frameButton.show();
-      }
-
-      if (laserButtons.is(':visible')) {
-        laserButtons.hide();
-      } else {
-        laserButtons.show();
-      }
-    }
 
       self.onWebcamFrameErrored = function() {
         // alert("webcam frame error");
