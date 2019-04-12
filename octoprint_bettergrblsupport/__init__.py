@@ -439,7 +439,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 grblPowerLevel = int(float(match.groups(1)[0]))
 
                 # make sure we post all power on / off events
-                if (grblPowerLevel == 0 and self.grbPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
+                if (grblPowerLevel == 0 and self.grblPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
                     self.timeRef = 0;
 
                 self.grblPowerLevel = grblPowerLevel
