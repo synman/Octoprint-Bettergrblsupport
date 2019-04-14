@@ -43,6 +43,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.reOrderTabs = True
         self.disablePrinterSafety = True
         self.showZ = False
+        self.m8Command = ""
+        self.m9Command = ""
 
         self.grblState = None
         self.grblX = float(0)
@@ -89,6 +91,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.disableModelSizeDetection = self._settings.get_boolean(["disableModelSizeDetection"])
         self.neverSendChecksum = self._settings.get_boolean(["neverSendChecksum"])
         self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
+
+        self.m8Command = self._settings.get(["m8Command"])
+        self.m9Command = self._settings.get(["m9Command"])
 
         # self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
         # self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
@@ -248,7 +253,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             disablePrinterSafety = True,
             grblSettingsText = "This space intentionally left blank",
             grblSettingsBackup = "",
-            showZ = False
+            showZ = False,
+            m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
+            m9Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c off"
         )
 
     def on_settings_save(self, data):
@@ -367,13 +374,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # M8 processing - work in progress
         if cmd.upper().strip() == "M8":
             self._logger.info('Turning ON Air Assist')
-            subprocess.call("tplink_smartplug.py -t air-assist.shellware.com -c on", shell=True)
+            subprocess.call(self.m8Command, shell=True)
             return (None,)
 
         # M9 processing - work in progress
         if cmd.upper().strip() == "M9":
             self._logger.info('Turning OFF Air Assist')
-            subprocess.call("tplink_smartplug.py -t air-assist.shellware.com -c off", shell=True)
+            subprocess.call(self.m9Command, shell=True)
             return (None,)
 
         # rewrite M115 as M5 (hello)
@@ -705,7 +712,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_api_command(self, command, data):
 
         # catch-all (should revisit state management) for validating printer State
-        if not self._printer.is_ready():
+        if not self._printer.is_ready() and self.grblState != "Idle":
             self._logger.info("ignoring command - printer is not available")
             return
 
