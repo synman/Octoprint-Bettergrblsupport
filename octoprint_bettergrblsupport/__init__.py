@@ -613,10 +613,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G91")
         self._printer.commands("$32=0")
         self._printer.commands("M4 F1000 S1")
-        self._printer.commands("M8")
+        # self._printer.commands("M8")
 
     def send_frame_end_gcode(self):
-        self._printer.commands("M9")
+        # self._printer.commands("M9")
         self._printer.commands("G1S0")
         self._printer.commands("M4 F0 S0")
         self._printer.commands("$32=1")
