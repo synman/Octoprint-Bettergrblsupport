@@ -504,7 +504,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 self._logger.info("error received: {} = {}".format(error, self.grblErrors.get(error)))
 
-            return 'ok ' + line
+            return 'Error: ' + line
 
         # look for an alarm
         if line.lower().startswith('alarm:'):
@@ -518,7 +518,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 self._logger.info("alarm received: {} = {}".format(error, self.grblAlarms.get(error)))
 
-            return 'ok ' + line
+            return 'Error: ' + line
 
         # auto reset
         if "reset to continue" in line.lower():
