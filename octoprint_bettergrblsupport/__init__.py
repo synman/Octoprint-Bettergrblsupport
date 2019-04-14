@@ -710,10 +710,55 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_api_command(self, command, data):
+        if command == "sleep":
+            self._printer.commands("$SLP")
+            return
+
+        if command == "unlock":
+            self._printer.commands("$X")
+            return
+
+        if command == "reset":
+            self._printer.commands("M999")
+            return
+
+        if command == "homing":
+            if self.grblPowerLevel > 0 and self.grblState == "Idle":
+                self.toggleWeak();
+
+            self._printer.commands("$H")
+            return
+
+        if command == "updateGrblSetting":
+            self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
+            self.grblSettings.update({int(data.get("id")): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id")))]})
+            self._printer.commands("$$")
+            return
+
+        if command == "backupGrblSettings":
+            self._settings.set(["grblSettingsBackup"], self.serializeGrblSettings())
+            self._settings.save()
+            return
+
+        if command == "restoreGrblSettings":
+            settings = self._settings.get(["grblSettingsBackup"])
+
+            if settings is None or len(settings.strip()) == 0:
+                return
+
+            for setting in settings.split("||"):
+                if len(setting.strip()) > 0:
+                    set = setting.split("|")
+                    # self._logger.info("restoreGrblSettings: {}".format(set))
+                    command = "${}={}".format(set[0], set[1])
+                    self._printer.commands(command)
+
+            time.sleep(1)
+            return flask.jsonify({'res' : settings})
 
         # catch-all (should revisit state management) for validating printer State
         if not self._printer.is_ready() or self.grblState != "Idle":
-            self._logger.info("ignoring command - printer is not available")
+            self._logger.info("ignoring move related command - printer is not available")
             return
 
         if command == "frame":
@@ -811,52 +856,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "toggleWeak":
             return flask.jsonify({'res' : self.toggleWeak()})
-
-        if command == "sleep":
-            self._printer.commands("$SLP")
-            return
-
-        if command == "unlock":
-            self._printer.commands("$X")
-            return
-
-        if command == "reset":
-            self._printer.commands("M999")
-            return
-
-        if command == "homing":
-            if self.grblPowerLevel > 0 and self.grblState == "Idle":
-                self.toggleWeak();
-
-            self._printer.commands("$H")
-            return
-
-        if command == "updateGrblSetting":
-            self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
-            self.grblSettings.update({int(data.get("id")): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id")))]})
-            self._printer.commands("$$")
-            return
-
-        if command == "backupGrblSettings":
-            self._settings.set(["grblSettingsBackup"], self.serializeGrblSettings())
-            self._settings.save()
-            return
-
-        if command == "restoreGrblSettings":
-            settings = self._settings.get(["grblSettingsBackup"])
-
-            if settings is None or len(settings.strip()) == 0:
-                return
-
-            for setting in settings.split("||"):
-                if len(setting.strip()) > 0:
-                    set = setting.split("|")
-                    # self._logger.info("restoreGrblSettings: {}".format(set))
-                    command = "${}={}".format(set[0], set[1])
-                    self._printer.commands(command)
-
-            time.sleep(1)
-            return flask.jsonify({'res' : settings})
 
     def toggleWeak(self):
         # do laser stuff
