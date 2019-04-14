@@ -363,13 +363,23 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
 
-         # rewrite M115 as M5 (hello)
+        # M8 processing - work in progress
+        if cmd.upper().strip() == "M8":
+            os.system("tplink_smartplug.py -t air-assist.shellware.com -c on")
+            return (None,)
+
+        # M9 processing - work in progress
+        if cmd.upper().strip() == "M9":
+            os.system("tplink_smartplug.py -t air-assist.shellware.com -c off")
+            return (None,)
+
+        # rewrite M115 as M5 (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
             # return (self.helloCommand, )
             return "$$"
 
-         # suppress reset line #s
+        # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
             return (None, )
