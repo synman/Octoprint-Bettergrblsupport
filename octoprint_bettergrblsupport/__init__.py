@@ -8,6 +8,7 @@ from octoprint.events import Events
 import time
 import math
 import os
+import subprocess
 
 import octoprint.plugin
 import re
@@ -365,12 +366,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # M8 processing - work in progress
         if cmd.upper().strip() == "M8":
-            os.system("tplink_smartplug.py -t air-assist.shellware.com -c on")
+            self._logger.info('Turning ON Air Assist')
+            subprocess.call("tplink_smartplug.py -t air-assist.shellware.com -c on", shell=True)
             return (None,)
 
         # M9 processing - work in progress
         if cmd.upper().strip() == "M9":
-            os.system("tplink_smartplug.py -t air-assist.shellware.com -c off")
+            self._logger.info('Turning OFF Air Assist')
+            subprocess.call("tplink_smartplug.py -t air-assist.shellware.com -c off", shell=True)
             return (None,)
 
         # rewrite M115 as M5 (hello)
