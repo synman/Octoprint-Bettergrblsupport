@@ -712,7 +712,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_api_command(self, command, data):
 
         # catch-all (should revisit state management) for validating printer State
-        if not self._printer.is_ready() and self.grblState != "Idle":
+        if not self._printer.is_ready() or self.grblState != "Idle":
             self._logger.info("ignoring command - printer is not available")
             return
 
@@ -867,7 +867,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("M4 F1000 S1")
             res = "Laser Off"
         else:
-            self._printer.commands("M9")
+            # self._printer.commands("M9")
             self._printer.commands("G1S0")
             self._printer.commands("M4 F0 S0")
             self._printer.commands("$32=1")
