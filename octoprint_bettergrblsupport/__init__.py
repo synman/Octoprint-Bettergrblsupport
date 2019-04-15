@@ -377,13 +377,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
 
         # M8 processing - work in progress
-        if cmd.upper().strip() == "M8" and overrideM8:
+        if cmd.upper().strip() == "M8" and self.overrideM8:
             self._logger.info('Turning ON Air Assist')
             subprocess.call(self.m8Command, shell=True)
             return (None,)
 
         # M9 processing - work in progress
-        if cmd.upper().strip() == "M9" and overrideM9:
+        if cmd.upper().strip() == "M9" and self.overrideM9:
             self._logger.info('Turning OFF Air Assist')
             subprocess.call(self.m9Command, shell=True)
             return (None,)
