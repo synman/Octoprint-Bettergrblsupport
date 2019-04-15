@@ -189,10 +189,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.save()
 
-        self.loadGrblErrorsAndAlarms()
+        self.loadGrblDescriptions()
         self.deSerializeGrblSettings()
 
-    def loadGrblErrorsAndAlarms(self):
+    def loadGrblDescriptions(self):
         path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
 
         f = open(path + "grbl_errors.txt", 'r')
@@ -222,6 +222,24 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # for k, v in self.grblAlarms.items():
         #     self._logger.info("alarm id={} desc={}".format(k, v))
 
+    def deSerializeGrblSettings(self):
+        settings = self._settings.get(["grblSettingsText"])
+
+        for setting in settings.split("||"):
+            if len(setting.strip()) > 0:
+                # self._logger.info("deSerializeGrblSettings=[{}]".format(setting))
+                set = setting.split("|")
+                if not set is None:
+                    self.grblSettings.update({int(set[0]): [set[1], self.grblSettingsNames.get(int(set[0]))]})
+        return
+
+    def serializeGrblSettings(self):
+        ret = ""
+        for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
+            ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
+
+        # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
+        return ret
 
     # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
@@ -284,25 +302,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # def get_template_vars(self):
     #     return dict(grblSettingsText=self.serializeGrblSettings())
-
-    def serializeGrblSettings(self):
-        ret = ""
-        for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
-            ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
-
-        # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
-        return ret
-
-    def deSerializeGrblSettings(self):
-        settings = self._settings.get(["grblSettingsText"])
-
-        for setting in settings.split("||"):
-            if len(setting.strip()) > 0:
-                # self._logger.info("deSerializeGrblSettings=[{}]".format(setting))
-                set = setting.split("|")
-                if not set is None:
-                    self.grblSettings.update({int(set[0]): [set[1], self.grblSettingsNames.get(int(set[0]))]})
-        return
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
@@ -428,6 +427,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # keep track of distance traveled
         if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startswith("M4"):
             found = False
+
             match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", cmd)
             if not match is None:
                 self.grblX = self.grblX + float(match.groups(1)[0])
