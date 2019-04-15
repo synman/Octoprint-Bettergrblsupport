@@ -43,6 +43,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.reOrderTabs = True
         self.disablePrinterSafety = True
         self.showZ = False
+
+        self.overrideM8 = False
+        self.overrideM9 = False
         self.m8Command = ""
         self.m9Command = ""
 
@@ -64,6 +67,42 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F4000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
+    # #~~ SettingsPlugin mixin
+    def get_settings_defaults(self):
+        return dict(
+            hideTempTab = True,
+            hideControlTab = True,
+            hideGCodeTab = True,
+            helloCommand = "M5",
+            statusCommand = "?$G",
+            dwellCommand = "G4 P0",
+            positionCommand = "?",
+            suppressM114 = True,
+            suppressM400 = True,
+            suppressM105 = True,
+            suppressM115 = True,
+            suppressM110 = True,
+            disablePolling = True,
+            customControls = True,
+            frame_length = 100,
+            frame_width = 100,
+            frame_origin = None,
+            distance = 10,
+            distances = [.1, 1, 10, 100],
+            is_printing = False,
+            is_operational = False,
+            disableModelSizeDetection = True,
+            neverSendChecksum = True,
+            reOrderTabs = True,
+            disablePrinterSafety = True,
+            grblSettingsText = "This space intentionally left blank",
+            grblSettingsBackup = "",
+            showZ = False,
+            overrideM8 = False,
+            overrideM9 = False,
+            m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
+            m9Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c off"
+        )
     # def on_settings_initialized(self):
     #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
     #     self._logger.info("hideTempTab: %s" % self.hideTempTab)
@@ -92,6 +131,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.neverSendChecksum = self._settings.get_boolean(["neverSendChecksum"])
         self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
 
+        self.overrideM8 = self._settings.get_boolean(["overrideM8"])
+        self.overrideM9 = self._settings.get_boolean(["overrideM9"])
         self.m8Command = self._settings.get(["m8Command"])
         self.m9Command = self._settings.get(["m9Command"])
 
@@ -241,41 +282,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
         return ret
 
-    # #~~ SettingsPlugin mixin
-    def get_settings_defaults(self):
-        return dict(
-            hideTempTab = True,
-            hideControlTab = True,
-            hideGCodeTab = True,
-            helloCommand = "M5",
-            statusCommand = "?$G",
-            dwellCommand = "G4 P0",
-            positionCommand = "?",
-            suppressM114 = True,
-            suppressM400 = True,
-            suppressM105 = True,
-            suppressM115 = True,
-            suppressM110 = True,
-            disablePolling = True,
-            customControls = True,
-            frame_length = 100,
-            frame_width = 100,
-            frame_origin = None,
-            distance = 10,
-            distances = [.1, 1, 10, 100],
-            is_printing = False,
-            is_operational = False,
-            disableModelSizeDetection = True,
-            neverSendChecksum = True,
-            reOrderTabs = True,
-            disablePrinterSafety = True,
-            grblSettingsText = "This space intentionally left blank",
-            grblSettingsBackup = "",
-            showZ = False,
-            m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
-            m9Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c off"
-        )
-
     def on_settings_save(self, data):
         self._logger.info("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
@@ -371,13 +377,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
 
         # M8 processing - work in progress
-        if cmd.upper().strip() == "M8":
+        if cmd.upper().strip() == "M8" and overrideM8:
             self._logger.info('Turning ON Air Assist')
             subprocess.call(self.m8Command, shell=True)
             return (None,)
 
         # M9 processing - work in progress
-        if cmd.upper().strip() == "M9":
+        if cmd.upper().strip() == "M9" and overrideM9:
             self._logger.info('Turning OFF Air Assist')
             subprocess.call(self.m9Command, shell=True)
             return (None,)
@@ -868,7 +874,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         return res
 
     # #~~ Softwareupdate hook
-
     def get_update_information(self):
 
         # Define the configuration for your plugin to use with the Software Update
