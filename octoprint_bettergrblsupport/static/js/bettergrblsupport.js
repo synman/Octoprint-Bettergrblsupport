@@ -229,13 +229,15 @@ $(function() {
           self.zPos(Number.parseFloat(data.z).toFixed(2));
           self.speed(data.speed);
 
-          if (data.power == "0" && self.power() != "0") {
-            var btn = document.getElementById("grblLaserButton");
-            btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
-          } else {
-            if (self.power() == "0" && data.power != "0") {
+          if (data.state != "Run") {
+            if (data.power == "0" && self.power() != "0") {
               var btn = document.getElementById("grblLaserButton");
-              btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
+              btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
+            } else {
+              if (self.power() == "0" && data.power != "0") {
+                var btn = document.getElementById("grblLaserButton");
+                btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
+              }
             }
           }
 
@@ -269,15 +271,13 @@ $(function() {
           new PNotify({
             title: "Grbl Error #" + data.code + " Received",
             text: data.description,
-            hide: false,
+            hide: true,
             buttons: {
               sticker: true,
               closer: true
             },
             type: "error"
           });
-
-          return
         }
 
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_alarm') {

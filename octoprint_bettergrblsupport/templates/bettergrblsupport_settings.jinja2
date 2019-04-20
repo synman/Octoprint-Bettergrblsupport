@@ -79,9 +79,31 @@
 
 		<br>
 
-		<p>* Server restart is required for this setting change to take effect</p>
+    <label class="control-label">Air Assist Overrides</label>
 		<br>
+		<div class="controls">
+			<label class="checkbox">
+				<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.overrideM8"> Suppress M8 Command
+			</label>
+			<!-- ko if: settings.settings.plugins.bettergrblsupport.overrideM8 -->
+					<label>And Execute:</label>
+	        <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.bettergrblsupport.m8Command">
+					<br><br>
+			<!-- /ko -->
+			<label class="checkbox">
+				<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.overrideM9"> Suppress M9 Command
+			</label>
+			<!-- ko if: settings.settings.plugins.bettergrblsupport.overrideM9 -->
+					<label>And Execute:</label>
+	        <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.bettergrblsupport.m9Command">
+					<br><br>
+			<!-- /ko -->
+		</div>
 
+		<br>
+		<br>
+		<p>* Server restart is required for this setting change to take effect</p>
+		<br> 
 		<h4>Grbl Settings</h4>
 		<hr>
 		<center>
