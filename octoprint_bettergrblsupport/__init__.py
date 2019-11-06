@@ -280,7 +280,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
             ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
-        # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
+        self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
         return ret
 
     def on_settings_save(self, data):
@@ -601,7 +601,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 settingsValue = match.groups(1)[1]
 
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
-                # self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
+                self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
                 if settingsId >= 132:
                     self._settings.set(["grblSettingsText"], self.serializeGrblSettings())
