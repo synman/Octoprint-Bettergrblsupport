@@ -43,6 +43,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.reOrderTabs = True
         self.disablePrinterSafety = True
         self.showZ = False
+        self.weakLaserValue = 1
 
         self.overrideM8 = False
         self.overrideM9 = False
@@ -101,6 +102,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             grblSettingsText = "This space intentionally left blank",
             grblSettingsBackup = "",
             showZ = False,
+            weakLaserValue = 1,
             overrideM8 = False,
             overrideM9 = False,
             m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
@@ -139,6 +141,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.m8Command = self._settings.get(["m8Command"])
         self.m9Command = self._settings.get(["m9Command"])
 
+        self.showZ = self._settings.get_boolean(["showZ"])
+        self.weakLaserValue = self._settings.get(["weakLaserValue"])
+        
         # self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
         # self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
         # self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
@@ -603,7 +608,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 settingsValue = match.groups(1)[1]
 
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
-                self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
+                # self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
                 if settingsId >= 132:
                     self._settings.set(["grblSettingsText"], self.serializeGrblSettings())
