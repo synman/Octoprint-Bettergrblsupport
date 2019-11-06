@@ -343,18 +343,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.positioning = 0
 
             for line in f:
-                if line.startswith("G90"):
+                #T2 # HACK:
+                if line.upper().lstrip().startswith("X"):
+                    match = re.search(r"^X *(-?[\d.]+).*", line)
+                    if not match is None:
+                        command = "G01 " + line.upper().strip()
+                    else:
+                        command = line.upper().strip()
+                else:
+                    command = line.upper().strip()
+
+                if command.startswith("G90"):
                     # absolute positioning
                     self.positioning = 0
                     continue
 
-                if line.startswith("G91"):
+                if command.startswith("G91"):
                     # relative positioning
                     self.positioning = 1
                     continue
 
-                if line.startswith("G0") or line.startswith("G1") or line.startswith("G2") or line.startswith("G3"):
-                    match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", line)
+                if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3"):
+                    match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", command)
                     if not match is None:
                         if self.positioning == 1:
                             x = x + float(match.groups(1)[0])
@@ -365,7 +375,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         if x > maxX:
                             maxX = x
 
-                    match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", line)
+                    match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", command)
                     if not match is None:
                         if self.positioning == 1:
                             y = y + float(match.groups(1)[0])
