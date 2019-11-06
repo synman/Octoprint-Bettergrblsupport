@@ -143,7 +143,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.showZ = self._settings.get_boolean(["showZ"])
         self.weakLaserValue = self._settings.get(["weakLaserValue"])
-        
+
         # self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
         # self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
         # self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
@@ -686,7 +686,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G00 G17 G40 G21 G54")
         self._printer.commands("G91")
         self._printer.commands("$32=0")
-        self._printer.commands("M4 F1000 S1")
+        self._printer.commands("M4 F1000 S{}".format(self.weakLaserValue))
         self._printer.commands("G91")
         # self._printer.commands("M8")
 
@@ -699,65 +699,65 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("M2")
 
     def send_bounding_box_upper_left(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
 
     def send_bounding_box_upper_center(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2, self.weakLaserValue))
 
     def send_bounding_box_upper_right(self, y, x):
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
 
     def send_bounding_box_center_left(self, y, x):
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2, self.weakLaserValue))
 
     def send_bounding_box_center(self, y, x):
         self._printer.commands("G0 X{:f} Y{:f} F4000".format(x / 2 * -1, y / 2))
-        self._printer.commands("G0 X{} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} S1".format(y * -1))
-        self._printer.commands("G0 X{} S1".format(x * -1))
-        self._printer.commands("G0 Y{} S1".format(y))
+        self._printer.commands("G0 X{} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{} S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{} S{}".format(y, self.weakLaserValue))
         self._printer.commands("G0 X{:f} Y{:f} F4000".format(x / 2, y / 2 * -1))
 
     def send_bounding_box_center_right(self, y, x):
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2 * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2 * -1))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2 * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2 * -1, self.weakLaserValue))
 
     def send_bounding_box_lower_left(self, y, x):
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
 
     def send_bounding_box_lower_center(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2 * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2 * -1))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2 * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2 * -1, self.weakLaserValue))
 
 
     def send_bounding_box_lower_right(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
 
     def get_api_commands(self):
         return dict(
@@ -928,7 +928,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if powerLevel == 0:
             self._printer.commands("$32=0")
-            self._printer.commands("M4 F1000 S1")
+            self._printer.commands("M4 F1000 S{}".format(self.weakLaserValue))
             res = "Laser Off"
         else:
             # self._printer.commands("M9")
