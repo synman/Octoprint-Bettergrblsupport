@@ -70,6 +70,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
+        self.loadGrblDescriptions()
+
         return dict(
             hideTempTab = True,
             hideControlTab = True,
@@ -231,7 +233,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.save()
 
-        self.loadGrblDescriptions()
         self.deSerializeGrblSettings()
 
     def loadGrblDescriptions(self):
@@ -257,6 +258,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
             if not match is None:
                 self.grblSettingsNames[int(match.groups(1)[0])] = match.groups(1)[1]
+                # self._logger.info("setting id={} description={}".format(int(match.groups(1)[0]), match.groups(1)[1]))
 
         # for k, v in self.grblErrors.items():
         #     self._logger.info("error id={} desc={}".format(k, v))
@@ -280,7 +282,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
             ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
-        self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
+        # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
         return ret
 
     def on_settings_save(self, data):
