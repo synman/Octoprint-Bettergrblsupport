@@ -462,11 +462,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # relative positioning
             self.positioning = 1
 
+        #T2 # HACK:
+        if cmd.upper().lstrip().startswith("X"):
+            match = re.search(r"^X *(-?[\d.]+).*", cmd)
+            if not match is None:
+                command = "G01 " + cmd.upper().strip()
+            else:
+                command = cmd.upper().strip()
+        else:
+            command = cmd.upper().strip()
+
         # keep track of distance traveled
-        if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startswith("G2") or cmd.startswith("G3") or cmd.startswith("M4"):
+        if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3") or command.startswith("M4"):
             found = False
 
-            match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", command)
             if not match is None:
                 if self.positioning == 1:
                     self.grblX = self.grblX + float(match.groups(1)[0])
@@ -474,7 +484,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self.grblX = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", command)
             if not match is None:
                 if self.positioning == 1:
                     self.grblY = self.grblY + float(match.groups(1)[0])
@@ -482,7 +492,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self.grblY = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[0123].*Z\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*Z\ *(-?[\d.]+).*", command)
             if not match is None:
                 if self.positioning == 1:
                     self.grblZ = self.grblZ + float(match.groups(1)[0])
@@ -490,7 +500,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self.grblZ = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^[GM][01234].*F\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][01234].*F\ *(-?[\d.]+).*", command)
             if not match is None:
                 grblSpeed = round(float(match.groups(1)[0]))
 
@@ -501,7 +511,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblSpeed = grblSpeed
                 found = True
 
-            match = re.search(r"^[GM][01234].*S\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][01234].*S\ *(-?[\d.]+).*", command)
             if not match is None:
                 grblPowerLevel = round(float(match.groups(1)[0]))
 
@@ -525,7 +535,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                     power=self.grblPowerLevel))
                     self.timeRef = currentTime
 
-        return None
+        return (command, )
 
     # #-- gcode received hook (
     # original author:  https://github.com/mic159
