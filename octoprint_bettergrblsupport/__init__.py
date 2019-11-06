@@ -339,11 +339,24 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             x = float(0)
             y = float(0)
 
+            positioning = 0
+
             for line in f:
-                if line.startswith("G0") or line.startswith("G1"):
-                    match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", line)
+                if line.startswith("G90"):
+                    positioning = 0
+                    continue
+
+                if line.startswith("G91"):
+                    positioning = 1
+                    continue
+
+                if line.startswith("G0") or line.startswith("G1") or line.startswith("G2") or line.startswith("G3"):
+                    match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", line)
                     if not match is None:
-                        x = x + float(match.groups(1)[0])
+                        if positioning == 1:
+                            x = x + float(match.groups(1)[0])
+                        else
+                            x = float(match.groups(1)[0])
                         if x < minX:
                             minX = x
                         if x > maxX:
@@ -351,7 +364,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     match = re.search(r"^G[01].*Y\ *(-?[\d.]+).*", line)
                     if not match is None:
-                        y = y + float(match.groups(1)[0])
+                        if positioning == 1:
+                            y = y + float(match.groups(1)[0])
+                        else
+                            y = float(match.groups(1)[0])
                         if y < minY:
                             minY = y
                         if y > maxY:
