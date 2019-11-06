@@ -55,6 +55,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblZ = float(0)
         self.grblSpeed = 0
         self.grblPowerLevel = 0
+        self.positioning = 0
 
         self.timeRef = 0
 
@@ -339,23 +340,23 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             x = float(0)
             y = float(0)
 
-            positioning = 0
+            self.positioning = 0
 
             for line in f:
                 if line.startswith("G90"):
                     # absolute positioning
-                    positioning = 0
+                    self.positioning = 0
                     continue
 
                 if line.startswith("G91"):
                     # relative positioning
-                    positioning = 1
+                    self.positioning = 1
                     continue
 
                 if line.startswith("G0") or line.startswith("G1") or line.startswith("G2") or line.startswith("G3"):
                     match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", line)
                     if not match is None:
-                        if positioning == 1:
+                        if self.positioning == 1:
                             x = x + float(match.groups(1)[0])
                         else:
                             x = float(match.groups(1)[0])
@@ -366,7 +367,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", line)
                     if not match is None:
-                        if positioning == 1:
+                        if self.positioning == 1:
                             y = y + float(match.groups(1)[0])
                         else:
                             y = float(match.groups(1)[0])
@@ -416,7 +417,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().lstrip().startswith(';') or cmd.upper().lstrip().startswith('('):
             self._logger.debug('Ignoring comment [%s]', cmd)
             return (None, )
-            
+
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
@@ -453,28 +454,45 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # self._printer.commands("\x18")
             return ("\x18",)
 
+        if cmd.upper().lstrip().startswith("G90"):
+            # absolute positioning
+            self.positioning = 0
+
+        if cmd.upper().lstrip().startswith("G91"):
+            # relative positioning
+            self.positioning = 1
+
         # keep track of distance traveled
-        if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startswith("M4"):
+        if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startswith("G2") or cmd.startswith("G3") or cmd.startswith("M4"):
             found = False
 
-            match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                self.grblX = self.grblX + float(match.groups(1)[0])
+                if self.positioning == 1:
+                    self.grblX = self.grblX + float(match.groups(1)[0])
+                else:
+                    self.grblX = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*Y\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                self.grblY = self.grblY + float(match.groups(1)[0])
+                if self.positioning == 1:
+                    self.grblY = self.grblY + float(match.groups(1)[0])
+                else:
+                    self.grblY = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*Z\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*Z\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                self.grblZ = self.grblZ + float(match.groups(1)[0])
+                if self.positioning == 1:
+                    self.grblZ = self.grblZ + float(match.groups(1)[0])
+                else:
+                    self.grblZ = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^[GM][014].*F\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][01234].*F\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                grblSpeed = int(match.groups(1)[0])
+                grblSpeed = round(float(match.groups(1)[0]))
 
                 # make sure we post all speed on / off events
                 if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
@@ -483,9 +501,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblSpeed = grblSpeed
                 found = True
 
-            match = re.search(r"^[GM][014].*S\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][01234].*S\ *(-?[\d.]+).*", cmd)
             if not match is None:
-                grblPowerLevel = int(float(match.groups(1)[0]))
+                grblPowerLevel = round(float(match.groups(1)[0]))
 
                 # make sure we post all power on / off events
                 if (grblPowerLevel == 0 and self.grblPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
@@ -608,8 +626,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
 
         if not match is None:
-            self.grblSpeed = int(match.groups(1)[0])
-            self.grblPowerLevel = int(match.groups(1)[1])
+            self.grblSpeed = round(float(match.groups(1)[0]))
+            self.grblPowerLevel = round(float(match.groups(1)[1]))
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                             state=self.grblState,
