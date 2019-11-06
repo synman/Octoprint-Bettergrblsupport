@@ -343,10 +343,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             for line in f:
                 if line.startswith("G90"):
+                    # absolute positioning
                     positioning = 0
                     continue
 
                 if line.startswith("G91"):
+                    # relative positioning
                     positioning = 1
                     continue
 
@@ -355,18 +357,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     if not match is None:
                         if positioning == 1:
                             x = x + float(match.groups(1)[0])
-                        else
+                        else:
                             x = float(match.groups(1)[0])
                         if x < minX:
                             minX = x
                         if x > maxX:
                             maxX = x
 
-                    match = re.search(r"^G[01].*Y\ *(-?[\d.]+).*", line)
+                    match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", line)
                     if not match is None:
                         if positioning == 1:
                             y = y + float(match.groups(1)[0])
-                        else
+                        else:
                             y = float(match.groups(1)[0])
                         if y < minY:
                             minY = y
@@ -410,6 +412,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # return (self.helloCommand, )
             return "$$"
 
+        # suppress comments
+        if cmd.upper().lstrip().startswith(';') or cmd.upper().lstrip().startswith('('):
+            self._logger.debug('Ignoring comment [%s]', cmd)
+            return (None, )
+            
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
