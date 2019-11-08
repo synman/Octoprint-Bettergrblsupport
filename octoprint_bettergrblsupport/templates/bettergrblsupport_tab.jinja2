@@ -94,7 +94,7 @@
       <hr>
       <table border=0 align="center" width="100%" >
         <tr>
-          <td align="left" width="30%">
+          <td align="left" width="20%">
             <table style="border-spacing: 1px; border: 1px solid;"><tr><td>
             <table border=0>
               <tr>
@@ -126,9 +126,39 @@
             </table>
             </td</tr></table>
           </td>
-        <td>
-      <!-- <table border=0><tr><td> -->
-        <table class="jog-panel" id="jog_panel">
+
+      <!-- ko if: settings.settings.plugins.bettergrblsupport.showZ -->
+        <td width="20%" align="center" style="display: ;">
+        <table class="jog-panel" id="jog_panel_z" border=0>
+          <tr>
+            <td align="center"><h5>&nbsp;</h5></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0px 0px 0px;" align="center">
+              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() {moveHead('up')}">
+                <i class="fa fa-arrow-up"></i>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td align="center"><h5>&nbsp;Z</h5></td>
+          </tr>
+          <tr>
+            <td style="padding: 0px 0px 10px 0px;" align="center">
+              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() {moveHead('down')}">
+                <i class="fa fa-arrow-down"></i>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td align="center"><h5>&nbsp;</h5></td>
+          </tr>
+        </table>
+      </td>
+    <!-- /ko -->
+
+      <td width="30%" align="center">
+        <table class="jog-panel" id="jog_panel" border=0>
           <tr>
             <td colspan=2><h5>&nbsp;X/Y</h5></td>
             <td align="right" style="padding: 0px 5px 0px 0px;" >
@@ -139,7 +169,7 @@
           </tr>
           <tr>
             <td style="padding: 0px 0px 10px 0px;" colspan=3 align="center">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() {moveHead('up')}">
+              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() {moveHead('forward')}">
                 <i class="fa fa-arrow-up"></i>
               </button>
             </td>
@@ -163,7 +193,7 @@
           </tr>
           <tr>
             <td style="padding: 0px 0px 20px 0px;" colspan=3 align="center">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() {moveHead('down')}">
+              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() {moveHead('backward')}">
                 <i class="fa fa-arrow-down"></i>
               </button>
             </td>
@@ -180,7 +210,7 @@
         </table>
       <!-- </td></tr></table> -->
     </td>
-      <td id="laser_buttons" rowspan=5 align="center" valign="middle" width="30%">
+      <td id="laser_buttons" rowspan=5 align="right" valign="middle" width="30%" style="padding: 0px 20px 0px 0px;" >
         <button id="grblLaserButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
         <br>
         <br>
@@ -194,6 +224,7 @@
         <br>
         <br>
         <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('reset') }">Reset</button>
+        <br>
       </td>
       </tr></table>
     </div>

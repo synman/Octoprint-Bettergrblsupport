@@ -43,6 +43,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.reOrderTabs = True
         self.disablePrinterSafety = True
         self.showZ = False
+        self.weakLaserValue = 1
 
         self.overrideM8 = False
         self.overrideM9 = False
@@ -55,6 +56,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblZ = float(0)
         self.grblSpeed = 0
         self.grblPowerLevel = 0
+        self.positioning = 0
 
         self.timeRef = 0
 
@@ -69,6 +71,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
+        self.loadGrblDescriptions()
+
         return dict(
             hideTempTab = True,
             hideControlTab = True,
@@ -98,6 +102,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             grblSettingsText = "This space intentionally left blank",
             grblSettingsBackup = "",
             showZ = False,
+            weakLaserValue = 1,
             overrideM8 = False,
             overrideM9 = False,
             m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
@@ -135,6 +140,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.overrideM9 = self._settings.get_boolean(["overrideM9"])
         self.m8Command = self._settings.get(["m8Command"])
         self.m9Command = self._settings.get(["m9Command"])
+
+        self.showZ = self._settings.get_boolean(["showZ"])
+        self.weakLaserValue = self._settings.get(["weakLaserValue"])
 
         # self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
         # self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
@@ -230,7 +238,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.save()
 
-        self.loadGrblDescriptions()
         self.deSerializeGrblSettings()
 
     def loadGrblDescriptions(self):
@@ -256,6 +263,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
             if not match is None:
                 self.grblSettingsNames[int(match.groups(1)[0])] = match.groups(1)[1]
+                # self._logger.info("setting id={} description={}".format(int(match.groups(1)[0]), match.groups(1)[1]))
 
         # for k, v in self.grblErrors.items():
         #     self._logger.info("error id={} desc={}".format(k, v))
@@ -339,19 +347,47 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             x = float(0)
             y = float(0)
 
+            self.positioning = 0
+
             for line in f:
-                if line.startswith("G0") or line.startswith("G1"):
-                    match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", line)
+                #T2 # HACK:
+                if line.upper().lstrip().startswith("X"):
+                    match = re.search(r"^X *(-?[\d.]+).*", line)
                     if not match is None:
-                        x = x + float(match.groups(1)[0])
+                        command = "G01 " + line.upper().strip()
+                    else:
+                        command = line.upper().strip()
+                else:
+                    command = line.upper().strip()
+
+                if command.startswith("G90"):
+                    # absolute positioning
+                    self.positioning = 0
+                    continue
+
+                if command.startswith("G91"):
+                    # relative positioning
+                    self.positioning = 1
+                    continue
+
+                if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3"):
+                    match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", command)
+                    if not match is None:
+                        if self.positioning == 1:
+                            x = x + float(match.groups(1)[0])
+                        else:
+                            x = float(match.groups(1)[0])
                         if x < minX:
                             minX = x
                         if x > maxX:
                             maxX = x
 
-                    match = re.search(r"^G[01].*Y\ *(-?[\d.]+).*", line)
+                    match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", command)
                     if not match is None:
-                        y = y + float(match.groups(1)[0])
+                        if self.positioning == 1:
+                            y = y + float(match.groups(1)[0])
+                        else:
+                            y = float(match.groups(1)[0])
                         if y < minY:
                             minY = y
                         if y > maxY:
@@ -394,6 +430,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # return (self.helloCommand, )
             return "$$"
 
+        # suppress comments
+        if cmd.upper().lstrip().startswith(';') or cmd.upper().lstrip().startswith('('):
+            self._logger.debug('Ignoring comment [%s]', cmd)
+            return (None, )
+
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
@@ -430,28 +471,55 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # self._printer.commands("\x18")
             return ("\x18",)
 
+        if cmd.upper().lstrip().startswith("G90"):
+            # absolute positioning
+            self.positioning = 0
+
+        if cmd.upper().lstrip().startswith("G91"):
+            # relative positioning
+            self.positioning = 1
+
+        #T2 # HACK:
+        if cmd.upper().lstrip().startswith("X"):
+            match = re.search(r"^X *(-?[\d.]+).*", cmd)
+            if not match is None:
+                command = "G01 " + cmd.upper().strip()
+            else:
+                command = cmd.upper().strip()
+        else:
+            command = cmd.upper().strip()
+
         # keep track of distance traveled
-        if cmd.startswith("G0") or cmd.startswith("G1") or cmd.startswith("M4"):
+        if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3") or command.startswith("M4"):
             found = False
 
-            match = re.search(r"^G[01].*X\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", command)
             if not match is None:
-                self.grblX = self.grblX + float(match.groups(1)[0])
+                if self.positioning == 1:
+                    self.grblX = self.grblX + float(match.groups(1)[0])
+                else:
+                    self.grblX = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*Y\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", command)
             if not match is None:
-                self.grblY = self.grblY + float(match.groups(1)[0])
+                if self.positioning == 1:
+                    self.grblY = self.grblY + float(match.groups(1)[0])
+                else:
+                    self.grblY = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^G[01].*Z\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^G[0123].*Z\ *(-?[\d.]+).*", command)
             if not match is None:
-                self.grblZ = self.grblZ + float(match.groups(1)[0])
+                if self.positioning == 1:
+                    self.grblZ = self.grblZ + float(match.groups(1)[0])
+                else:
+                    self.grblZ = float(match.groups(1)[0])
                 found = True
 
-            match = re.search(r"^[GM][014].*F\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][01234].*F\ *(-?[\d.]+).*", command)
             if not match is None:
-                grblSpeed = int(match.groups(1)[0])
+                grblSpeed = round(float(match.groups(1)[0]))
 
                 # make sure we post all speed on / off events
                 if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
@@ -460,9 +528,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblSpeed = grblSpeed
                 found = True
 
-            match = re.search(r"^[GM][014].*S\ *(-?[\d.]+).*", cmd)
+            match = re.search(r"^[GM][01234].*S\ *(-?[\d.]+).*", command)
             if not match is None:
-                grblPowerLevel = int(float(match.groups(1)[0]))
+                grblPowerLevel = round(float(match.groups(1)[0]))
 
                 # make sure we post all power on / off events
                 if (grblPowerLevel == 0 and self.grblPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
@@ -484,7 +552,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                     power=self.grblPowerLevel))
                     self.timeRef = currentTime
 
-        return None
+        return (command, )
 
     # #-- gcode received hook (
     # original author:  https://github.com/mic159
@@ -585,8 +653,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
 
         if not match is None:
-            self.grblSpeed = int(match.groups(1)[0])
-            self.grblPowerLevel = int(match.groups(1)[1])
+            self.grblSpeed = round(float(match.groups(1)[0]))
+            self.grblPowerLevel = round(float(match.groups(1)[1]))
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                             state=self.grblState,
@@ -615,10 +683,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok'
 
     def send_frame_init_gcode(self):
+        self._printer.commands("G4 P0")
+        self._printer.commands("$32=0")
         self._printer.commands("G00 G17 G40 G21 G54")
         self._printer.commands("G91")
-        self._printer.commands("$32=0")
-        self._printer.commands("M4 F1000 S1")
+        # self._printer.commands("$32=0")
+        self._printer.commands("M4 F1000 S{}".format(self.weakLaserValue))
         self._printer.commands("G91")
         # self._printer.commands("M8")
 
@@ -626,70 +696,72 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # self._printer.commands("M9")
         self._printer.commands("G1S0")
         self._printer.commands("M4 F0 S0")
-        self._printer.commands("$32=1")
+        # self._printer.commands("$32=1")
         self._printer.commands("M5")
         self._printer.commands("M2")
+        self._printer.commands("G4 P0")
+        self._printer.commands("$32=1")
 
     def send_bounding_box_upper_left(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
 
     def send_bounding_box_upper_center(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2, self.weakLaserValue))
 
     def send_bounding_box_upper_right(self, y, x):
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
 
     def send_bounding_box_center_left(self, y, x):
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2, self.weakLaserValue))
 
     def send_bounding_box_center(self, y, x):
         self._printer.commands("G0 X{:f} Y{:f} F4000".format(x / 2 * -1, y / 2))
-        self._printer.commands("G0 X{} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} S1".format(y * -1))
-        self._printer.commands("G0 X{} S1".format(x * -1))
-        self._printer.commands("G0 Y{} S1".format(y))
+        self._printer.commands("G0 X{} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{} S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{} S{}".format(y, self.weakLaserValue))
         self._printer.commands("G0 X{:f} Y{:f} F4000".format(x / 2, y / 2 * -1))
 
     def send_bounding_box_center_right(self, y, x):
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2 * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y / 2 * -1))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2 * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2 * -1, self.weakLaserValue))
 
     def send_bounding_box_lower_left(self, y, x):
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
 
     def send_bounding_box_lower_center(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2 * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x / 2 * -1))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2 * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2 * -1, self.weakLaserValue))
 
 
     def send_bounding_box_lower_right(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S1".format(x * -1))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y))
-        self._printer.commands("G0 X{:f} F2000 S1".format(x))
-        self._printer.commands("G0 Y{:f} F2000 S1".format(y * -1))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
 
     def get_api_commands(self):
         return dict(
@@ -811,25 +883,36 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("G28 X0 Y0")
                 self._printer.commands("G90")
 
-            if direction == "up":
+            if direction == "forward":
                 self._printer.commands("G91")
-                self._printer.commands("G1 Y{} F4000".format(distance))
+                self._printer.commands("G0 Y{}".format(distance))
                 self._printer.commands("G90")
 
-            if direction == "down":
+            if direction == "backward":
                 self._printer.commands("G91")
-                self._printer.commands("G1 Y{} F4000".format(distance * -1))
+                self._printer.commands("G0 Y{}".format(distance * -1))
                 self._printer.commands("G90")
 
             if direction == "left":
                 self._printer.commands("G91")
-                self._printer.commands("G1 X{} F4000".format(distance * -1))
+                self._printer.commands("G0 X{}".format(distance * -1))
                 self._printer.commands("G90")
 
             if direction == "right":
                 self._printer.commands("G91")
-                self._printer.commands("G1 X{} F4000".format(distance))
+                self._printer.commands("G0 X{}".format(distance))
                 self._printer.commands("G90")
+
+            if direction == "up":
+                self._printer.commands("G91")
+                self._printer.commands("G0 Z{}".format(distance))
+                self._printer.commands("G90")
+
+            if direction == "down":
+                self._printer.commands("G91")
+                self._printer.commands("G0 Z{}".format(distance * -1))
+                self._printer.commands("G90")
+
 
             return
 
@@ -860,7 +943,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if powerLevel == 0:
             self._printer.commands("$32=0")
-            self._printer.commands("M4 F1000 S1")
+            self._printer.commands("M4 F1000 S{}".format(self.weakLaserValue))
             res = "Laser Off"
         else:
             # self._printer.commands("M9")
