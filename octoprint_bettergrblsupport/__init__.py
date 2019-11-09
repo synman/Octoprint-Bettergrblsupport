@@ -339,10 +339,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             selected_file = self._settings.global_get_basefolder("uploads") + '/' + payload['path']
             f = open(selected_file, 'r')
 
-            minX = float(0)
-            minY = float(0)
-            maxX = float(0)
-            maxY = float(0)
+            minX = float("inf")
+            minY = float("inf")
+            maxX = float("-inf")
+            maxY = float("-inf")
 
             x = float(0)
             y = float(0)
@@ -360,12 +360,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 else:
                     command = line.upper().strip()
 
-                if command.startswith("G90"):
+                if "G90" in command.upper():
                     # absolute positioning
                     self.positioning = 0
                     continue
 
-                if command.startswith("G91"):
+                if "G91" in command.upper():
                     # relative positioning
                     self.positioning = 1
                     continue
@@ -471,11 +471,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # self._printer.commands("\x18")
             return ("\x18",)
 
-        if cmd.upper().lstrip().startswith("G90"):
+        if "G90" in command.upper():
             # absolute positioning
             self.positioning = 0
 
-        if cmd.upper().lstrip().startswith("G91"):
+        if "G91" in command.upper():
             # relative positioning
             self.positioning = 1
 
