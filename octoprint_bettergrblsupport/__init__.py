@@ -471,11 +471,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # self._printer.commands("\x18")
             return ("\x18",)
 
-        if "G90" in command.upper():
+        if "G90" in cmd.upper():
             # absolute positioning
             self.positioning = 0
 
-        if "G91" in command.upper():
+        if "G91" in cmd.upper():
             # relative positioning
             self.positioning = 1
 
