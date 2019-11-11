@@ -644,7 +644,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', line)
             if not match is None:
                 self.grblSpeed = round(float(match.groups(1)[0]))
+<<<<<<< HEAD
                 self.grblPowerLevel = round(float(match.groups(1)[1]))
+=======
+                self.grblPowerLevel = round(float(match.groups(1)[0]))
+>>>>>>> a3f4ebaca00b4e85e3dcb10ca28aa6dbf530b7e6
 
             # if self.grblState == "Sleep" or self.grblState == "Run":
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
