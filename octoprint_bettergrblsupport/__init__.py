@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import
 from octoprint.events import Events
+from timeit import default_timer as timer
 
 # import sys
 import time
@@ -349,6 +350,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self.positioning = 0
 
+            start = timer()
+
             for line in f:
                 #T2 # HACK:
                 if line.upper().lstrip().startswith("X"):
@@ -370,33 +373,32 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self.positioning = 1
                     continue
 
-                if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3"):
-                    match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", command)
-                    if not match is None:
-                        if self.positioning == 1:
-                            x = x + float(match.groups(1)[0])
-                        else:
-                            x = float(match.groups(1)[0])
-                        if x < minX:
-                            minX = x
-                        if x > maxX:
-                            maxX = x
+                match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+                if not match is None:
+                    if self.positioning == 1:
+                        x = x + float(match.groups(1)[2])
+                    else:
+                        x = float(match.groups(1)[2])
+                    if x < minX:
+                        minX = x
+                    if x > maxX:
+                        maxX = x
 
-                    match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", command)
-                    if not match is None:
-                        if self.positioning == 1:
-                            y = y + float(match.groups(1)[0])
-                        else:
-                            y = float(match.groups(1)[0])
-                        if y < minY:
-                            minY = y
-                        if y > maxY:
-                            maxY = y
+                match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+                if not match is None:
+                    if self.positioning == 1:
+                        y = y + float(match.groups(1)[2])
+                    else:
+                        y = float(match.groups(1)[2])
+                    if y < minY:
+                        minY = y
+                    if y > maxY:
+                        maxY = y
 
             length = int(math.ceil(maxY - minY))
             width = int(math.ceil(maxX - minX))
 
-            self._logger.info('finished reading file length={} width={}'.format(length, width))
+            self._logger.info('finished reading file length={} width={} time={}'.format(length, width, timer() - start))
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_frame_size",
                                                                             length=length,
@@ -490,67 +492,67 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             command = cmd.upper().strip()
 
         # keep track of distance traveled
-        if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3") or command.startswith("M4"):
-            found = False
+        # if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3") or command.startswith("M4"):
+        found = False
 
-            match = re.search(r"^G[0123].*X\ *(-?[\d.]+).*", command)
-            if not match is None:
-                if self.positioning == 1:
-                    self.grblX = self.grblX + float(match.groups(1)[0])
-                else:
-                    self.grblX = float(match.groups(1)[0])
-                found = True
+        match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+        if not match is None:
+            if self.positioning == 1:
+                self.grblX = self.grblX + float(match.groups(1)[2])
+            else:
+                self.grblX = float(match.groups(1)[2])
+            found = True
 
-            match = re.search(r"^G[0123].*Y\ *(-?[\d.]+).*", command)
-            if not match is None:
-                if self.positioning == 1:
-                    self.grblY = self.grblY + float(match.groups(1)[0])
-                else:
-                    self.grblY = float(match.groups(1)[0])
-                found = True
+        match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+        if not match is None:
+            if self.positioning == 1:
+                self.grblY = self.grblY + float(match.groups(1)[2])
+            else:
+                self.grblY = float(match.groups(1)[2])
+            found = True
 
-            match = re.search(r"^G[0123].*Z\ *(-?[\d.]+).*", command)
-            if not match is None:
-                if self.positioning == 1:
-                    self.grblZ = self.grblZ + float(match.groups(1)[0])
-                else:
-                    self.grblZ = float(match.groups(1)[0])
-                found = True
+        match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
+        if not match is None:
+            if self.positioning == 1:
+                self.grblZ = self.grblZ + float(match.groups(1)[2])
+            else:
+                self.grblZ = float(match.groups(1)[2])
+            found = True
 
-            match = re.search(r"^[GM][01234].*F\ *(-?[\d.]+).*", command)
-            if not match is None:
-                grblSpeed = round(float(match.groups(1)[0]))
+        match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
+        if not match is None:
+            grblSpeed = round(float(match.groups(1)[2]))
 
-                # make sure we post all speed on / off events
-                if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
-                    self.timeRef = 0;
+            # make sure we post all speed on / off events
+            if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
+                self.timeRef = 0;
 
-                self.grblSpeed = grblSpeed
-                found = True
+            self.grblSpeed = grblSpeed
+            found = True
 
-            match = re.search(r"^[GM][01234].*S\ *(-?[\d.]+).*", command)
-            if not match is None:
-                grblPowerLevel = round(float(match.groups(1)[0]))
+        match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
+        if not match is None:
+            grblPowerLevel = round(float(match.groups(1)[2]))
 
-                # make sure we post all power on / off events
-                if (grblPowerLevel == 0 and self.grblPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
-                    self.timeRef = 0;
+            # make sure we post all power on / off events
+            # if (grblPowerLevel == 0 and self.grblPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
+            #     self.timeRef = 0;
 
-                self.grblPowerLevel = grblPowerLevel
-                found = True
+            self.grblPowerLevel = grblPowerLevel
+            found = True
 
-            if found:
-                currentTime = int(round(time.time() * 1000))
-                if currentTime > self.timeRef + 500:
-                    # self._logger.info("x={} y={} z={} f={} s={}".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
-                    self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
-                                                                                    state=self.grblState,
-                                                                                    x=self.grblX,
-                                                                                    y=self.grblY,
-                                                                                    z=self.grblZ,
-                                                                                    speed=self.grblSpeed,
-                                                                                    power=self.grblPowerLevel))
-                    self.timeRef = currentTime
+        if found:
+            currentTime = int(round(time.time() * 1000))
+            if currentTime > self.timeRef + 500:
+                # self._logger.info("x={} y={} z={} f={} s={}".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                                state=self.grblState,
+                                                                                x=self.grblX,
+                                                                                y=self.grblY,
+                                                                                z=self.grblZ,
+                                                                                speed=self.grblSpeed,
+                                                                                power=self.grblPowerLevel))
+                self.timeRef = currentTime
 
         return (command, )
 
@@ -639,23 +641,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblY = float(match.groups(1)[2])
             self.grblZ = float(match.groups(1)[3])
 
-            if self.grblState == "Sleep" or self.grblState == "Run":
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
-                                                                                state=self.grblState,
-                                                                                x=self.grblX,
-                                                                                y=self.grblY,
-                                                                                z=self.grblZ,
-                                                                                speed=self.grblSpeed,
-                                                                                power=self.grblPowerLevel))
+            match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', line)
+            if not match is None:
+                self.grblSpeed = round(float(match.groups(1)[0]))
+                self.grblPowerLevel = round(float(match.groups(1)[0]))
 
-            return response
-
-        match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
-
-        if not match is None:
-            self.grblSpeed = round(float(match.groups(1)[0]))
-            self.grblPowerLevel = round(float(match.groups(1)[1]))
-
+            # if self.grblState == "Sleep" or self.grblState == "Run":
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                             state=self.grblState,
                                                                             x=self.grblX,
@@ -663,6 +654,22 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             z=self.grblZ,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel))
+
+            return response
+
+        # match = re.search(r"F(-?[\d.]+) S(-?[\d.]+)", line)
+        #
+        # if not match is None:
+        #     self.grblSpeed = round(float(match.groups(1)[0]))
+        #     self.grblPowerLevel = round(float(match.groups(1)[1]))
+        #
+        #     self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+        #                                                                     state=self.grblState,
+        #                                                                     x=self.grblX,
+        #                                                                     y=self.grblY,
+        #                                                                     z=self.grblZ,
+        #                                                                     speed=self.grblSpeed,
+        #                                                                     power=self.grblPowerLevel))
 
         if not line.rstrip().endswith('ok'):
             return line
@@ -681,6 +688,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + before
         else:
             return 'ok'
+
 
     def send_frame_init_gcode(self):
         self._printer.commands("G4 P0")
