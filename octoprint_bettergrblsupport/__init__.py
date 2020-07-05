@@ -937,7 +937,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "origin":
             # do origin stuff
-            self._printer.commands("$10=0")
             self._printer.commands("G28.1")
             self._printer.commands("G92 X0 Y0 Z0")
             return
