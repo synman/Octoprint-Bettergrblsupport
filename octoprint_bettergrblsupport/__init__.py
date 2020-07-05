@@ -563,9 +563,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                     power=self.grblPowerLevel))
                     self.timeRef = currentTime
 
-            # sending commands too fast seems to produce errors
-            time.sleep(self.cmdDelay)
-            return (command, )
+        # sending commands too fast seems to produce errors
+        time.sleep(self.cmdDelay)
+        return (command, )
 
     # #-- gcode received hook (
     # original author:  https://github.com/mic159
