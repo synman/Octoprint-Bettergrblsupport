@@ -421,6 +421,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        self._logger.info("Sending: {}".format(cmd))
 
         # M8 processing - work in progress
         if cmd.upper().strip() == "M8" and self.overrideM8:
@@ -572,15 +573,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     # source: https://github.com/mic159/octoprint-grbl-plugin)
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
 
+        self._logger.info("Recieved: {}".format(line))
+
         if line.startswith('Grbl'):
-            match = re.search(r'Grbl (\S*)', line)
-            self.grblVersion = match.groups(1)[0]
+             match = re.search(r'Grbl (\S*)', line)
+             self.grblVersion = match.groups(1)[0]
 
              # Hack to make Arduino based GRBL work.
              # When the serial port is opened, it resets and the "hello" command
              # is not processed.
              # This makes Octoprint recognise the startup message as a successful connection.
-            return 'ok ' + line
+             return 'ok ' + line
 
         # look for an alarm
         if line.lower().startswith('alarm:'):
