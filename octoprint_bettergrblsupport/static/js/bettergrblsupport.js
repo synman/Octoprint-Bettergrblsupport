@@ -165,7 +165,7 @@ $(function() {
           error: function (data, status) {
             new PNotify({
               title: "Unable to set origin / home!",
-              text: data.responseText,
+              text: data.responseText + ": " + command,
               hide: true,
               buttons: {
                 sticker: false,

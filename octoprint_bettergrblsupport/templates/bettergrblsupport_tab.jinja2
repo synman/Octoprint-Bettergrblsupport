@@ -120,7 +120,7 @@
                 <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
               </tr>
               <tr>
-                <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Speed</td>
+                <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Feed</td>
                 <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: speed()"></strong></td>
               </tr>
             </table>
@@ -210,7 +210,7 @@
         </table>
       <!-- </td></tr></table> -->
     </td>
-      <td id="laser_buttons" rowspan=5 align="right" valign="middle" width="30%" style="padding: 0px 20px 0px 0px;" >
+      <td id="laser_buttons" rowspan=5 align="right" valign="middle" align="center" width="30%" style="padding: 0px 20px 0px 0px;" >
         <button id="grblLaserButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
         <br>
         <br>
@@ -223,7 +223,21 @@
         <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('unlock') }">Unlock</button>
         <br>
         <br>
-        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('reset') }">Reset</button>
+        <button style="width: 100px" class="btn" data-bind="enable: is_operational(), click: function() { sendCommand('hold') }">Feed Hold</button>
+        <br>
+          <table>
+              <td>
+                <button style="width: 30px" class="btn" data-bind="enable: is_operational(), click: function() { sendCommand('dec_feed') }">-</button>
+              </td>
+              <td>
+                <button style="width: 35px" class="btn" data-bind="enable: is_operational(), click: function() { sendCommand('set_feed') }">o</button>
+              </td>
+              <td>
+                  <button style="width: 30px" class="btn" data-bind="enable: is_operational(), click: function() { sendCommand('inc_feed') }">+</button>
+              </td>
+          </table>
+        <br>
+        <button style="width: 100px" class="btn" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft-Reset</button>
         <br>
       </td>
       </tr></table>
