@@ -573,14 +573,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
 
         if line.startswith('Grbl'):
-            match = re.search(r'Grbl (\S*)', line)
-            self.grblVersion = match.groups(1)[0]
+             match = re.search(r'Grbl (\S*)', line)
+             self.grblVersion = match.groups(1)[0]
 
              # Hack to make Arduino based GRBL work.
              # When the serial port is opened, it resets and the "hello" command
              # is not processed.
              # This makes Octoprint recognise the startup message as a successful connection.
-            return 'ok ' + line
+             return 'ok ' + line
 
         # look for an alarm
         if line.lower().startswith('alarm:'):
