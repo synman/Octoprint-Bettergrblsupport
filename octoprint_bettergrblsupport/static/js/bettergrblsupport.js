@@ -39,6 +39,7 @@ $(function() {
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
 
+      self.grblVersion = ko.observable("N/A");
       self.state = ko.observable("N/A");
       self.xPos = ko.observable("N/A");
       self.yPos = ko.observable("N/A");
@@ -165,7 +166,7 @@ $(function() {
           error: function (data, status) {
             new PNotify({
               title: "Unable to set origin / home!",
-              text: data.responseText + ": " + command,
+              text: data.responseText,
               hide: true,
               buttons: {
                 sticker: false,
@@ -223,6 +224,7 @@ $(function() {
 
       self.onDataUpdaterPluginMessage = function(plugin, data) {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
+          self.grblVersion(data.grblVersion);
           self.state(data.state);
           self.xPos(Number.parseFloat(data.x).toFixed(2));
           self.yPos(Number.parseFloat(data.y).toFixed(2));
