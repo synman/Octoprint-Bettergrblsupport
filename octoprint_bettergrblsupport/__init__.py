@@ -897,57 +897,30 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug("move {} {}".format(direction, distance))
 
             if direction == "home":
-                self._printer.commands("G91")
-                self._printer.commands("G28 X0 Y0")
-                self._printer.commands("G90")
+                self._printer.commands("G90 G0 X0 Y0")
 
             if direction == "forward":
-                self._printer.commands("G91")
-                self._printer.commands("G0 Y{}".format(distance))
-                self._printer.commands("G90")
+                self._printer.commands("G91 G0 Y{}".format(distance))
 
             if direction == "backward":
-                self._printer.commands("G91")
-                self._printer.commands("G0 Y{}".format(distance * -1))
-                self._printer.commands("G90")
+                self._printer.commands("G91 G0 Y{}".format(distance * -1))
 
             if direction == "left":
-                self._printer.commands("G91")
-                self._printer.commands("G0 X{}".format(distance * -1))
-                self._printer.commands("G90")
+                self._printer.commands("G91 G0 X{}".format(distance * -1))
 
             if direction == "right":
-                self._printer.commands("G91")
-                self._printer.commands("G0 X{}".format(distance))
-                self._printer.commands("G90")
+                self._printer.commands("G91 G0 X{}".format(distance))
 
             if direction == "up":
-                self._printer.commands("G91")
-                self._printer.commands("G0 Z{}".format(distance))
-                self._printer.commands("G90")
+                self._printer.commands("G91 G0 Z{}".format(distance))
 
             if direction == "down":
-                self._printer.commands("G91")
-                self._printer.commands("G0 Z{}".format(distance * -1))
-                self._printer.commands("G90")
-
-
+                self._printer.commands("G91 G0 Z{}".format(distance * -1))
             return
 
         if command == "origin":
             # do origin stuff
-            self.ignoreErrors = True
-
-            self._printer.commands("G28.1")
             self._printer.commands("G92 X0 Y0 Z0")
-
-            time.sleep(1)
-
-            self._printer.commands("G28.1")
-            self._printer.commands("G92 X0 Y0 Z0")
-
-            self.ignoreErrors = False
-
             return
 
         if command == "toggleWeak":
