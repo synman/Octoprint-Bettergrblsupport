@@ -227,7 +227,7 @@
         <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('unlock') }">Unlock</button>
         <br>
         <br>
-        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('reset') }">Reset</button>
+        <button style="width: 100px; background-color: #f44336" class="btn" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Reset<br>E-Stop</button>
         <br>
       </td>
       </tr></table>

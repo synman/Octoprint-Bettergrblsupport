@@ -797,6 +797,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def on_api_command(self, command, data):
+
         if command == "sleep":
             self._printer.commands("$SLP")
             return
