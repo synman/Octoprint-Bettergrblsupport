@@ -489,15 +489,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # relative positioning
             self.positioning = 1
 
-        #T2 # HACK:
-        if cmd.upper().lstrip().startswith("X"):
-            match = re.search(r"^X *(-?[\d.]+).*", cmd)
-            if not match is None:
-                command = "G01 " + cmd.upper().strip()
-            else:
-                command = cmd.upper().strip()
-        else:
-            command = cmd.upper().strip()
+        command = cmd.upper().strip()
 
         # keep track of distance traveled
         if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3") or command.startswith("M4"):
