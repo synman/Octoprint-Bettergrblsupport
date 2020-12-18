@@ -978,6 +978,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 
 __plugin_name__ = 'Better Grbl Support'
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 def __plugin_load__():
     global __plugin_implementation__
