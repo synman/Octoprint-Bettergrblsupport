@@ -202,7 +202,7 @@ $(function() {
           var streamImg = document.getElementById("webcam_image_framing");
 
           if (current == "#tab_plugin_bettergrblsupport") {
-              streamImg.src = "/webcam/?action=stream&" + Math.floor(Math.random() * 1000000);   ;
+              streamImg.src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
           } else if (previous == "#tab_plugin_bettergrblsupport") {
               streamImg.src = "about:blank";
           }
