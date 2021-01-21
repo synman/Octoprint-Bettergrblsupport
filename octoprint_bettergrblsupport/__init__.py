@@ -525,7 +525,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # make sure we post all speed on / off events
             if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
-                self.timeRef = 0;
+                self.timeRef = 0
 
             self.grblSpeed = grblSpeed
             found = True
@@ -801,7 +801,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "homing":
             if self.grblPowerLevel > 0 and self.grblState == "Idle":
-                self.toggleWeak();
+                self.toggleWeak()
 
             self._printer.commands("$H")
             return
