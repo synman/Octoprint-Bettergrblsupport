@@ -25,7 +25,7 @@
 		<hr>
 		<label class="control-label">Hello Command</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.helloCommand">
+				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.hello">
 				<br>
 				<label class="checkbox">
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
@@ -67,6 +67,8 @@
 				</label>
 				<br>
 				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.doSmoothie"> Smoothieware Support (EXPERIMENTAL)
+					<br>
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
 					<br>
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model Size Detection *
@@ -74,6 +76,7 @@
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.neverSendChecksum"> Never Send Checksums *
 					<br>
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
+					<br>
 					<br>
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.ignoreErrors"> Ignore Firmware Errors (NOT RECOMMENDED)
 				</label>

@@ -29,7 +29,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.hideControlTab = True
         self.hideGCodeTab = True
         self.customControls = False
-        self.helloCommand = "M5"
+        self.helloCommand = "$$"
         self.statusCommand = "?$G"
         self.dwellCommand = "G4 P0"
         self.positionCommand = "?"
@@ -67,6 +67,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSettings = {}
 
         self.ignoreErrors = False
+        self.doSmoothie = False
 
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F4000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
@@ -78,7 +79,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             hideTempTab = True,
             hideControlTab = True,
             hideGCodeTab = True,
-            helloCommand = "M5",
+            hello = "$$",
             statusCommand = "?$G",
             dwellCommand = "G4 P0",
             positionCommand = "?",
@@ -108,7 +109,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             overrideM9 = False,
             m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
             m9Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c off",
-            ignoreErrors = False
+            ignoreErrors = False,
+            doSmoothie = False
         )
     # def on_settings_initialized(self):
     #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
@@ -123,7 +125,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
         self.customControls = self._settings.get_boolean(["customControls"])
 
-        self.helloCommand = self._settings.get(["helloCommand"])
+        self.helloCommand = self._settings.get(["hello"])
         self.statusCommand = self._settings.get(["statusCommand"])
         self.dwellCommand = self._settings.get(["dwellCommand"])
         self.positionCommand = self._settings.get(["positionCommand"])
@@ -144,6 +146,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.m9Command = self._settings.get(["m9Command"])
 
         self.ignoreErrors = self._settings.get(["ignoreErrors"])
+        self.doSmoothie = self._settings.get(["doSmoothie"])
 
         self.showZ = self._settings.get_boolean(["showZ"])
         self.weakLaserValue = self._settings.get(["weakLaserValue"])
@@ -159,7 +162,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
 
-        self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
+        # self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
 
         # disable the printer safety check plugin
         if self.disablePrinterSafety:
@@ -302,7 +305,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.on_after_startup()
 
         # refresh our grbl settings
-        self._printer.commands("$$")
+        if self.doSmoothie:
+            self._printer.commands("Cat /sd/config")
+        else:
+            self._printer.commands("$$")
 
     # #~~ AssetPlugin mixin
     def get_assets(self):
@@ -429,11 +435,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             subprocess.call(self.m9Command, shell=True)
             return (None,)
 
-        # rewrite M115 as M5 (hello)
+        # rewrite M115 as $$ (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
-            # return (self.helloCommand, )
-            return "$$"
+
+            if self.doSmoothie:
+                return "Cat /sd/config"
+
+            return self.helloCommand
 
         # suppress comments
         if cmd.upper().lstrip().startswith(';') or cmd.upper().lstrip().startswith('('):
@@ -471,7 +480,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return (self.positionCommand, )
 
         # soft reset / resume (stolen from Marlin)
-        if cmd.upper().startswith('M999'):
+        if cmd.upper().startswith('M999') and not self.doSmoothie:
             self._logger.info('Sending Soft Reset')
             # self._printer.commands("\x18")
             return ("\x18",)
@@ -795,7 +804,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "unlock":
-            self._printer.commands("$X")
+            if self.doSmoothie:
+                self._printer.commands("M999")
+            else:
+                self._printer.commands("$X")
             return
 
         if command == "reset":
