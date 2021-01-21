@@ -107,7 +107,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             overrideM8 = False,
             overrideM9 = False,
             m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
-            m9Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c off"
+            m9Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c off",
+            ignoreErrors = False
         )
     # def on_settings_initialized(self):
     #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
@@ -141,6 +142,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.overrideM9 = self._settings.get_boolean(["overrideM9"])
         self.m8Command = self._settings.get(["m8Command"])
         self.m9Command = self._settings.get(["m9Command"])
+
+        self.ignoreErrors = self._settings.get(["ignoreErrors"])
 
         self.showZ = self._settings.get_boolean(["showZ"])
         self.weakLaserValue = self._settings.get(["weakLaserValue"])
@@ -926,6 +929,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "origin":
             # do origin stuff
+
+            saveIgnoreErrors = self.ignoreErrors
             self.ignoreErrors = True
 
             self._printer.commands("$10=0")
@@ -938,7 +943,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("G28.1")
             self._printer.commands("G92 X0 Y0 Z0")
 
-            self.ignoreErrors = False
+            self.ignoreErrors = saveIgnoreErrors
 
             return
 
