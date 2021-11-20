@@ -131,7 +131,12 @@
         <td width="20%" align="center" style="display: ;">
         <table class="jog-panel" id="jog_panel_z" border=0>
           <tr>
-            <td align="center"><h5>&nbsp;</h5></td>
+          <td align="center"><h5>&nbsp;</h5></td>
+            <td align="left" style="padding: 0px 5px 0px 0px;" >
+              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('originz') }">
+                <i class="fa fa-crosshairs"></i>
+              </button>
+            </td>
           </tr>
           <tr>
             <td style="padding: 10px 0px 0px 0px;" align="center">
@@ -162,7 +167,7 @@
           <tr>
             <td colspan=2><h5>&nbsp;X/Y</h5></td>
             <td align="right" style="padding: 0px 5px 0px 0px;" >
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('origin') }">
+              <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('originxy') }">
                 <i class="fa fa-crosshairs"></i>
               </button>
             </td>

@@ -939,21 +939,41 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             return
 
-        if command == "origin":
-            # do origin stuff
+        if command == "originxy":
+            # do xy-origin stuff
 
             saveIgnoreErrors = self.ignoreErrors
             self.ignoreErrors = True
 
             self._printer.commands("$10=0")
             self._printer.commands("G28.1")
-            self._printer.commands("G92 X0 Y0 Z0")
+            self._printer.commands("G92 X0 Y0")
 
             time.sleep(1)
 
             self._printer.commands("$10=0")
             self._printer.commands("G28.1")
-            self._printer.commands("G92 X0 Y0 Z0")
+            self._printer.commands("G92 X0 Y0")
+
+            self.ignoreErrors = saveIgnoreErrors
+
+            return
+        
+        if command == "originz":
+            # do z-origin stuff
+
+            saveIgnoreErrors = self.ignoreErrors
+            self.ignoreErrors = True
+
+            self._printer.commands("$10=0")
+            self._printer.commands("G28.1")
+            self._printer.commands("G92 Z0")
+
+            time.sleep(1)
+
+            self._printer.commands("$10=0")
+            self._printer.commands("G28.1")
+            self._printer.commands("G92 Z0")
 
             self.ignoreErrors = saveIgnoreErrors
 
