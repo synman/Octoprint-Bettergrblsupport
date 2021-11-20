@@ -131,7 +131,7 @@
         <td width="20%" align="center" style="display: ;">
         <table class="jog-panel" id="jog_panel_z" border=0>
           <tr>
-          <td align="center"><h5>&nbsp;</h5></td>
+          <td align="center"><h5>&nbsp;Z</h5></td>
             <td align="left" style="padding: 0px 5px 0px 0px;" >
               <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('originz') }">
                 <i class="fa fa-crosshairs"></i>
@@ -146,7 +146,11 @@
             </td>
           </tr>
           <tr>
-            <td align="center"><h5>&nbsp;Z</h5></td>
+          <td style="padding: 0px 0px 10px 0px;" align="center">
+            <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() {moveHead('homez')}">
+              <i class="fa fa-home"></i>
+            </button>
+          </td>
           </tr>
           <tr>
             <td style="padding: 0px 0px 10px 0px;" align="center">

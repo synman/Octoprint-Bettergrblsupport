@@ -907,6 +907,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("G28 X0 Y0")
                 self._printer.commands("G90")
 
+            if direction == "homez":
+                self._printer.commands("G91")
+                self._printer.commands("G28 Z0")
+                self._printer.commands("G90")
+
             if direction == "forward":
                 self._printer.commands("G91")
                 self._printer.commands("G0 Y{}".format(distance))
