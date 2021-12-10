@@ -169,7 +169,7 @@
       <td width="30%" align="center">
         <table class="jog-panel" id="jog_panel" border=0>
           <tr>
-            <td colspan=2><h5>&nbsp;X/Y</h5></td>
+            <td colspan=2 data-bind="style: { text-align: settings.settings.plugins.bettergrblsupport.showZ() ? 'center' : 'left' }"><h5>&nbsp;X/Y</h5></td>
             <td align="right" style="padding: 0px 5px 0px 0px;" >
               <button class="btn box" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('originxy') }">
                 <i class="fa fa-crosshairs"></i>
