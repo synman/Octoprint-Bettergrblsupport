@@ -151,18 +151,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.showZ = self._settings.get_boolean(["showZ"])
         self.weakLaserValue = self._settings.get(["weakLaserValue"])
 
-        # self._settings.global_set_boolean(["feature", "temperatureGraph"], not self.hideTempTab)
-        # self._settings.global_set_boolean(["feature", "gCodeVisualizer"], not self.hideGCodeTab)
-        # self._settings.global_set_boolean(["gcodeViewer", "enabled"], not self.hideGCodeTab)
-
         # hardcoded global settings -- should revisit how I manage these
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
 
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
-
-        # self._settings.global_set(["serial", "helloCommand"], self.helloCommand)
 
         # disable the printer safety check plugin
         if self.disablePrinterSafety:
@@ -178,21 +172,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
         self._settings.set_boolean(["is_operational"], self._printer.is_operational())
-
-        # self._settings.global_set_boolean(["feature", "sdSupport"], False)
-        # self._settings.global_set_boolean(["serial", "capabilities", "autoreport_sdstatus"], False)
-
-        # self._settings.global_set_boolean(["serial", "capabilities", "autoreport_temp"], False)
-        # self._settings.global_set_boolean(["serial", "capabilities", "busy_protocol"], False)
-        # self._settings.global_set_boolean(["serial", "disconnectOnErrors"], False)
-        # self._settings.global_set_boolean(["serial", "firmwareDetection"], False)
-
-
-        # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "idle"], 0)
-        # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "long"], 0)
-        # self._settings.global_set_int(["serial", "maxCommunicationTimeouts", "printing"], 0)
-
-        # self._settings.global_set(["serial", "supportResendsWithoutOk"], "detect")
 
         # process tabs marked as disabled
         disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
@@ -213,12 +192,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if "control" in disabledTabs:
                 disabledTabs.remove("control")
 
+        # clean up old versions since octoprint renamed gcodeviewer to plugin_gcodeviewer
+        if "gcodeviewer" in disabledTabs:
+            disabledtabs.remove("gcodeviewer")
+
         if self.hideGCodeTab:
-            if "gcodeviewer" not in disabledTabs:
-                disabledTabs.append("gcodeviewer")
+            if "plugin_gcodeviewer" not in disabledTabs:
+                disabledTabs.append("plugin_gcodeviewer")
         else:
-            if "gcodeviewer" in disabledTabs:
-                disabledTabs.remove("gcodeviewer")
+            if "plugin_gcodeviewer" in disabledTabs:
+                disabledTabs.remove("plugin_gcodeviewer")
 
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
 
@@ -232,6 +215,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if not self.customControls and controls:
                     self._logger.info("clearing custom controls")
                     self._settings.global_set(["controls"], [])
+
+
+        # clean up old versions since octoprint renamed gcodeviewer to plugin_gcodeviewer
+        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+        if "gcodeviewer" in orderedTabs:
+            orderedTabs.remove("gcodeviewer")
+            self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
         # ensure i am always the first tab
         if self.reOrderTabs:
@@ -964,7 +954,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.ignoreErrors = saveIgnoreErrors
 
             return
-        
+
         if command == "originz":
             # do z-origin stuff
 
