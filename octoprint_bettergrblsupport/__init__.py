@@ -1012,6 +1012,24 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             user='synman',
             repo='OctoPrint-Bettergrblsupport',
             current=self._plugin_version,
+            stable_branch={
+                    "name": "Stable",
+                    "branch": "master",
+                    "commitish": ["master"],
+                },
+                prerelease_branches=[
+                    {
+                        "name": "Release Candidate",
+                        "branch": "rc",
+                        "commitish": ["rc", "master"],
+                    },
+                    {
+                        "name": "Development",
+                        "branch": "devel",
+                        "commitish": ["devel", "rc", "master"],
+                    }
+
+                ],
             pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
