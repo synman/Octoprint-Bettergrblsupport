@@ -434,9 +434,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             return self.helloCommand
 
-        # suppress comments
-        if cmd.upper().lstrip().startswith(';') or cmd.upper().lstrip().startswith('('):
-            self._logger.debug('Ignoring comment [%s]', cmd)
+        # suppress comments and extraneous commands that may cause wayward
+        # grbl instances to error out
+        if cmd.upper().lstrip().startswith(tuple([';', '(', '%'])):
+            self._logger.debug('Ignoring extraneous [%s]', cmd)
             return (None, )
 
         # suppress reset line #s
