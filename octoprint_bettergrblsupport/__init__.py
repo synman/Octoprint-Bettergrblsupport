@@ -71,6 +71,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F4000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
+
     # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
         self.loadGrblDescriptions()
@@ -112,14 +113,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             ignoreErrors = False,
             doSmoothie = False
         )
-    # def on_settings_initialized(self):
-    #     self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
-    #     self._logger.info("hideTempTab: %s" % self.hideTempTab)
-    #
-    #     self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
-    #     self._logger.info("hideGCodeTab: %s" % self.hideGCodeTab)
+
 
     def on_after_startup(self):
+
+        # establish initial state for printer status
+        self._settings.set_boolean(["is_printing"], self._printer.is_printing())
+        self._settings.set_boolean(["is_operational"], self._printer.is_operational())
+
+        # initialize all of our settings
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
         self.hideControlTab = self._settings.get_boolean(["hideControlTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
@@ -158,20 +160,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
 
+        # load a map of disabled plugins
+        disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
+        if disabledPlugins == None:
+            disabledPlugins = []
+
         # disable the printer safety check plugin
         if self.disablePrinterSafety:
-            disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
-            if disabledPlugins == None:
-                disabledPlugins = []
-
             if "printer_safety_check" not in disabledPlugins:
                 disabledPlugins.append("printer_safety_check")
+        else:
+            if "printer_safety_check" in disabledPlugins:
+                disabledPlugins.remove("printer_safety_check")
 
-            self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
+        # disable the gcodeviewer plugin
+        if self.hideGCodeTab:
+            if "plugin_gcodeviewer" not in disabledPlugins:
+                disabledPlugins.append("plugin_gcodeviewer")
+        else:
+            if "plugin_gcodeviewer" in disabledPlugins:
+                disabledPlugins.remove("plugin_gcodeviewer")
 
-        # establish initial state for printer status
-        self._settings.set_boolean(["is_printing"], self._printer.is_printing())
-        self._settings.set_boolean(["is_operational"], self._printer.is_operational())
+        self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
 
         # process tabs marked as disabled
         disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
@@ -196,13 +206,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if "gcodeviewer" in disabledTabs:
             disabledTabs.remove("gcodeviewer")
 
-        if self.hideGCodeTab:
-            if "plugin_gcodeviewer" not in disabledTabs:
-                disabledTabs.append("plugin_gcodeviewer")
-        else:
-            if "plugin_gcodeviewer" in disabledTabs:
-                disabledTabs.remove("plugin_gcodeviewer")
-
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
 
         if not self.hideControlTab:
@@ -216,9 +219,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._logger.info("clearing custom controls")
                     self._settings.global_set(["controls"], [])
 
+        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
 
         # clean up old versions since octoprint renamed gcodeviewer to plugin_gcodeviewer
-        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
         if "gcodeviewer" in orderedTabs:
             orderedTabs.remove("gcodeviewer")
             self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
@@ -236,6 +239,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.save()
 
         self.deSerializeGrblSettings()
+
 
     def loadGrblDescriptions(self):
         path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
@@ -268,6 +272,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # for k, v in self.grblAlarms.items():
         #     self._logger.info("alarm id={} desc={}".format(k, v))
 
+
     def deSerializeGrblSettings(self):
         settings = self._settings.get(["grblSettingsText"])
 
@@ -279,6 +284,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self.grblSettings.update({int(set[0]): [set[1], self.grblSettingsNames.get(int(set[0]))]})
         return
 
+
     def serializeGrblSettings(self):
         ret = ""
         for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
@@ -286,6 +292,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
         return ret
+
 
     def on_settings_save(self, data):
         self._logger.info("saving settings")
@@ -300,6 +307,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         else:
             self._printer.commands("$$")
 
+
     # #~~ AssetPlugin mixin
     def get_assets(self):
         # Define your plugin's asset files to automatically include in the
@@ -307,6 +315,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js'],
                     css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css'],
                     less=['less/bettergrblsupport.less', "less/bettergrblsupport.less"])
+
 
     # #~~ TemplatePlugin mixin
     def get_template_configs(self):
@@ -316,6 +325,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # def get_template_vars(self):
     #     return dict(grblSettingsText=self.serializeGrblSettings())
+
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
@@ -409,6 +419,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         return
+
 
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -559,6 +570,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         return (command, )
 
+
     # #-- gcode received hook (
     # original author:  https://github.com/mic159
     # source: https://github.com/mic159/octoprint-grbl-plugin)
@@ -703,6 +715,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G91")
         # self._printer.commands("M8")
 
+
     def send_frame_end_gcode(self):
         # self._printer.commands("M9")
         self._printer.commands("G1S0")
@@ -713,11 +726,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G4 P0")
         self._printer.commands("$32=1")
 
+
     def send_bounding_box_upper_left(self, y, x):
         self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+
 
     def send_bounding_box_upper_center(self, y, x):
         self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2, self.weakLaserValue))
@@ -726,11 +741,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2, self.weakLaserValue))
 
+
     def send_bounding_box_upper_right(self, y, x):
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
+
 
     def send_bounding_box_center_left(self, y, x):
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2, self.weakLaserValue))
@@ -738,6 +755,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2, self.weakLaserValue))
+
 
     def send_bounding_box_center(self, y, x):
         self._printer.commands("G0 X{:f} Y{:f} F4000".format(x / 2 * -1, y / 2))
@@ -747,6 +765,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G0 Y{} S{}".format(y, self.weakLaserValue))
         self._printer.commands("G0 X{:f} Y{:f} F4000".format(x / 2, y / 2 * -1))
 
+
     def send_bounding_box_center_right(self, y, x):
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2 * -1, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
@@ -754,11 +773,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y / 2 * -1, self.weakLaserValue))
 
+
     def send_bounding_box_lower_left(self, y, x):
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
+
 
     def send_bounding_box_lower_center(self, y, x):
         self._printer.commands("G0 X{:f} F2000 S{}".format(x / 2 * -1, self.weakLaserValue))
@@ -773,6 +794,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
         self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
         self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
+
 
     def get_api_commands(self):
         return dict(
@@ -789,6 +811,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             backupGrblSettings=[],
             restoreGrblSettings=[]
         )
+
 
     def on_api_command(self, command, data):
         if command == "sleep":
@@ -933,7 +956,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("G0 Z{}".format(distance * -1))
                 self._printer.commands("G90")
 
-
             return
 
         if command == "originxy":
@@ -979,6 +1001,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "toggleWeak":
             return flask.jsonify({'res' : self.toggleWeak()})
 
+
     def toggleWeak(self):
         # do laser stuff
         powerLevel = self.grblPowerLevel
@@ -1018,7 +1041,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     "branch": "master",
                     "commitish": ["master"],
                 },
-                prerelease_branches=[
+            prerelease_branches=[
                     {
                         "name": "Release Candidate",
                         "branch": "rc",
@@ -1029,9 +1052,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         "branch": "devel",
                         "commitish": ["devel", "rc", "master"],
                     }
-
                 ],
             pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
+
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
