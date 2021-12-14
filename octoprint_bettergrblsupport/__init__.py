@@ -70,6 +70,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.ignoreErrors = False
         self.doSmoothie = False
 
+        self.grblIsBusy = False
+
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F4000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
 
@@ -474,7 +476,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if printer is printing
         if cmd.upper().startswith('M105'):
-            if self.disablePolling and self._printer.is_printing():
+            if self.disablePolling and (self._printer.is_printing() or self.grblIsBusy):
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
@@ -718,6 +720,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # i am thinking these commands are all wrong (all framing)
     def send_frame_init_gcode(self):
+        self.grblIsBusy = True
+
         self._printer.commands("G4 P0")
         self._printer.commands("$32=0")
         self._printer.commands("$110=1000")
@@ -729,14 +733,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def send_frame_end_gcode(self):
+        self._printer.commands("$32=1")
+        self._printer.commands("$110=5000")
+        self._printer.commands("$111=5000")
+
         self._printer.commands("G1S0")
         self._printer.commands("M4 F0 S0")
         self._printer.commands("M5")
         self._printer.commands("M2")
         self._printer.commands("G4 P0")
-        self._printer.commands("$32=1")
-        self._printer.commands("$110=5000")
-        self._printer.commands("$111=5000")
+
+        time.sleep(1)
+
+        self.grblIsBusy = False
 
 
     def send_bounding_box_upper_left(self, y, x):
@@ -973,8 +982,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "originxy":
             # do xy-origin stuff
 
-            saveIgnoreErrors = self.ignoreErrors
-            self.ignoreErrors = True
+            # saveIgnoreErrors = self.ignoreErrors
+            # self.ignoreErrors = True
+            self.grblIsBusy = True
 
             self._printer.commands("$10=0")
             self._printer.commands("G28.1")
@@ -986,15 +996,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("G28.1")
             self._printer.commands("G92 X0 Y0")
 
-            self.ignoreErrors = saveIgnoreErrors
+            # self.ignoreErrors = saveIgnoreErrors
+            self.grblIsBusy = False
 
             return
 
         if command == "originz":
             # do z-origin stuff
 
-            saveIgnoreErrors = self.ignoreErrors
-            self.ignoreErrors = True
+            # saveIgnoreErrors = self.ignoreErrors
+            # self.ignoreErrors = True
+            self.grblIsBusy = True
 
             self._printer.commands("$10=0")
             self._printer.commands("G28.1")
@@ -1006,7 +1018,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("G28.1")
             self._printer.commands("G92 Z0")
 
-            self.ignoreErrors = saveIgnoreErrors
+            # self.ignoreErrors = saveIgnoreErrors
+            self.grblIsBusy = False
 
             return
 
