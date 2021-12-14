@@ -206,6 +206,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if "gcodeviewer" in disabledTabs:
             disabledTabs.remove("gcodeviewer")
 
+        # clean up old versions since we now disable gcodeviewer instead of just hiding it
+        if "plugin_gcodeviewer" in disabledTabs:
+            disabledTabs.remove("plugin_gcodeviewer")
+
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
 
         if not self.hideControlTab:
@@ -278,7 +282,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         for setting in settings.split("||"):
             if len(setting.strip()) > 0:
-                # self._logger.info("deSerializeGrblSettings=[{}]".format(setting))
+
+                self._logger.debug("deSerializeGrblSettings=[{}]".format(setting))
+
                 set = setting.split("|")
                 if not set is None:
                     self.grblSettings.update({int(set[0]): [set[1], self.grblSettingsNames.get(int(set[0]))]})
@@ -290,7 +296,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
             ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
-        # self._logger.info("serializeGrblSettings=[\n{}\n]".format(ret))
+        self._logger.debug("serializeGrblSettings=[\n{}\n]".format(ret))
         return ret
 
 
@@ -625,7 +631,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 settingsValue = match.groups(1)[1]
 
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
-                # self._logger.info("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
+                self._logger.debug("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
                 if settingsId >= 132:
                     self._settings.set(["grblSettingsText"], self.serializeGrblSettings())
@@ -705,33 +711,34 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok'
 
 
+    # i am thinking these commands are all wrong (all framing)
     def send_frame_init_gcode(self):
         self._printer.commands("G4 P0")
         self._printer.commands("$32=0")
+        self._printer.commands("$110=1000")
+        self._printer.commands("$111=1000")
         self._printer.commands("G00 G17 G40 G21 G54")
         self._printer.commands("G91")
-        # self._printer.commands("$32=0")
         self._printer.commands("M4 F1000 S{}".format(self.weakLaserValue))
         self._printer.commands("G91")
-        # self._printer.commands("M8")
 
 
     def send_frame_end_gcode(self):
-        # self._printer.commands("M9")
         self._printer.commands("G1S0")
         self._printer.commands("M4 F0 S0")
-        # self._printer.commands("$32=1")
         self._printer.commands("M5")
         self._printer.commands("M2")
         self._printer.commands("G4 P0")
         self._printer.commands("$32=1")
+        self._printer.commands("$110=5000")
+        self._printer.commands("$111=5000")
 
 
     def send_bounding_box_upper_left(self, y, x):
-        self._printer.commands("G0 X{:f} F2000 S{}".format(x, self.weakLaserValue))
-        self._printer.commands("G0 Y{:f} F2000 S{}".format(y * -1, self.weakLaserValue))
-        self._printer.commands("G0 X{:f} F2000 S{}".format(x * -1, self.weakLaserValue))
-        self._printer.commands("G0 Y{:f} F2000 S{}".format(y, self.weakLaserValue))
+        self._printer.commands("G0 X{:f}".format(x))
+        self._printer.commands("G0 Y{:f}".format(y * -1))
+        self._printer.commands("G0 X{:f}".format(x * -1))
+        self._printer.commands("G0 Y{:f}".format(y))
 
 
     def send_bounding_box_upper_center(self, y, x):
