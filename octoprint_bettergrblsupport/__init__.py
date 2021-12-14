@@ -206,6 +206,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if "gcodeviewer" in disabledTabs:
             disabledTabs.remove("gcodeviewer")
 
+        # clean up old versions since we now disable gcodeviewer instead of just hiding it
+        if "plugin_gcodeviewer" in disabledTabs:
+            disabledTabs.remove("plugin_gcodeviewer")
+
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
 
         if not self.hideControlTab:
