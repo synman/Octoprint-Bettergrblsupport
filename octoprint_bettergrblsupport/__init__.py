@@ -65,6 +65,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblAlarms = {}
         self.grblSettingsNames = {}
         self.grblSettings = {}
+        self.grblSettingsText = ""
 
         self.ignoreErrors = False
         self.doSmoothie = False
@@ -153,6 +154,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.showZ = self._settings.get_boolean(["showZ"])
         self.weakLaserValue = self._settings.get(["weakLaserValue"])
 
+        self.grblSettingsText = self._settings.get(["grblSettingsText"])
+
         # hardcoded global settings -- should revisit how I manage these
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
@@ -175,11 +178,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # disable the gcodeviewer plugin
         if self.hideGCodeTab:
-            if "plugin_gcodeviewer" not in disabledPlugins:
-                disabledPlugins.append("plugin_gcodeviewer")
+            if "gcodeviewer" not in disabledPlugins:
+                disabledPlugins.append("gcodeviewer")
         else:
-            if "plugin_gcodeviewer" in disabledPlugins:
-                disabledPlugins.remove("plugin_gcodeviewer")
+            if "gcodeviewer" in disabledPlugins:
+                disabledPlugins.remove("gcodeviewer")
 
         self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
 
@@ -278,9 +281,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def deSerializeGrblSettings(self):
-        settings = self._settings.get(["grblSettingsText"])
+        self.grblSettingsText = self._settings.get(["grblSettingsText"])
 
-        for setting in settings.split("||"):
+        for setting in self.grblSettingsText.split("||"):
             if len(setting.strip()) > 0:
 
                 self._logger.debug("deSerializeGrblSettings=[{}]".format(setting))
@@ -297,6 +300,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
         self._logger.debug("serializeGrblSettings=[\n{}\n]".format(ret))
+
+        self.grblSettingsText = ret;
         return ret
 
 
