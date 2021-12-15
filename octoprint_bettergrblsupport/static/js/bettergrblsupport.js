@@ -59,9 +59,9 @@ $(function() {
 
       self.doFrame = function() {
         // toggle power if it is on
-        if (self.power != 0) {
-          self.toggleWeak();
-        }
+        // if (self.power != 0) {
+        //   self.toggleWeak();
+        // }
 
         var o;
         var x = document.getElementsByName("frameOrigin");
