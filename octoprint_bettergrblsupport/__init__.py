@@ -360,7 +360,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # our plugin is being uninstalled
-        if event == Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN and playload["id"] == self._identifier:
+        if event == Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN and payload["id"] == self._identifier:
             self._logger.debug('we are being uninstalled :(')
             cleanUpDueToUninstall(self)
             return
