@@ -41,7 +41,11 @@ $(function() {
               new PNotify({
                 title: "Grbl Settings Update",
                 text: "$" + id + " has been set to " + value,
-                hide: false,
+                hide: true,
+                animation: "fade",
+                animateSpeed: "slow",
+                mouseReset: true,
+                delay: 10000,
                 buttons: {
                   sticker: true,
                   closer: true

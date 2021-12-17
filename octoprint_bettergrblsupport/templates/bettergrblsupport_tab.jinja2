@@ -98,8 +98,12 @@
             <table style="border-spacing: 1px; border: 1px solid;"><tr><td>
             <table border=0>
               <tr>
-                <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">State</td>
-                <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: state()"></strong></td>
+                <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
+                <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: mode()"></strong></td>
+              </tr>
+              <tr>
+                <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">State</td>
+                <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: state()"></strong></td>
               </tr>
               <tr>
                 <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">X</td>
@@ -221,19 +225,21 @@
       <!-- </td></tr></table> -->
     </td>
       <td id="laser_buttons" rowspan=5 align="right" valign="middle" width="30%" style="padding: 0px 20px 0px 0px;" >
-        <button id="grblLaserButton" style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
+        <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
+          <button id="grblLaserButton" style="width: 120px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { toggleWeak() }">Weak Laser</button>
+          <br>
+          <br>
+        <!-- /ko -->
+        <button style="width: 120px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('homing') }">Machine Home</button>
         <br>
         <br>
-        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('homing') }">Home</button>
+        <button style="width: 120px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('reset') }">Soft Reset</button>
         <br>
         <br>
-        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('sleep') }">Sleep</button>
+        <button style="width: 120px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('sleep') }">Sleep</button>
         <br>
         <br>
-        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('unlock') }">Unlock</button>
-        <br>
-        <br>
-        <button style="width: 100px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('reset') }">Reset</button>
+        <button style="width: 120px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('unlock') }">Unlock</button>
         <br>
       </td>
       </tr></table>

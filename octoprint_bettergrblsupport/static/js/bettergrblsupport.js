@@ -39,6 +39,7 @@ $(function() {
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
 
+      self.mode = ko.observable("N/A");
       self.state = ko.observable("N/A");
       self.xPos = ko.observable("N/A");
       self.yPos = ko.observable("N/A");
@@ -58,14 +59,10 @@ $(function() {
       });
 
       self.doFrame = function() {
-        // toggle power if it is on
-        // if (self.power != 0) {
-        //   self.toggleWeak();
-        // }
-
         var o;
         var x = document.getElementsByName("frameOrigin");
         var i;
+
         for (i = 0; i < x.length; i++) {
           if (x[i].checked) {
             o = x[i].id;
@@ -154,6 +151,58 @@ $(function() {
       };
 
       self.sendCommand = function(command) {
+        if (command == "unlock") {
+          new PNotify({
+                title: "Unlock Machine",
+                text: "GRBL prefers you re-home your machine rather than unlock it.  Are you sure you want to unlock your machine?",
+                type: "notice",
+                hide: false,
+                animation: "fade",
+                animateSpeed: "slow",
+                sticker: false,
+                closer: true,
+                confirm: {
+                    confirm: true,
+                    buttons: [
+                        {
+                            text: "CONFIRM",
+                            click: function(notice) {
+                                          $.ajax({
+                                            url: API_BASEURL + "plugin/bettergrblsupport",
+                                            type: "POST",
+                                            dataType: "json",
+                                            data: JSON.stringify({
+                                              command: command
+                                            }),
+                                            contentType: "application/json; charset=UTF-8",
+                                            error: function (data, status) {
+                                              new PNotify({
+                                                title: "Unable to set origin / home!",
+                                                text: data.responseText,
+                                                hide: true,
+                                                buttons: {
+                                                  sticker: false,
+                                                  closer: true
+                                                },
+                                                type: "error"
+                                              });
+                                            }
+                                          });
+                                          notice.remove();
+                            }
+                        },
+                        {
+                            text: "CANCEL",
+                            click: function(notice) {
+                                notice.remove();
+                            }
+                        },
+                    ]
+                },
+          });
+          return;
+        }
+
         $.ajax({
           url: API_BASEURL + "plugin/bettergrblsupport",
           type: "POST",
@@ -223,6 +272,7 @@ $(function() {
 
       self.onDataUpdaterPluginMessage = function(plugin, data) {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
+          self.mode(data.mode);
           self.state(data.state);
           self.xPos(Number.parseFloat(data.x).toFixed(2));
           self.yPos(Number.parseFloat(data.y).toFixed(2));
@@ -230,19 +280,21 @@ $(function() {
           self.speed(data.speed);
 
           if (data.state != "Run") {
-            if (data.power == "0" && self.power() != "0") {
-              var btn = document.getElementById("grblLaserButton");
-              btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
-            } else {
-              if (self.power() == "0" && data.power != "0") {
-                var btn = document.getElementById("grblLaserButton");
-                btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
+            var btn = document.getElementById("grblLaserButton");
+
+            if (btn != null) {
+              if (data.power == "0" && self.power() != "0") {
+                btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
+              } else {
+                if (self.power() == "0" && data.power != "0") {
+                  btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
+                }
               }
             }
           }
 
           self.power(data.power);
-          // console.log("state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
+          console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
           return
         }
 
@@ -257,13 +309,18 @@ $(function() {
             title: "Frame Size Computed",
             text: "Dimensions are " + length + "L x " + width + "W",
             hide: true,
+            animation: "fade",
+            animateSpeed: "slow",
+            mouseReset: true,
+            delay: 15000,
             buttons: {
-              sticker: false,
+              sticker: true,
               closer: true
             },
             type: "success"
           });
 
+          console.log("frame length=" + data.length + " width=" + data.width);
           return
         }
 
@@ -272,26 +329,36 @@ $(function() {
             title: "Grbl Error #" + data.code + " Received",
             text: data.description,
             hide: true,
+            animation: "fade",
+            animateSpeed: "slow",
+            mouseReset: true,
+            delay: 30000,
             buttons: {
               sticker: true,
               closer: true
             },
-            type: "error"
+            type: "error",
           });
+          console.log("error code=" + data.code + " desc=" + data.description);
+          return
         }
 
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_alarm') {
           new PNotify({
             title: "Grbl Alarm #" + data.code + " Received",
             text: data.description,
-            hide: false,
+            hide: true,
+            animation: "fade",
+            animateSpeed: "slow",
+            mouseReset: true,
+            delay: 30000,
             buttons: {
               sticker: true,
               closer: true
             },
             type: "notice"
           });
-
+          console.log("alarm code=" + data.code + " desc=" + data.description);
           return
         }
       };

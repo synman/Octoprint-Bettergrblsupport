@@ -22,7 +22,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.AssetPlugin,
                               octoprint.plugin.TemplatePlugin,
                               octoprint.plugin.StartupPlugin,
-                              octoprint.plugin.EventHandlerPlugin):
+                              octoprint.plugin.EventHandlerPlugin,
+                              octoprint.plugin.RestartNeedingPlugin):
 
     def __init__(self):
         self.hideTempTab = True
@@ -52,6 +53,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.m8Command = ""
         self.m9Command = ""
 
+        self.grblMode = None
         self.grblState = None
         self.grblX = float(0)
         self.grblY = float(0)
@@ -119,7 +121,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             m9Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c off",
             ignoreErrors = False,
             doSmoothie = False,
-            grblVersion = "unknown"
+            grblVersion = "unknown",
+            laserMode = False
         )
 
 
@@ -307,7 +310,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         for id, data in sorted(self.grblSettings.items(), key=lambda x: int(x[0])):
             ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
-        self._logger.debug("saveGrblSettings=[\n{}\n]".format(ret))
+        self._logger.debug("saveGrblSettings=[{}]".format(ret))
 
         self.grblSettingsText = ret;
         return ret
@@ -348,10 +351,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
-        subscribed_events = Events.FILE_SELECTED + Events.PRINT_STARTED + Events.PRINT_CANCELLED + Events.PRINT_DONE + Events.PRINT_FAILED
+        subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED,
+                            Events.PRINT_DONE, Events.PRINT_FAILED, Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN)
 
-        if subscribed_events.find(event) == -1:
+        if event not in subscribed_events:
+            self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
             return
+
+        # our plugin is being uninstalled
+        if event == Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN and playload["id"] == self._identifier:
+            self._logger.debug('we are being uninstalled :(')
+            cleanUpDueToUninstall(self)
+            return
+
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
@@ -438,6 +450,66 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         return
+
+
+    def cleanUpDueToUninstall(self):
+        self._settings.global_set_boolean(["feature", "modelSizeDetection"], self.disableModelSizeDetection)
+        self._settings.global_set_boolean(["serial", "neverSendChecksum"], not self.neverSendChecksum)
+
+        # load a map of disabled plugins
+        disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
+        if disabledPlugins == None:
+            disabledPlugins = []
+
+        # re-enable the printer safety check plugin
+        if self.disablePrinterSafety:
+            if "printer_safety_check" in disabledPlugins:
+                disabledPlugins.remove("printer_safety_check")
+
+        # re-enable the gcodeviewer plugin
+        if self.hideGCodeTab:
+            if "gcodeviewer" in disabledPlugins:
+                disabledPlugins.remove("gcodeviewer")
+
+        self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
+
+        disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
+        if disabledTabs == None:
+            disabledTabs = []
+
+        if self.hideTempTab:
+            if "temperature" in disabledTabs:
+                disabledTabs.remove("temperature")
+
+        if self.hideControlTab:
+            if "control" in disabledTabs:
+                disabledTabs.remove("control")
+
+        # clean up old versions since octoprint renamed gcodeviewer to plugin_gcodeviewer
+        if "gcodeviewer" in disabledTabs:
+            disabledTabs.remove("gcodeviewer")
+
+        # clean up old versions since we now disable gcodeviewer instead of just hiding it
+        if "plugin_gcodeviewer" in disabledTabs:
+            disabledTabs.remove("plugin_gcodeviewer")
+
+        self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
+
+        if not self.hideControlTab:
+            controls = self._settings.global_get(["controls"])
+
+            if self.customControls and controls:
+                self._settings.global_set(["controls"], [])
+
+        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+
+        if self.reOrderTabs:
+            orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+
+            if "plugin_bettergrblsupport" in orderedTabs:
+                orderedTabs.remove("plugin_bettergrblsupport")
+
+        self._settings.save()
 
 
     # #-- gcode sending hook
@@ -579,6 +651,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if currentTime > self.timeRef + 500:
                 # self._logger.info("x={} y={} z={} f={} s={}".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                                mode=self.grblMode,
                                                                                 state=self.grblState,
                                                                                 x=self.grblX,
                                                                                 y=self.grblY,
@@ -600,7 +673,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # When the serial port is opened, it resets and the "hello" command
             # is not processed.
             # This makes Octoprint recognise the startup message as a successful connection.
-
             self._settings.set(["grblVersion"], line)
             self._settings.save()
 
@@ -636,15 +708,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 code=error,
                                                                                 description=self.grblErrors.get(error)))
 
-                self._logger.info("error received: %d: %s", error, self.grblErrors.get(error))
+                self._logger.warning("error received: %d: %s", error, self.grblErrors.get(error))
 
                 # force an inquiry
                 self._printer.commands("?")
+
+                # lets not let octoprint know if we have a gcode lock error
+                if error == 9:
+                    self._logger.info("not forwarding grbl error 9 to octoprint")
+                    return "ok " + line
 
             return 'Error: ' + line
 
         # auto reset
         if "reset to continue" in line.lower():
+            # automatically perform a soft reset if GRBL says we need one
             self._printer.commands("M999")
             return 'ok ' + line
 
@@ -661,6 +739,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 if settingsId >= 132:
                     self._settings.set(["grblSettingsText"], self.saveGrblSettings())
+                    self._settings.set_boolean(["laserMode"], self.isLaserMode())
                     self._settings.save()
 
                 return line
@@ -682,6 +761,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # and is accessible for "controls" to read.
             response = 'ok X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
 
+            if "MPos" in line:
+                self.grblMode = "MPos"
+            else:
+                if "WPos" in line:
+                    self.grblMode = "WPos"
+                else:
+                    self.grblMode = "N/A"
+
             self.grblState = str(match.groups(1)[0])
             self.grblX = float(match.groups(1)[1])
             self.grblY = float(match.groups(1)[2])
@@ -694,8 +781,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblSpeed = round(float(match.groups(1)[0]))
                 self.grblPowerLevel = round(float(match.groups(1)[1]))
 
-            # if self.grblState == "Sleep" or self.grblState == "Run":
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                            mode=self.grblMode,
                                                                             state=self.grblState,
                                                                             x=self.grblX,
                                                                             y=self.grblY,
@@ -733,13 +820,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def send_frame_init_gcode(self):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        if self.isGrblOneDotOne():
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_alarm",
-                                                                            code=1,
-                                                                            description=self.grblVersion))
+        # if self.isGrblOneDotOne():
+        #     self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_alarm",
+        #                                                                     code=1,
+        #                                                                     description=self.grblVersion))
 
-        # Linear mode, Preset Coord #1, XY Plane, mm uom, incremental mode, spindle off
-        self._printer.commands("G1F{} G54 G17 G21 G91 M5".format(f))
+        # Linear mode, spindle off
+        self._printer.commands("G1 F{} M5".format(f))
 
         # turn on laser in weak mode if laser mode enabled
         if self.isLaserMode():
@@ -752,88 +839,88 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def send_bounding_box_upper_left(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=X{:f} F{}".format(x, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y * -1, f))
-        self._printer.commands("$J=X{:f} F{}".format(x * -1, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y, f))
 
 
     def send_bounding_box_upper_center(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=X{:f} F{}".format(x / 2, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y * -1, f))
-        self._printer.commands("$J=X{:f} F{}".format(x * -1, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y, f))
-        self._printer.commands("$J=X{:f} F{}".format(x / 2, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x / 2, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x / 2, f))
 
 
     def send_bounding_box_upper_right(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=Y{:f} F{}".format(y * -1, f))
-        self._printer.commands("$J=X{:f} F{}".format(x * -1, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y, f))
-        self._printer.commands("$J=X{:f} F{}".format(x, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x, f))
 
 
     def send_bounding_box_center_left(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=Y{:f} F{}".format(y / 2, f))
-        self._printer.commands("$J=X{:f} F{}".format(x, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y * -1, f))
-        self._printer.commands("$J=X{:f} F{}".format(x * -1, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y / 2, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y / 2, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y / 2, f))
 
 
     def send_bounding_box_center(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=X{:f} Y{:f} F{}".format(x / 2 * -1, y / 2, f))
-        self._printer.commands("$J=X{:f} F{}".format(x, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y * -1, f))
-        self._printer.commands("$J=X{:f} F{}".format(x * -1, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y, f))
-        self._printer.commands("$J=X{:f} Y{:f} F{}".format(x / 2, y / 2 * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} Y{:f} F{}".format(x / 2 * -1, y / 2, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y, f))
+        self._printer.commands("$J=G21 G91 X{:f} Y{:f} F{}".format(x / 2, y / 2 * -1, f))
 
 
     def send_bounding_box_center_right(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=Y{:f} F{}".format(y / 2 * -1, f))
-        self._printer.commands("$J=X{:f} F{}".format(x * -1, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y, f))
-        self._printer.commands("$J=X{:f} F{}".format(x, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y / 2 * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y / 2 * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y / 2 * -1, f))
 
 
     def send_bounding_box_lower_left(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=Y{:f} F{}".format(y, f))
-        self._printer.commands("$J=X{:f} F{}".format(x, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y * -1, f))
-        self._printer.commands("$J=X{:f} F{}".format(x * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x * -1, f))
 
 
     def send_bounding_box_lower_center(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=X{:f} F{}".format(x / 2 * -1, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y, f))
-        self._printer.commands("$J=X{:f} F{}".format(x, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y * -1, f))
-        self._printer.commands("$J=X{:f} F{}".format(x / 2 * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x / 2 * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x / 2 * -1, f))
 
 
     def send_bounding_box_lower_right(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
 
-        self._printer.commands("$J=X{:f} F{}".format(x * -1, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y, f))
-        self._printer.commands("$J=X{:f} F{}".format(x, f))
-        self._printer.commands("$J=Y{:f} F{}".format(y * -1, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x * -1, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y, f))
+        self._printer.commands("$J=G21 G91 X{:f} F{}".format(x, f))
+        self._printer.commands("$J=G21 G91 Y{:f} F{}".format(y * -1, f))
 
 
     def get_api_commands(self):
@@ -869,13 +956,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("M999")
             return
 
-        if command == "homing":
-            if self.grblPowerLevel > 0 and self.grblState == "Idle":
-                self.toggleWeak()
-
-            self._printer.commands("$H")
-            return
-
         if command == "updateGrblSetting":
             self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
             self.grblSettings.update({int(data.get("id")): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id")))]})
@@ -902,6 +982,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             time.sleep(1)
             return flask.jsonify({'res' : settings})
+
+        if command == "homing" and self._printer.is_ready() and self.grblState in "Idle,Alarm":
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                            mode="MPos",
+                                                                            state="Home",
+                                                                            x=0,
+                                                                            y=0,
+                                                                            z=0,
+                                                                            speed="N/A",
+                                                                            power="N/A"))
+
+            self._printer.commands("$H")
+            return
 
         # catch-all (should revisit state management) for validating printer State
         if not self._printer.is_ready() or self.grblState != "Idle":
@@ -959,71 +1052,45 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug("move {} {}".format(direction, distance))
 
             if direction == "home":
-                self._printer.commands("G91")
-                self._printer.commands("G28 X0 Y0")
-                self._printer.commands("G90")
+                self._printer.commands("G28")
 
             if direction == "homez":
-                self._printer.commands("G91")
-                self._printer.commands("G28 Z0")
-                self._printer.commands("G90")
+                # technically this is unnecessary
+                self._printer.commands("G28")
 
             if direction == "forward":
-                self._printer.commands("G91")
-                self._printer.commands("G0 Y{}".format(distance))
-                self._printer.commands("G90")
+                self._printer.commands("G0 G91 G21 Y{}".format(distance))
 
             if direction == "backward":
-                self._printer.commands("G91")
-                self._printer.commands("G0 Y{}".format(distance * -1))
-                self._printer.commands("G90")
+                self._printer.commands("G0 G91 G21 Y{}".format(distance * -1))
 
             if direction == "left":
-                self._printer.commands("G91")
-                self._printer.commands("G0 X{}".format(distance * -1))
-                self._printer.commands("G90")
+                self._printer.commands("G0 G91 G21 X{}".format(distance * -1))
 
             if direction == "right":
-                self._printer.commands("G91")
-                self._printer.commands("G0 X{}".format(distance))
-                self._printer.commands("G90")
+                self._printer.commands("G0 G91 G21 X{}".format(distance))
 
             if direction == "up":
-                self._printer.commands("G91")
-                self._printer.commands("G0 Z{}".format(distance))
-                self._printer.commands("G90")
+                self._printer.commands("G0 G91 G21 Z{}".format(distance))
 
             if direction == "down":
-                self._printer.commands("G91")
-                self._printer.commands("G0 Z{}".format(distance * -1))
-                self._printer.commands("G90")
+                self._printer.commands("G0 G91 G21 Z{}".format(distance * -1))
 
             return
 
         if command == "originxy":
-            # do xy-origin stuff
-            self.queue_cmds_and_send(self, True, ["$10=0"])
-
             self._printer.commands("G28.1")
-            self._printer.commands("G92 X0 Y0")
-
-            self.queue_cmds_and_send(self, True, ["$10=0"])
-
-            self._printer.commands("G28.1")
+            # i really like this zeroing feature - may need to make it configurable
             self._printer.commands("G92 X0 Y0")
 
             return
 
         if command == "originz":
-            # do z-origin stuff
-            self.queue_cmds_and_send(self, True, ["$10=0"])
+            # technically this is unnecessary - may revisit the whole need for
+            # for separating Z from X/Y when managing work plane home
 
             self._printer.commands("G28.1")
-            self._printer.commands("G92 Z0")
-
-            self.queue_cmds_and_send(self, True, ["$10=0"])
-
-            self._printer.commands("G28.1")
+            # i really like this zeroing feature - may need to make it configurable
             self._printer.commands("G92 Z0")
 
             return
@@ -1035,18 +1102,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def toggleWeak(self):
         # do laser stuff
         powerLevel = self.grblPowerLevel
+        f = int(float(self.grblSettings.get(110)[0]))
 
         if powerLevel == 0:
-            self._printer.commands("$32=0")
-            self._printer.commands("M4 S{}".format(self.weakLaserValue))
-            res = "Laser Off"
+            # turn on laser in weak mode if laser mode enabled
+            if self.isLaserMode():
+                self._printer.commands("G1 F{} M5".format(f))
+                self._printer.commands("M3 S{}".format(self.weakLaserValue))
+                res = "Laser Off"
         else:
-            # self._printer.commands("M9")
-            # self._printer.commands("G1S0")
-            self._printer.commands("M4 S0")
-            self._printer.commands("$32=1")
-            self._printer.commands("M5")
-            self._printer.commands("M2")
+            self.queue_cmds_and_send(self, ["M3 S0", "S0", "G0"])
             res = "Weak Laser"
 
         return res
@@ -1076,7 +1141,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def isLaserMode(self):
-        return self.grblSettings.get(32)[0] != 0
+        return int(float(self.grblSettings.get(32)[0])) != 0
 
     def isGrblOneDotOne(self):
         return "1.1" in self.grblVersion
