@@ -110,7 +110,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             neverSendChecksum = True,
             reOrderTabs = True,
             disablePrinterSafety = True,
-            grblSettingsText = "This space intentionally left blank",
+            grblSettingsText = None,
             grblSettingsBackup = "",
             showZ = False,
             weakLaserValue = 1,
@@ -294,14 +294,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def loadGrblSettings(self):
         self.grblSettingsText = self._settings.get(["grblSettingsText"])
 
-        for setting in self.grblSettingsText.split("||"):
-            if len(setting.strip()) > 0:
+        if not self.grblSettingsText is None:
+            for setting in self.grblSettingsText.split("||"):
+                if len(setting.strip()) > 0:
 
-                self._logger.debug("loadGrblSettings=[{}]".format(setting))
+                    self._logger.debug("loadGrblSettings=[{}]".format(setting))
 
-                set = setting.split("|")
-                if not set is None:
-                    self.grblSettings.update({int(set[0]): [set[1], self.grblSettingsNames.get(int(set[0]))]})
+                    set = setting.split("|")
+                    if not set is None:
+                        self.grblSettings.update({int(set[0]): [set[1], self.grblSettingsNames.get(int(set[0]))]})
         return
 
 
@@ -363,7 +364,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('we are being uninstalled :(')
             cleanUpDueToUninstall(self)
             return
-
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
@@ -443,7 +443,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_frame_size",
                                                                             length=length,
                                                                             width=width))
-
             return
 
         if event == Events.FILE_DESELECTED:
