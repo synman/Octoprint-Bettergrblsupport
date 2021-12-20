@@ -117,12 +117,10 @@
                   <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
                   <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: yPos()"></strong></td>
                 </tr>
-                <!-- ko if: settings.settings.plugins.bettergrblsupport.showZ -->
                   <tr>
                     <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
                     <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
                   </tr>
-                <!-- /ko -->
                 <tr>
                   <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
                   <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
@@ -233,7 +231,7 @@
             <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run', click: function() { sendCommand('reset') }">Soft Reset</button>
             <br>
             <br>
-            <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run', click: function() { sendCommand('sleep') }">Sleep</button>
+            <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run' && state() != 'Sleep', click: function() { sendCommand('sleep') }">Sleep</button>
             <br>
             <br>
             <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>

@@ -714,8 +714,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 self._logger.info("alarm received: %d: %s", error, self.grblAlarms.get(error))
 
-                # force an inquiry
-                self._printer.commands("?")
+            # clear out any pending queued Commands
+            if len(self.grblCmdQueue) > 0:
+                self._logger.info("clearing %d commands from the command queue", len(self.grblCmdQueue))
+                self.grblCmdQueue.clear()
+
+            # force an inquiry
+            self._printer.commands("?")
 
             return 'Error: ' + line if error == 0 else self.grblAlarms.get(error)
 
@@ -733,13 +738,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 self._logger.warning("error received: %d: %s", error, self.grblErrors.get(error))
 
-                # force an inquiry
-                self._printer.commands("?")
+            # clear out any pending queued Commands
+            if len(self.grblCmdQueue) > 0:
+                self._logger.info("clearing %d commands from the command queue", len(self.grblCmdQueue))
+                self.grblCmdQueue.clear()
 
-                # lets not let octoprint know if we have a gcode lock error
-                if error == 9:
-                    self._logger.info("not forwarding grbl error 9 to octoprint")
-                    return "ok " + line
+            # force an inquiry
+            self._printer.commands("?")
+
+            # lets not let octoprint know if we have a gcode lock error
+            if error == 9:
+                self._logger.info("not forwarding grbl error 9 to octoprint")
+                return "ok " + line
 
             return 'Error: ' + line if error == 0 else self.grblErrors.get(error)
 
@@ -939,7 +949,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             frame=[],
             toggleWeak=[],
             originz=[],
-            originxy=[],
+            origin=[],
             move=[],
             sleep=[],
             reset=[],
@@ -1059,16 +1069,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             direction = data.get("direction")
             distance = data.get("distance")
 
-            self._logger.debug("move {} {}".format(direction, distance))
+            self._logger.debug("move direction={} distance={}".format(direction, distance))
 
             if direction == "home":
                 self._printer.commands("G28")
 
             if direction == "probez":
                 # probe z using offset
-                self._printer.commands("G21 G91 G38.2 Z-50 F100")
-                self._printer.commands("G92 Z{:f)".format(self.zProbeOffset))
-                self._printer.commands("G0 Z5")
+                self.queue_cmds_and_send(self, ["G91 G21 G38.2 Z-50 F100 ?", "?", "G92 Z{:f}".format(self.zProbeOffset), "G0 Z5"])
 
             if direction == "forward":
                 # max Y feed rate

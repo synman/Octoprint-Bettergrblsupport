@@ -125,6 +125,13 @@ $(function() {
       };
 
       self.moveHead = function(direction) {
+        // if (direction == "probez") {
+        //   OctoPrint.control.sendGcode("G91 G21 G38.2 F100 Z-50 ?");
+        //   OctoPrint.control.sendGcode("G92 Z" + self.settings.settings.plugins.bettergrblsupport.zProbeOffset() + " G0 Z5");
+        //
+        //   return
+        // }
+
         $.ajax({
           url: API_BASEURL + "plugin/bettergrblsupport",
           type: "POST",
@@ -177,7 +184,7 @@ $(function() {
                                             contentType: "application/json; charset=UTF-8",
                                             error: function (data, status) {
                                               new PNotify({
-                                                title: "Unable to set origin / home!",
+                                                title: "Unable to unlock machine!",
                                                 text: data.responseText,
                                                 hide: true,
                                                 buttons: {
@@ -213,7 +220,7 @@ $(function() {
           contentType: "application/json; charset=UTF-8",
           error: function (data, status) {
             new PNotify({
-              title: "Unable to set origin / home!",
+              title: "Unable to send command: " + command,
               text: data.responseText,
               hide: true,
               buttons: {
