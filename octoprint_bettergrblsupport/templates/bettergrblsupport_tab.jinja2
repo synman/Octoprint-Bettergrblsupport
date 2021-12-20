@@ -18,231 +18,229 @@
     <div class="settings-group">
       <div class="settings-controls">
         <!-- <h4>Framing</h4> -->
-        <table border=0 width="100%" style="padding: 0px 10px 10px 10px;"><tr><td>
-          <table class="input-append" border=0 align="center" width="100%" cellspacing="10">
-            <tr class="settings-label">
-              <td>
-                <table align="center" border=0 id="framing_panel">
-                  <tr valign="top"><td align="left"><h5 style="vertical-align: top">&nbsp;Framing</h5></td></tr>
-                  <tr class="settings-label">
-                    <td align="right" valign="middle">
-                      <label>Length&nbsp;</label>
-                    </td>
-                    <td>
-                      <input type="number" step="1.0"
-                                           class="input-mini text-right"
-                                           data-bind="value: length"
-                                           placeholder="100">
-                      <span class="add-on">mm</span>
-                    </td>
-                  </tr>
-                  <tr><td>&nbsp;</td></tr>
-                  <tr class="settings-label">
-                    <td align="right" valign="middle">
-                      <label>Width&nbsp;</label>
-                    </td>
-                    <td  style="padding: 0px 0px 10px 0px;">
-                      <input type="number" step="1.0"
-                                           class="input-mini text-right"
-                                           data-bind="value: width"
-                                           placeholder="100">
-                      <span class="add-on">mm</span>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-              <td align="center" width="100%">
-                <table align="center" border=0 cellpadding=0>
-                  <tr>
-                    <td colspan=3 align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
-                      <label>Starting Position</label>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td align="center">
-                      <table border=0><tr><td>
-                        <table border=0 align="center" id="radio_buttons">
-                          <tr>
-                            <td align="center" style="padding: 0px 5px 5px 5px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
-                            <td align="center" style="padding: 0px 10px 5px 10px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" type="radio"/></td>
-                            <td align="center" style="padding: 0px 5px 5px 5px;" valign="middle"><input id="grblTopRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                          <tr>
-                            <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="grblCenterLeft" name="frameOrigin" type="radio"/></td>
-                            <td align="center" style="padding: 5px 10px 5px 10px;" valign="middle"><input id="grblCenter" name="frameOrigin" type="radio" checked/></td>
-                            <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="grblCenterRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                          <tr>
-                            <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="grblBottomLeft" name="frameOrigin" type="radio"/></td>
-                            <td align="center" style="padding: 5px 10px 5px 10px;" valign="middle"><input id="grblBottomCenter" name="frameOrigin" type="radio"/></td>
-                            <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="grblBottomRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                        </table>
-                      </td></tr></table>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-              <td id="frame_button" align="center" style="padding: 0px 20px 0px 20px;">
-                <button class="btn" style="width: 130px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
-              </td>
-            </tr>
-          </table>
-        </td></tr></table>
+        <table border=0 width="100%" style="padding: 0px 10px 10px 10px;">
+          <tr>
+            <td>
+              <table class="input-append" border=0 align="center" width="100%" cellspacing="10">
+                <tr class="settings-label">
+                  <td>
+                    <table align="center" border=0 id="framing_panel">
+                      <tr valign="top"><td align="left"><h5 style="vertical-align: top">&nbsp;Framing</h5></td></tr>
+                      <tr class="settings-label">
+                        <td align="right" valign="middle">
+                          <label>Length&nbsp;</label>
+                        </td>
+                        <td>
+                          <input type="number" step="1.0"
+                                               class="input-mini text-right"
+                                               data-bind="value: length"
+                                               placeholder="100">
+                          <span class="add-on">mm</span>
+                        </td>
+                      </tr>
+                      <tr><td>&nbsp;</td></tr>
+                      <tr class="settings-label">
+                        <td align="right" valign="middle">
+                          <label>Width&nbsp;</label>
+                        </td>
+                        <td  style="padding: 0px 0px 10px 0px;">
+                          <input type="number" step="1.0"
+                                               class="input-mini text-right"
+                                               data-bind="value: width"
+                                               placeholder="100">
+                          <span class="add-on">mm</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="center" width="100%">
+                    <table align="center" border=0 cellpadding=0>
+                      <tr>
+                        <td colspan=3 align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
+                          <label>Starting Position</label>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center">
+                          <table border=0><tr><td>
+                            <table border=0 align="center" id="radio_buttons">
+                              <tr>
+                                <td align="center" style="padding: 0px 5px 5px 5px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
+                                <td align="center" style="padding: 0px 10px 5px 10px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" type="radio"/></td>
+                                <td align="center" style="padding: 0px 5px 5px 5px;" valign="middle"><input id="grblTopRight" name="frameOrigin" type="radio"/></td>
+                              </tr>
+                              <tr>
+                                <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="grblCenterLeft" name="frameOrigin" type="radio"/></td>
+                                <td align="center" style="padding: 5px 10px 5px 10px;" valign="middle"><input id="grblCenter" name="frameOrigin" type="radio" checked/></td>
+                                <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="grblCenterRight" name="frameOrigin" type="radio"/></td>
+                              </tr>
+                              <tr>
+                                <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="grblBottomLeft" name="frameOrigin" type="radio"/></td>
+                                <td align="center" style="padding: 5px 10px 5px 10px;" valign="middle"><input id="grblBottomCenter" name="frameOrigin" type="radio"/></td>
+                                <td align="center" style="padding: 5px 5px 5px 5px;" valign="middle"><input id="grblBottomRight" name="frameOrigin" type="radio"/></td>
+                              </tr>
+                            </table>
+                          </td></tr></table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td id="frame_button" align="center" style="padding: 0px 20px 0px 20px;">
+                    <button class="btn" style="width: 130px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </div>
       <!-- <h4>&nbsp;</h4> -->
       <hr>
       <table border=0 align="center" width="100%" >
         <tr>
-          <td align="left" width="20%">
-            <table style="border-spacing: 1px; border: 1px solid;"><tr><td>
-            <table border=0>
-              <tr>
-                <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
-                <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: mode()"></strong></td>
-              </tr>
-              <tr>
-                <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">State</td>
-                <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: state()"></strong></td>
-              </tr>
-              <tr>
-                <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">X</td>
-                <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: xPos()"></strong></td>
-              </tr>
-              <tr>
-                <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
-                <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: yPos()"></strong></td>
-              </tr>
-              <!-- ko if: settings.settings.plugins.bettergrblsupport.showZ -->
+          <td align="left" width="22%">
+            <table border=1 style="border-spacing: 1px; border: 1px; border-radius: 5px;"><tr><td>
+              <table border=0>
                 <tr>
-                  <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
-                  <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
+                  <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
+                  <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: mode()"></strong></td>
                 </tr>
-              <!-- /ko -->
+                <tr>
+                  <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">State</td>
+                  <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: state()"></strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">X</td>
+                  <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: xPos()"></strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
+                  <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: yPos()"></strong></td>
+                </tr>
+                <!-- ko if: settings.settings.plugins.bettergrblsupport.showZ -->
+                  <tr>
+                    <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
+                    <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
+                  </tr>
+                <!-- /ko -->
+                <tr>
+                  <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
+                  <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Speed</td>
+                  <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: speed()"></strong></td>
+                </tr>
+              </table>
+              </td</tr>
+            </table>
+          </td>
+
+          <td width="53%" align="center">
+            <table class="jog-panel" id="jog_panel" border=0>
               <tr>
-                <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
-                <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
+                <td style="padding: 0px 55px 0px 0px;" align="center"><h5>Z</h5></td>
+
+                <td style="padding: 0px 0px 10px 0px;" >
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('origin') }">
+                    <i class="fa fa-crosshairs"></i>
+                  </button>
+                </td>
+
+                <td style="padding: 0px 0px 0px 10px;" align="center"><h5>X/Y</h5></td>
+                <td>&nbsp;</td>
               </tr>
+
               <tr>
-                <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Speed</td>
-                <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: speed()"></strong></td>
+                <td style="padding: 0px 55px 10px 0px;" align="center">
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('up')}">
+                    <i class="fa fa-arrow-up"></i>
+                  </button>
+                </td>
+                <td>&nbsp;</td>
+
+                <td style="padding: 0px 10px 10px 10px;" align="center">
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('forward')}">
+                    <i class="fa fa-arrow-up"></i>
+                  </button>
+                </td>
+                <td>&nbsp;</td>
+              </tr>
+
+              <tr>
+                <td style="padding: 0px 55px 10px 0px;" align="center">
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('probez')}">
+                    <i class="fa fa-search-plus"></i>
+                  </button>
+                </td>
+
+                <td style="padding: 0px 0px 10px 0px;">
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('left')}">
+                    <i class="fa fa-arrow-left"></i>
+                  </button>
+                </td>
+
+                <td style="padding: 0px 10px 10px 10px;" align="center">
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('home')}">
+                    <i class="fa fa-home"></i>
+                  </button>
+                </td>
+
+                <td style="padding: 0px 20px 10px 0px;">
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('right')}">
+                    <i class="fa fa-arrow-right"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding: 0px 55px 20px 0px;" align="center">
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('down')}">
+                    <i class="fa fa-arrow-down"></i>
+                  </button>
+                </td>
+                <td>&nbsp;</td>
+
+                <td style="padding: 0px 10px 20px 10px;" align="center">
+                  <button class="btn box" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('backward')}">
+                    <i class="fa fa-arrow-down"></i>
+                  </button>
+                </td>
+                <td>&nbsp;</td>
+              </tr>
+
+              <tr>
+                <td colspan=4 align="center" class="distance">
+                  <span align="center" class="btn-group" data-toggle="buttons-radio">
+                    <!-- ko foreach: distances -->
+                      <button type="button" class="btn distance" data-bind="click: function() { $root.distance($data) }, text: $data, css: { active: $root.distance() === $data }"></button>
+                    <!-- /ko -->
+                  </span>
+                </td>
               </tr>
             </table>
-            </td</tr></table>
           </td>
 
-      <!-- ko if: settings.settings.plugins.bettergrblsupport.showZ -->
-        <td width="20%" align="center" style="display: ;">
-        <table class="jog-panel" id="jog_panel_z" border=0>
-          <tr>
-          <td align="center"><h5>&nbsp;Z</h5></td>
-            <td align="left" style="padding: 0px 5px 0px 0px;" >
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('originz') }">
-                <i class="fa fa-crosshairs"></i>
-              </button>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0px 0px 10px 0px;" align="center">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('up')}">
-                <i class="fa fa-arrow-up"></i>
-              </button>
-            </td>
-          </tr>
-          <tr>
-          <td style="padding: 0px 0px 10px 0px;" align="center">
-            <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('homez')}">
-              <i class="fa fa-home"></i>
-            </button>
+          <td id="laser_buttons" rowspan=5 align="right" valign="middle" width="25%" style="padding: 0px 20px 0px 0px;" >
+            <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
+              <button id="grblLaserButton" style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
+              <br>
+              <br>
+            <!-- /ko -->
+            <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Machine Home</button>
+            <br>
+            <br>
+            <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run', click: function() { sendCommand('reset') }">Soft Reset</button>
+            <br>
+            <br>
+            <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run', click: function() { sendCommand('sleep') }">Sleep</button>
+            <br>
+            <br>
+            <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
+            <br>
           </td>
-          </tr>
-          <tr>
-            <td style="padding: 0px 0px 10px 0px;" align="center">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('down')}">
-                <i class="fa fa-arrow-down"></i>
-              </button>
-            </td>
-          </tr>
-          <tr>
-            <td align="center"><h5>&nbsp;</h5></td>
-          </tr>
-        </table>
-      </td>
-    <!-- /ko -->
-
-      <td width="30%" align="center">
-        <table class="jog-panel" id="jog_panel" border=0>
-          <tr>
-            <td>&nbsp;</td>
-            <td align="center"><h5>&nbsp;X/Y</h5></td>
-            <td align="left" style="padding: 0px 5px 0px 0px;" >
-            <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('originxy') }">
-                <i class="fa fa-crosshairs"></i>
-              </button>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0px 0px 10px 0px;" colspan=3 align="center">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('forward')}">
-                <i class="fa fa-arrow-up"></i>
-              </button>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0px 0px 10px 5px;"  align="right">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('left')}">
-                <i class="fa fa-arrow-left"></i>
-              </button>
-            </td>
-            <td style="padding: 0px 0px 10px 0px;" align="center">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('home')}">
-                <i class="fa fa-home"></i>
-              </button>
-            </td>
-            <td style="padding: 0px 0px 10px 0px;" align="left">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('right')}">
-                <i class="fa fa-arrow-right"></i>
-              </button>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0px 0px 20px 0px;" colspan=3 align="center">
-              <button class="btn box" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('backward')}">
-                <i class="fa fa-arrow-down"></i>
-              </button>
-            </td>
-          </tr>
-          <tr>
-            <td colspan=3 class="distance">
-              <span class="btn-group" data-toggle="buttons-radio">
-                <!-- ko foreach: distances -->
-                  <button type="button" class="btn distance" data-bind="click: function() { $root.distance($data) }, text: $data, css: { active: $root.distance() === $data }"></button>
-                <!-- /ko -->
-              </span>
-            </td>
-          </tr>
-        </table>
-      <!-- </td></tr></table> -->
-    </td>
-      <td id="laser_buttons" rowspan=5 align="right" valign="middle" width="30%" style="padding: 0px 20px 0px 0px;" >
-        <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
-          <button id="grblLaserButton" style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
-          <br>
-          <br>
-        <!-- /ko -->
-        <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Machine Home</button>
-        <br>
-        <br>
-        <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run', click: function() { sendCommand('reset') }">Soft Reset</button>
-        <br>
-        <br>
-        <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run', click: function() { sendCommand('sleep') }">Sleep</button>
-        <br>
-        <br>
-        <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
-        <br>
-      </td>
-      </tr></table>
+        </tr>
+      </table>
     </div>
   </form>
 </div>

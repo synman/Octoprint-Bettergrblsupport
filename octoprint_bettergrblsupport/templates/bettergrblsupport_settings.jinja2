@@ -10,8 +10,6 @@
 						<br>
 						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
 						<br>
-						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.showZ"> Show Z Axis on Grbl Control tab
-						<br>
 						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
 						<!-- ko ifnot: settings.settings.plugins.bettergrblsupport.hideControlTab -->
 							<br>
@@ -94,6 +92,13 @@
 		<label class="control-label">Weak Laser Intensity</label>
 		<div class="controls">
 				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.weakLaserValue">
+		</div>
+
+		<br>
+
+		<label class="control-label">Z-Probe Offset</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.zProbeOffset">mm
 		</div>
 
 		<br>

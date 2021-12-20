@@ -44,7 +44,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.neverSendChecksum = True
         self.reOrderTabs = True
         self.disablePrinterSafety = True
-        self.showZ = False
+        self.zProbeOffset = 15.00
         self.weakLaserValue = 1
         self.framingPercentOfMaxSpeed = 25
 
@@ -103,7 +103,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             frame_width = 100,
             frame_origin = None,
             distance = 10,
-            distances = [.1, 1, 10, 100],
+            distances = [.1, 1, 5, 10, 50, 100],
             is_printing = False,
             is_operational = False,
             disableModelSizeDetection = True,
@@ -112,7 +112,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             disablePrinterSafety = True,
             grblSettingsText = None,
             grblSettingsBackup = "",
-            showZ = False,
+            zProbeOffset = 15.00,
             weakLaserValue = 1,
             framingPercentOfMaxSpeed = 25,
             overrideM8 = False,
@@ -161,7 +161,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.ignoreErrors = self._settings.get(["ignoreErrors"])
         self.doSmoothie = self._settings.get(["doSmoothie"])
 
-        self.showZ = self._settings.get_boolean(["showZ"])
+        self.zProbeOffset = self._settings.get(["zProbeOffset"])
         self.weakLaserValue = self._settings.get(["weakLaserValue"])
         self.framingPercentOfMaxSpeed = self._settings.get(["framingPercentOfMaxSpeed"])
 
@@ -247,10 +247,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def get_settings_version(self):
-        return 2
+        return 3
 
     def on_settings_migrate(self, target, current):
-        if current == None or current == 1:
+        if current == None or current != target:
             orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
             if "gcodeviewer" in orderedTabs:
                 orderedTabs.remove("gcodeviewer")
@@ -268,9 +268,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.set(["statusCommand"], "?")
                 self.statusCommand = "?"
 
+            self._settings.remove(["showZ"])
+
             self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
             self._settings.save()
-            self._logger.info("Migrated to settings v%d", target)
+            self._logger.info("Migrated to settings v%d from v%d", target, 1 if current == None else current)
 
 
     def loadGrblDescriptions(self):
@@ -327,7 +329,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._logger.debug("saveGrblSettings=[{}]".format(ret))
 
-        self.grblSettingsText = ret;
+        self.grblSettingsText = ret
         return ret
 
 
@@ -1062,37 +1064,55 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if direction == "home":
                 self._printer.commands("G28")
 
-            if direction == "homez":
-                # technically this is unnecessary
-                self._printer.commands("G28")
+            if direction == "probez":
+                # probe z using offset
+                self._printer.commands("G21 G91 G38.2 Z-50 F100")
+                self._printer.commands("G92 Z{:f)".format(self.zProbeOffset))
+                self._printer.commands("G0 Z5")
 
             if direction == "forward":
-                self._printer.commands("G0 G91 G21 Y{}".format(distance))
+                # max Y feed rate
+                f = int(float(self.grblSettings.get(111)[0]))
+                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, f))
 
             if direction == "backward":
-                self._printer.commands("G0 G91 G21 Y{}".format(distance * -1))
+                # max Y feed rate
+                f = int(float(self.grblSettings.get(111)[0]))
+                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, f))
 
             if direction == "left":
-                self._printer.commands("G0 G91 G21 X{}".format(distance * -1))
+                # max X feed rate
+                f = int(float(self.grblSettings.get(110)[0]))
+                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, f))
 
             if direction == "right":
-                self._printer.commands("G0 G91 G21 X{}".format(distance))
+                # max X feed rate
+                f = int(float(self.grblSettings.get(110)[0]))
+                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, f))
 
             if direction == "up":
-                self._printer.commands("G0 G91 G21 Z{}".format(distance))
+                # max Z feed rate
+                f = int(float(self.grblSettings.get(112)[0]))
+                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, f))
 
             if direction == "down":
-                self._printer.commands("G0 G91 G21 Z{}".format(distance * -1))
+                # max Z feed rate
+                f = int(float(self.grblSettings.get(112)[0]))
+                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, f))
 
             return
 
-        if command == "originxy":
+        if command == "origin":
             self._printer.commands("G28.1")
-            # i really like this zeroing feature - may need to make it configurable
-            self._printer.commands("G92 X0 Y0")
+            # only do x / y if laser
+            # if self.isLaserMode():
+            #     self._printer.commands("G92 X0 Y0")
+            # else:
+            self._printer.commands("G92 X0 Y0 Z0")
 
             return
 
+        # this command is deprecated
         if command == "originz":
             # technically this is unnecessary - may revisit the whole need for
             # for separating Z from X/Y when managing work plane home
@@ -1108,15 +1128,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def toggleWeak(self):
-        # do laser stuff
-        powerLevel = self.grblPowerLevel
+        # only execute if laser mode enabled
+        if not self.isLaserMode():
+            return
+
         f = int(float(self.grblSettings.get(110)[0]))
 
-        if powerLevel == 0:
-            # turn on laser in weak mode if laser mode enabled
-            if self.isLaserMode():
-                self._printer.commands("G1 F{} M3 S{}".format(f, self.weakLaserValue))
-                res = "Laser Off"
+        if self.grblPowerLevel == 0:
+            # turn on laser in weak mode
+            self._printer.commands("G1 F{} M3 S{}".format(f, self.weakLaserValue))
+            res = "Laser Off"
         else:
             self.queue_cmds_and_send(self, ["M3 S0", "S0", "G0"])
             res = "Weak Laser"
@@ -1156,7 +1177,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #~~ Softwareupdate hook
     def get_update_information(self):
-
         # Define the configuration for your plugin to use with the Software Update
         # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
         # for details.

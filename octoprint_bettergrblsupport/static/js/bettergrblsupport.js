@@ -33,7 +33,7 @@ $(function() {
       self.length = ko.observable("100");
       self.width = ko.observable("100");
 
-      self.distances = ko.observableArray([0.1, 1, 10, 100]);
+      self.distances = ko.observableArray([.1, 1, 5, 10, 50, 100]);
       self.distance = ko.observable(10);
 
       self.is_printing = ko.observable(false);
