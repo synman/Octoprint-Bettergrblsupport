@@ -1426,6 +1426,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def isLaserMode(self):
         return int(float(self.grblSettings.get(32)[0])) != 0
 
+
     def isGrblOneDotOne(self):
         return "1.1" in self.grblVersion
 
