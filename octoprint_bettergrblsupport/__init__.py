@@ -79,6 +79,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblVersion = "unknown"
 
+        # fail-safe for homing if origin has not been set
+        self.originSet = False
+
 
     # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
@@ -368,8 +371,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
-        subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED,
-                            Events.PRINT_DONE, Events.PRINT_FAILED, Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN)
+        subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
+                            Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
+                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN)
 
         if event not in subscribed_events:
             self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
@@ -391,6 +395,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if event == Events.PRINT_CANCELLED or event == Events.PRINT_DONE or event == Events.PRINT_FAILED:
             self.grblState = "Idle"
             return
+
+        # Print Cancelling
+        if event == Events.PRINT_CANCELLING:
+            self._logger.info("canceling job")
+            self._printer.commands("!", force=True)
+            self.queue_cmds_and_send(["M999"], wait=True)
+            self._printer.commands("G21 G90 G1 Z5 F100")
+
+            if self.originSet:
+                self._printer.commands("G28")
+
+        # Print Paused
+        if event == Events.PRINT_PAUSED:
+            self._logger.info("pausing job")
+            self._printer.commands("!", force=True)
+
+        # Print Resumed
+        if event == Events.PRINT_RESUMED:
+            self._logger.info("resuming job")
+            self._printer.commands("~", force=True)
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
@@ -596,6 +620,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info('Sending Soft Reset')
             # self._printer.commands("\x18")
             return ("\x18",)
+
+        # ignore all of these -- they do not apply to GRBL
+        # M108 (heater off) M84 (disable motors) M104 (set extruder temperature)
+        # M140 (set bed temperature) M106 (fan on/off)
+        if cmd.upper().startswith("M108") or cmd.upper().startswith("M84") or cmd.upper().startswith("M104") or cmd.upper().startswith("M140") or cmd.upper().startswith("M106"):
+            self._logger.debug("ignoring [%s]", cmd)
+            return (None, )
 
         if "G90" in cmd.upper():
             # absolute positioning
@@ -816,8 +847,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel))
 
-            # pop any queued commands if state is IDLE
-            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() == "IDLE":
+            # pop any queued commands if state is IDLE or HOLD:0
+            if len(self.grblCmdQueue) > 0 and (self.grblState.upper().strip() == "IDLE" or self.grblState.upper().strip() == "HOLD:0"):
                 self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
                 self._printer.commands(self.grblCmdQueue[0])
                 self.grblCmdQueue.pop(0)
@@ -855,7 +886,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def send_frame_end_gcode(self):
-        self.queue_cmds_and_send(self, ["M3 S0", "S0", "G0", "M30"])
+        self.queue_cmds_and_send(["M3 S0", "S0", "G0", "M30"])
 
     def send_bounding_box_upper_left(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
@@ -971,6 +1002,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("M999")
             else:
                 self._printer.commands("$X")
+
+            #fail-safe for ensuring we do not home
+            self.originSet = False
+
             return
 
         if command == "reset":
@@ -1005,6 +1040,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return flask.jsonify({'res' : settings})
 
         if command == "homing" and self._printer.is_ready() and self.grblState in "Idle,Alarm":
+            self._printer.commands("$H")
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                             mode="MPos",
                                                                             state="Home",
@@ -1013,7 +1049,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             z=0,
                                                                             speed="N/A",
                                                                             power="N/A"))
-            self._printer.commands("$H")
             return
 
         # catch-all (should revisit state management) for validating printer State
@@ -1073,10 +1108,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "home":
                 self._printer.commands("G28")
+                self.originSet = True
 
             if direction == "probez":
                 # probe z using offset
-                self.queue_cmds_and_send(self, ["G91 G21 G38.2 Z-50 F100 ?", "?", "G92 Z{:f}".format(self.zProbeOffset), "G0 Z5"])
+                self.queue_cmds_and_send(["G91 G21 G38.2 Z-50 F100 ?", "?", "G92 Z{:f}".format(self.zProbeOffset), "G0 Z5"])
 
             if direction == "forward":
                 # max Y feed rate
@@ -1147,27 +1183,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("G1 F{} M3 S{}".format(f, self.weakLaserValue))
             res = "Laser Off"
         else:
-            self.queue_cmds_and_send(self, ["M3 S0", "S0", "G0"])
+            self._printer.commands(["M3 S0", "S0", "G0"])
             res = "Weak Laser"
 
         return res
 
 
-    def queue_cmds_and_send(self, wait=False, *args):
-        cmds = []
-        sleep = False
-
-        for arg in args:
-            if type(arg) is list:
-                cmds = arg
-            if type(arg) is bool:
-                sleep = arg
-
+    def queue_cmds_and_send(self, cmds, wait=False):
         for cmd in cmds:
-            self._logger.debug("queuing command [%s] wait=%r", cmd, sleep)
+            self._logger.debug("queuing command [%s] wait=%r", cmd, wait)
             self.grblCmdQueue.append(cmd)
 
-        if sleep and len(cmds) > 0:
+        if wait:
             self._logger.debug("waiting for command queue to drain")
 
             while len(self.grblCmdQueue) > 0:

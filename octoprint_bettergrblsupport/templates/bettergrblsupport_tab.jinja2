@@ -228,7 +228,7 @@
             <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Machine Home</button>
             <br>
             <br>
-            <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run', click: function() { sendCommand('reset') }">Soft Reset</button>
+            <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { sendCommand('reset') }">Soft Reset</button>
             <br>
             <br>
             <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() != 'Run' && state() != 'Sleep', click: function() { sendCommand('sleep') }">Sleep</button>
