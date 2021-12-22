@@ -773,6 +773,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        # suppress comments and extraneous commands that may cause wayward
+        # grbl instances to error out
+        if cmd.upper().lstrip().startswith(tuple([';', '(', '%'])):
+            self._logger.debug('Ignoring extraneous [%s]', cmd)
+            return (None, )
 
         # M8 processing - work in progress
         if cmd.upper().strip() == "M8" and self.overrideM8:
@@ -794,12 +799,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return "Cat /sd/config"
 
             return self.helloCommand
-
-        # suppress comments and extraneous commands that may cause wayward
-        # grbl instances to error out
-        if cmd.upper().lstrip().startswith(tuple([';', '(', '%'])):
-            self._logger.debug('Ignoring extraneous [%s]', cmd)
-            return (None, )
 
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
@@ -945,6 +944,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # force an inquiry
             self._printer.commands("?")
 
+            # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line))
             return 'ok ' + line
 
         # look for an alarm
@@ -968,6 +968,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # force an inquiry
             self._printer.commands("?")
+            # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line if error == 0 else self.grblAlarms.get(error)))
 
             return 'Error: ' + line if error == 0 else self.grblAlarms.get(error)
 
@@ -992,19 +993,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # force an inquiry
             self._printer.commands("?")
+            # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line if error == 0 else self.grblErrors.get(error)))
 
             # lets not let octoprint know if we have a gcode lock error
             if error == 9:
                 self._logger.debug("not forwarding grbl error 9 to octoprint")
-                return "ok " + line
+                return "//action:notification " + self.grblErrors.get(error)
 
             return 'Error: ' + line if error == 0 else self.grblErrors.get(error)
 
-        # auto reset
-        if "reset to continue" in line.lower():
-            # automatically perform a soft reset if GRBL says we need one
-            self._printer.commands("M999")
-            return 'ok ' + line
+        # forward any messages to the notification plugin_name
+        if "MSG:" in line.upper():
+            ignoreList = ["[MSG:'$H'|'$X' to unlock]"]
+
+            if line.strip() not in ignoreList:
+                # auto reset
+                if "reset to continue" in line.lower():
+                    # automatically perform a soft reset if GRBL says we need one
+                    self._printer.commands("M999")
+                    line = "Machine has been reset"
+
+                # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line))
+                return "//action:notification " + line.replace("[","").replace("]","").replace("MSG:","")
 
         # grbl settings
         if line.startswith("$"):
@@ -1102,7 +1112,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def send_frame_end_gcode(self):
-        self.queue_cmds_and_send(["M3 S0", "S0", "G0", "M30"])
+        self.queue_cmds_and_send(["M5 S0 G0 M30"], wait=True)
 
     def send_bounding_box_upper_left(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
@@ -1332,7 +1342,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "probez":
                 # probe z using offset
-                self.queue_cmds_and_send(["G91 G21 G38.2 Z-50 F100 ?", "?", "G92 Z{:f}".format(self.zProbeOffset), "G0 Z5"])
+                self.queue_cmds_and_send(["G91 G21 G38.2 Z-50 F100 ?",
+                                          "?",
+                                          "G92 Z{}".format(self.zProbeOffset),
+                                          "G0 Z5"])
 
             if direction == "forward":
                 # max Y feed rate
@@ -1367,13 +1380,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "origin":
-            self._printer.commands("G28.1")
-            # only do x / y if laser
-            # if self.isLaserMode():
-            #     self._printer.commands("G92 X0 Y0")
-            # else:
-            self._printer.commands("G92 X0 Y0 Z0")
-
+            self._printer.commands(["G28.1", "G10 P1 L20 X0 Y0 Z0", "G92 X0 Y0 Z0"])
             return
 
         # this command is deprecated
@@ -1403,7 +1410,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer.commands("G1 F{} M3 S{}".format(f, self.weakLaserValue))
             res = "Laser Off"
         else:
-            self._printer.commands(["M3 S0", "S0", "G0"])
+            self._printer.commands(["M3 S0", "M5", "G0"])
             res = "Weak Laser"
 
         return res

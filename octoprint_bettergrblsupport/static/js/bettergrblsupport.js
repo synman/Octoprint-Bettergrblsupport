@@ -277,6 +277,7 @@ $(function() {
           self.is_operational(data.flags.operational);
       };
 
+
       self.onDataUpdaterPluginMessage = function(plugin, data) {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
           self.mode(data.mode);
@@ -368,7 +369,34 @@ $(function() {
           console.log("alarm code=" + data.code + " desc=" + data.description);
           return
         }
+
+        if (plugin == 'bettergrblsupport' && data.type == 'send_notification') {
+          $.ajax({
+            url: API_BASEURL + "plugin/action_command_notification",
+            type: "POST",
+            dataType: "json",
+            data: JSON.stringify({
+              command: "add",
+              message: data.message
+            }),
+            contentType: "application/json; charset=UTF-8",
+            error: function (data, status) {
+              new PNotify({
+                title: "Unable to add notification",
+                text: data.responseText,
+                hide: true,
+                buttons: {
+                  sticker: false,
+                  closer: true
+                },
+                type: "error"
+              });
+            }
+          });
+        }
+
       };
+
 
       self.fsClick = function () {
         // console.log("fsClick");
