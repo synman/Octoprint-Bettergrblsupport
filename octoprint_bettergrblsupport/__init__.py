@@ -279,6 +279,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.doSmoothie = False
 
         self.grblCmdQueue = []
+        self.notifyQueue = []
 
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F4000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
@@ -577,7 +578,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD)
 
         if event not in subscribed_events:
-            self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
+            # self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
             return
 
         # our plugin is being uninstalled
@@ -589,6 +590,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
+            if self.grblState != "Idle":
+                # we have to stop This
+                self._printer.cancel_print()
+                return
+
             self.grblState = "Run"
             return
 
@@ -620,11 +626,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # File uploaded
         if event == Events.UPLOAD:
             if payload["path"].endswith(".gc") or payload["path"].endswith(".nc"):
-                uploaded_file = self._settings.global_get_basefolder("uploads") + '/' + payload["path"]
-                renamed_file = uploaded_file[:len(uploaded_file) - 2] + "gcode"
+                # uploaded_file = self._settings.global_get_basefolder("uploads") + '/' + payload["path"]
+                # renamed_file = uploaded_file[:len(uploaded_file) - 2] + "gcode"
+                renamed_file = payload["path"][:len(payload["path"]) - 2] + "gcode"
 
-                self._logger.debug("renaming [%s] to [%s]", uploaded_file, renamed_file)
-                os.rename(uploaded_file, renamed_file)
+                self._logger.debug("renaming [%s] to [%s]", payload["path"], renamed_file)
+
+                self._file_manager.remove_file(payload["target"], renamed_file)
+                self._file_manager.move_file(payload["target"], payload["path"], renamed_file)
+                # os.rename(uploaded_file, renamed_file)
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
@@ -833,7 +843,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # soft reset / resume (stolen from Marlin)
         if cmd.upper().startswith('M999') and not self.doSmoothie:
             self._logger.debug('Sending Soft Reset')
-            # self._printer.commands("\x18")
+            self.addToNotifyQueue(["Machine has been reset"])
             return ("\x18",)
 
         # ignore all of these -- they do not apply to GRBL
@@ -966,9 +976,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.debug("clearing %d commands from the command queue", len(self.grblCmdQueue))
                 self.grblCmdQueue.clear()
 
-            # force an inquiry
+            # put a message on our notification queue and force an inquiry
+            self.addToNotifyQueue([line if error == 0 else self.grblAlarms.get(error)])
             self._printer.commands("?")
-            # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line if error == 0 else self.grblAlarms.get(error)))
+
+            # we need to pause if we are printing
+            if self._printer.is_printing():
+                self._printer.pause_print()
 
             return 'Error: ' + line if error == 0 else self.grblAlarms.get(error)
 
@@ -977,30 +991,32 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             match = re.search(r'error:\ *(-?[\d.]+)', line.lower())
 
             error = int(0)
+            desc = line
 
             if not match is None:
                 error = int(match.groups(1)[0])
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
-                                                                                code=error,
-                                                                                description=self.grblErrors.get(error)))
+                desc = self.grblErrors.get(error)
 
-                self._logger.warning("error received: %d: %s", error, self.grblErrors.get(error))
+            self._logger.warning("error received: %d: %s", error, desc)
 
             # clear out any pending queued Commands
             if len(self.grblCmdQueue) > 0:
                 self._logger.debug("clearing %d commands from the command queue", len(self.grblCmdQueue))
                 self.grblCmdQueue.clear()
 
-            # force an inquiry
+            # put a message on our notification queue and force an inquiry
+            self.addToNotifyQueue([desc])
             self._printer.commands("?")
-            # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line if error == 0 else self.grblErrors.get(error)))
 
             # lets not let octoprint know if we have a gcode lock error
             if error == 9:
                 self._logger.debug("not forwarding grbl error 9 to octoprint")
-                return "//action:notification " + self.grblErrors.get(error)
-
-            return 'Error: ' + line if error == 0 else self.grblErrors.get(error)
+                return "ok " + line
+            else:
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
+                                                                                code=error,
+                                                                                description=desc))
+            return 'Error: ' + desc
 
         # forward any messages to the notification plugin_name
         if "MSG:" in line.upper():
@@ -1011,10 +1027,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if "reset to continue" in line.lower():
                     # automatically perform a soft reset if GRBL says we need one
                     self._printer.commands("M999")
-                    line = "Machine has been reset"
+                else:
+                    self.addToNotifyQueue([line.replace("[","").replace("]","").replace("MSG:","")])
 
-                # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line))
-                return "//action:notification " + line.replace("[","").replace("]","").replace("MSG:","")
+            return "ok " + line
 
         # grbl settings
         if line.startswith("$"):
@@ -1031,6 +1047,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._settings.set(["grblSettingsText"], self.saveGrblSettings())
                     self._settings.set_boolean(["laserMode"], self.isLaserMode())
                     self._settings.save()
+
+                    self.addToNotifyQueue(["Grbl Settings sent"])
 
                 return line
 
@@ -1078,6 +1096,22 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
                 self._printer.commands(self.grblCmdQueue[0])
                 self.grblCmdQueue.pop(0)
+                return response
+
+            # add a notification if we just homed
+            if self.grblState.upper().strip() == "HOME":
+                self.addToNotifyQueue(["Machine has been homed"])
+
+            # add a notification if we just z-probed
+            if self.grblState.upper().strip() == "PRB":
+                self.addToNotifyQueue(["Z-Probe run completed"])
+
+            # pop any queued notifications
+            if len(self.notifyQueue) > 0:
+                notification = self.notifyQueue[0]
+                self._logger.debug('sending queued notification [%s] - depth [%d]', notification, len(self.notifyQueue))
+                self.notifyQueue.pop(0)
+                return "//action:notification " + notification
 
             return response
 
@@ -1088,12 +1122,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # Regular ACKs
              # {0/0}ok
              # {5/16}ok
-
             return 'ok'
         elif '{' in line:
              # Ack with return data
              # F300S1000{0/0}ok
-
             (before, _, _) = line.partition('{')
             return 'ok ' + before
         else:
@@ -1112,7 +1144,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def send_frame_end_gcode(self):
-        self.queue_cmds_and_send(["M5 S0 G0 M30"], wait=True)
+        self.queue_cmds_and_send(["M5 S0 G0"], wait=True)
+        self.addToNotifyQueue(["Framing operation completed"])
+        self._printer.commands("?")
 
     def send_bounding_box_upper_left(self, y, x):
         f = int(float(self.grblSettings.get(110)[0]) * (float(self.framingPercentOfMaxSpeed) * .01))
@@ -1338,6 +1372,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "home":
                 self._printer.commands("G28")
+                # add a notification if we just homed
+                self.addToNotifyQueue(["Machine has been (work) homed"])
+
                 self.originSet = True
 
             if direction == "probez":
@@ -1381,6 +1418,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "origin":
             self._printer.commands(["G28.1", "G10 P1 L20 X0 Y0 Z0", "G92 X0 Y0 Z0"])
+            self.addToNotifyQueue(["Work origin set"])
             return
 
         # this command is deprecated
@@ -1408,9 +1446,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self.grblPowerLevel == 0:
             # turn on laser in weak mode
             self._printer.commands("G1 F{} M3 S{}".format(f, self.weakLaserValue))
+            self.addToNotifyQueue(["Weak laser enabled"])
             res = "Laser Off"
         else:
             self._printer.commands(["M3 S0", "M5", "G0"])
+            self.addToNotifyQueue(["Weak laser disabled"])
             res = "Weak Laser"
 
         return res
@@ -1428,6 +1468,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 time.sleep(.001)
 
             self._logger.debug("done waiting for command queue to drain")
+
+    def addToNotifyQueue(self, notifications):
+        for notification in notifications:
+            self._logger.debug("queuing notification [%s]", notification)
+            self.notifyQueue.append(notification)
 
 
     def isLaserMode(self):
