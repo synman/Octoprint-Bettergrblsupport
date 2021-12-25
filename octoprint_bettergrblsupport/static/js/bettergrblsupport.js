@@ -320,7 +320,7 @@ $(function() {
             animation: "fade",
             animateSpeed: "slow",
             mouseReset: true,
-            delay: 15000,
+            delay: 10000,
             buttons: {
               sticker: true,
               closer: true
@@ -340,7 +340,7 @@ $(function() {
             animation: "fade",
             animateSpeed: "slow",
             mouseReset: true,
-            delay: 30000,
+            delay: 10000,
             buttons: {
               sticker: true,
               closer: true
@@ -359,7 +359,7 @@ $(function() {
             animation: "fade",
             animateSpeed: "slow",
             mouseReset: true,
-            delay: 30000,
+            delay: 10000,
             buttons: {
               sticker: true,
               closer: true

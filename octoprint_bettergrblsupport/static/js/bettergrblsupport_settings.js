@@ -19,6 +19,16 @@ $(function() {
       self.grblSettings = ko.observableArray([]);
 
       self.updateSetting = function(id, value, oldvalue) {
+        if (self.is_printing()) {
+          for (var i in self.grblSettings()) {
+            if (self.grblSettings()[i].id == id) {
+               self.grblSettings()[i].value = oldvalue;
+               break;
+            }
+          }
+          return;
+        }
+
         if (value != oldvalue) {
           $.ajax({
             url: API_BASEURL + "plugin/bettergrblsupport",

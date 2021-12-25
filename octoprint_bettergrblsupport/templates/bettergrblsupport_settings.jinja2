@@ -143,9 +143,9 @@
 				<tbody data-bind="foreach: grblSettings">
 					<tr>
 						<td align="center" data-bind="text: id"></td>
-						<!-- <td align="center"><input type="text" class="input-min" data-bind="value: value" onchange="updateSetting('boo','hoo')"></td> -->
-						<td align="center"><input type="text" class="input-min" data-bind="numeric, value: value, event: { change: $parent.updateSetting(id, value, oldvalue) }"></td>
-						<!-- <td data-bind="text: value"></td> -->
+						<td align="center">
+									<input type="text" class="input-min" data-bind="numeric, value: value, event: { change: $parent.updateSetting(id, value, oldvalue) }">
+						</td>
 						<td align="left" data-bind="text: description"></td>
 					</tr>
 				</tbody>

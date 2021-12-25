@@ -2,196 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Written by:  Shell M. Shrader (https://github.com/synman/Octoprint-Bettergrblsupport)
-#
-#                               Apache License
-#                         Version 2.0, January 2004
-#                      http://www.apache.org/licenses/
-#
-# TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-#
-# 1. Definitions.
-#
-#    "License" shall mean the terms and conditions for use, reproduction,
-#    and distribution as defined by Sections 1 through 9 of this document.
-#
-#    "Licensor" shall mean the copyright owner or entity authorized by
-#    the copyright owner that is granting the License.
-#
-#    "Legal Entity" shall mean the union of the acting entity and all
-#    other entities that control, are controlled by, or are under common
-#    control with that entity. For the purposes of this definition,
-#    "control" means (i) the power, direct or indirect, to cause the
-#    direction or management of such entity, whether by contract or
-#    otherwise, or (ii) ownership of fifty percent (50%) or more of the
-#    outstanding shares, or (iii) beneficial ownership of such entity.
-#
-#    "You" (or "Your") shall mean an individual or Legal Entity
-#    exercising permissions granted by this License.
-#
-#    "Source" form shall mean the preferred form for making modifications,
-#    including but not limited to software source code, documentation
-#    source, and configuration files.
-#
-#    "Object" form shall mean any form resulting from mechanical
-#    transformation or translation of a Source form, including but
-#    not limited to compiled object code, generated documentation,
-#    and conversions to other media types.
-#
-#    "Work" shall mean the work of authorship, whether in Source or
-#    Object form, made available under the License, as indicated by a
-#    copyright notice that is included in or attached to the work
-#    (an example is provided in the Appendix below).
-#
-#    "Derivative Works" shall mean any work, whether in Source or Object
-#    form, that is based on (or derived from) the Work and for which the
-#    editorial revisions, annotations, elaborations, or other modifications
-#    represent, as a whole, an original work of authorship. For the purposes
-#    of this License, Derivative Works shall not include works that remain
-#    separable from, or merely link (or bind by name) to the interfaces of,
-#    the Work and Derivative Works thereof.
-#
-#    "Contribution" shall mean any work of authorship, including
-#    the original version of the Work and any modifications or additions
-#    to that Work or Derivative Works thereof, that is intentionally
-#    submitted to Licensor for inclusion in the Work by the copyright owner
-#    or by an individual or Legal Entity authorized to submit on behalf of
-#    the copyright owner. For the purposes of this definition, "submitted"
-#    means any form of electronic, verbal, or written communication sent
-#    to the Licensor or its representatives, including but not limited to
-#    communication on electronic mailing lists, source code control systems,
-#    and issue tracking systems that are managed by, or on behalf of, the
-#    Licensor for the purpose of discussing and improving the Work, but
-#    excluding communication that is conspicuously marked or otherwise
-#    designated in writing by the copyright owner as "Not a Contribution."
-#
-#    "Contributor" shall mean Licensor and any individual or Legal Entity
-#    on behalf of whom a Contribution has been received by Licensor and
-#    subsequently incorporated within the Work.
-#
-# 2. Grant of Copyright License. Subject to the terms and conditions of
-#    this License, each Contributor hereby grants to You a perpetual,
-#    worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-#    copyright license to reproduce, prepare Derivative Works of,
-#    publicly display, publicly perform, sublicense, and distribute the
-#    Work and such Derivative Works in Source or Object form.
-#
-# 3. Grant of Patent License. Subject to the terms and conditions of
-#    this License, each Contributor hereby grants to You a perpetual,
-#    worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-#    (except as stated in this section) patent license to make, have made,
-#    use, offer to sell, sell, import, and otherwise transfer the Work,
-#    where such license applies only to those patent claims licensable
-#    by such Contributor that are necessarily infringed by their
-#    Contribution(s) alone or by combination of their Contribution(s)
-#    with the Work to which such Contribution(s) was submitted. If You
-#    institute patent litigation against any entity (including a
-#    cross-claim or counterclaim in a lawsuit) alleging that the Work
-#    or a Contribution incorporated within the Work constitutes direct
-#    or contributory patent infringement, then any patent licenses
-#    granted to You under this License for that Work shall terminate
-#    as of the date such litigation is filed.
-#
-# 4. Redistribution. You may reproduce and distribute copies of the
-#    Work or Derivative Works thereof in any medium, with or without
-#    modifications, and in Source or Object form, provided that You
-#    meet the following conditions:
-#
-#    (a) You must give any other recipients of the Work or
-#        Derivative Works a copy of this License; and
-#
-#    (b) You must cause any modified files to carry prominent notices
-#        stating that You changed the files; and
-#
-#    (c) You must retain, in the Source form of any Derivative Works
-#        that You distribute, all copyright, patent, trademark, and
-#        attribution notices from the Source form of the Work,
-#        excluding those notices that do not pertain to any part of
-#        the Derivative Works; and
-#
-#    (d) If the Work includes a "NOTICE" text file as part of its
-#        distribution, then any Derivative Works that You distribute must
-#        include a readable copy of the attribution notices contained
-#        within such NOTICE file, excluding those notices that do not
-#        pertain to any part of the Derivative Works, in at least one
-#        of the following places: within a NOTICE text file distributed
-#        as part of the Derivative Works; within the Source form or
-#        documentation, if provided along with the Derivative Works; or,
-#        within a display generated by the Derivative Works, if and
-#        wherever such third-party notices normally appear. The contents
-#        of the NOTICE file are for informational purposes only and
-#        do not modify the License. You may add Your own attribution
-#        notices within Derivative Works that You distribute, alongside
-#        or as an addendum to the NOTICE text from the Work, provided
-#        that such additional attribution notices cannot be construed
-#        as modifying the License.
-#
-#    You may add Your own copyright statement to Your modifications and
-#    may provide additional or different license terms and conditions
-#    for use, reproduction, or distribution of Your modifications, or
-#    for any such Derivative Works as a whole, provided Your use,
-#    reproduction, and distribution of the Work otherwise complies with
-#    the conditions stated in this License.
-#
-# 5. Submission of Contributions. Unless You explicitly state otherwise,
-#    any Contribution intentionally submitted for inclusion in the Work
-#    by You to the Licensor shall be under the terms and conditions of
-#    this License, without any additional terms or conditions.
-#    Notwithstanding the above, nothing herein shall supersede or modify
-#    the terms of any separate license agreement you may have executed
-#    with Licensor regarding such Contributions.
-#
-# 6. Trademarks. This License does not grant permission to use the trade
-#    names, trademarks, service marks, or product names of the Licensor,
-#    except as required for reasonable and customary use in describing the
-#    origin of the Work and reproducing the content of the NOTICE file.
-#
-# 7. Disclaimer of Warranty. Unless required by applicable law or
-#    agreed to in writing, Licensor provides the Work (and each
-#    Contributor provides its Contributions) on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-#    implied, including, without limitation, any warranties or conditions
-#    of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-#    PARTICULAR PURPOSE. You are solely responsible for determining the
-#    appropriateness of using or redistributing the Work and assume any
-#    risks associated with Your exercise of permissions under this License.
-#
-# 8. Limitation of Liability. In no event and under no legal theory,
-#    whether in tort (including negligence), contract, or otherwise,
-#    unless required by applicable law (such as deliberate and grossly
-#    negligent acts) or agreed to in writing, shall any Contributor be
-#    liable to You for damages, including any direct, indirect, special,
-#    incidental, or consequential damages of any character arising as a
-#    result of this License or out of the use or inability to use the
-#    Work (including but not limited to damages for loss of goodwill,
-#    work stoppage, computer failure or malfunction, or any and all
-#    other commercial damages or losses), even if such Contributor
-#    has been advised of the possibility of such damages.
-#
-# 9. Accepting Warranty or Additional Liability. While redistributing
-#    the Work or Derivative Works thereof, You may choose to offer,
-#    and charge a fee for, acceptance of support, warranty, indemnity,
-#    or other liability obligations and/or rights consistent with this
-#    License. However, in accepting such obligations, You may act only
-#    on Your own behalf and on Your sole responsibility, not on behalf
-#    of any other Contributor, and only if You agree to indemnify,
-#    defend, and hold each Contributor harmless for any liability
-#    incurred by, or claims asserted against, such Contributor by reason
-#    of your accepting any such warranty or additional liability.
-#
-# END OF TERMS AND CONDITIONS
-#
-# APPENDIX: How to apply the Apache License to your work.
-#
-#    To apply the Apache License to your work, attach the following
-#    boilerplate notice, with the fields enclosed by brackets "[]"
-#    replaced with your own identifying information. (Don't include
-#    the brackets!)  The text should be enclosed in the appropriate
-#    comment syntax for the file format. We also recommend that a
-#    file or class name and description of purpose be included on the
-#    same "printed page" as the copyright notice for easier
-#    identification within third-party archives.
-#
-# Copyright [yyyy] [name of copyright owner]
+# Copyright [2021] [Shell M. Shrader]
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -205,10 +16,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+# References
+#
+# https://web.archive.org/web/20211123161339/https://wiki.shapeoko.com/index.php/G-Code
+# https://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=B69BCE8C0F7F5071B56B464AB4CA8C56?doi=10.1.1.15.7813&rep=rep1&type=pdf
+# https://github.com/gnea/grbl/blob/master/doc/markdown/commands.md
+# https://github.com/gnea/grbl/wiki/Grbl-v1.1-Jogging
+# https://github.com/gnea/grbl/wiki/Grbl-v1.1-Configuration#10---status-report-mask
+# https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface#grbl-push-messages
+# https://reprap.org/wiki/G-code
+#
 from __future__ import absolute_import
 from octoprint.events import Events
 from timeit import default_timer as timer
+from shutil import copyfile
 
 # import sys
 import time
@@ -332,7 +153,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             ignoreErrors = False,
             doSmoothie = False,
             grblVersion = "unknown",
-            laserMode = False
+            laserMode = False,
+            old_profile = "_default"
         )
 
 
@@ -340,6 +162,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
         self._settings.set_boolean(["is_operational"], self._printer.is_operational())
+
+        # fix for V-Carve Grbl Toolpath referencing T1
+        dest = self._settings.global_get_basefolder("printerProfiles") + os.path.sep + "_bgs.profile"
+
+        if not os.path.exists(dest):
+            src = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep + "_bgs.profile"
+            copyfile(src, dest)
+            self._settings.set(["old_profile"], self._printer_profile_manager.get_default()["id"])
+            self._printer_profile_manager.select("_bgs")
+            self._printer_profile_manager.set_default("_bgs")
 
         # initialize all of our settings
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
@@ -546,10 +378,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.on_after_startup()
 
         # refresh our grbl settings
-        if self.doSmoothie:
-            self._printer.commands("Cat /sd/config")
-        else:
-            self._printer.commands("$$")
+        if not self._printer.is_printing():
+            if self.doSmoothie:
+                self._printer.commands("Cat /sd/config")
+            else:
+                self._printer.commands("$$")
 
 
     # #~~ AssetPlugin mixin
@@ -719,6 +552,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def cleanUpDueToUninstall(self):
+        # re-enable model size detection and send checksum
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], self.disableModelSizeDetection)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], not self.neverSendChecksum)
 
@@ -743,10 +577,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if disabledTabs == None:
             disabledTabs = []
 
+        # re-enable the built-in temp tab if it was hidden
         if self.hideTempTab:
             if "temperature" in disabledTabs:
                 disabledTabs.remove("temperature")
 
+        # re-enable the built-in control tab if it was hidden
         if self.hideControlTab:
             if "control" in disabledTabs:
                 disabledTabs.remove("control")
@@ -761,6 +597,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
 
+        # delete my custom controls if the built-in control tab is active
         if not self.hideControlTab:
             controls = self._settings.global_get(["controls"])
             if self.customControls and controls:
@@ -768,9 +605,22 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
 
+        # remove me from ordered tabs if i'm in there
         if "plugin_bettergrblsupport" in orderedTabs:
             orderedTabs.remove("plugin_bettergrblsupport")
             self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
+
+        # restore the original printer profile (if it exists) and delete mine
+        old_profile = self._settings.get(["old_profile"])
+
+        if not old_profile or not self._printer_profile_manager.exists(old_profile):
+            old_profile = "_default"
+
+        self._printer_profile_manager.select(old_profile)
+        self._printer_profile_manager.set_default(old_profile)
+
+        if self._printer_profile_manager.exists("_bgs"):
+            self._printer_profile_manager.remove("_bgs")
 
         self._settings.save()
 
@@ -789,19 +639,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('Ignoring extraneous [%s]', cmd)
             return (None, )
 
-        # M8 processing - work in progress
+        # M8 (air assist on) processing - work in progress
         if cmd.upper().strip() == "M8" and self.overrideM8:
             self._logger.debug('Turning ON Air Assist')
             subprocess.call(self.m8Command, shell=True)
             return (None,)
 
-        # M9 processing - work in progress
+        # M9 (air assist off) processing - work in progress
         if cmd.upper().strip() == "M9" and self.overrideM9:
             self._logger.debug('Turning OFF Air Assist')
             subprocess.call(self.m9Command, shell=True)
             return (None,)
 
-        # rewrite M115 as $$ (hello)
+        # rewrite M115 firmware as $$ (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
 
@@ -813,7 +663,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
-            return (None, )
+            return ("$I", )
 
         # suppress initialize SD - M21
         if cmd.upper().startswith('M21'):
@@ -835,7 +685,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('Rewriting M400 as %s' % self.dwellCommand)
             return (self.dwellCommand, )
 
-        # rewrite current position
+        # rewrite M114 current position as ? (typically)
         if self.suppressM114 and cmd.upper().startswith('M114'):
             self._logger.debug('Rewriting M114 as %s' % self.positionCommand)
             return (self.positionCommand, )
@@ -847,16 +697,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return ("\x18",)
 
         # ignore all of these -- they do not apply to GRBL
-        # M108 (heater off) M84 (disable motors) M104 (set extruder temperature)
-        # M140 (set bed temperature) M106 (fan on/off)
-        if cmd.upper().startswith("M108") or cmd.upper().startswith("M84") or cmd.upper().startswith("M104") or cmd.upper().startswith("M140") or cmd.upper().startswith("M106"):
+        # M108 (heater off)
+        # M84 (disable motors)
+        # M104 (set extruder temperature)
+        # M140 (set bed temperature)
+        # M106 (fan on/off)
+        if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106")):
             self._logger.debug("ignoring [%s]", cmd)
             return (None, )
 
+        # we need to track absolute position mode for "RUN" position updates
         if "G90" in cmd.upper():
             # absolute positioning
             self.positioning = 0
 
+        # we need to track relative position mode for "RUN" position updates
         if "G91" in cmd.upper():
             # relative positioning
             self.positioning = 1
@@ -872,7 +727,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             command = cmd.upper().strip()
 
         # keep track of distance traveled
-        # if command.startswith("G0") or command.startswith("G1") or command.startswith("G2") or command.startswith("G3") or command.startswith("M4"):
         found = False
 
         match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
@@ -915,9 +769,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             grblPowerLevel = round(float(match.groups(1)[2]))
 
             # make sure we post all power on / off events
-            # if (grblPowerLevel == 0 and self.grblPowerLevel != 0) or (self.grblPowerLevel == 0 and grblPowerLevel != 0):
-            #     self.timeRef = 0;
-
             self.grblPowerLevel = grblPowerLevel
             found = True
 
@@ -948,14 +799,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # When the serial port is opened, it resets and the "hello" command
             # is not processed.
             # This makes Octoprint recognise the startup message as a successful connection.
-            self._settings.set(["grblVersion"], line)
-            self._settings.save()
 
             # force an inquiry
-            self._printer.commands("?")
+            # self._printer.commands("?")
 
             # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line))
-            return 'ok ' + line
+            return "ok " + line
+
+        # grbl version signature
+        if line.startswith("[VER:"):
+            self.grblVersion = line.strip("\n").strip("\r")
+            self._settings.set(["grblVersion"], self.grblVersion)
+            self._settings.save()
+            return line
+
+        # grbl opt Signature
+        if line.startswith("[OPT:"):
+            self.grblVersion = self.grblVersion + " " + line.strip("\n").strip("\r")
+            self._settings.set(["grblVersion"], self.grblVersion)
+            self._settings.save()
+            return
 
         # look for an alarm
         if line.lower().startswith('alarm:'):
@@ -1030,7 +893,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 else:
                     self.addToNotifyQueue([line.replace("[","").replace("]","").replace("MSG:","")])
 
-            return "ok " + line
+            return line
+
+        # add a notification if we just z-probed
+        if "PRB:" in line.upper():
+            self.addToNotifyQueue([line])
+            return line
 
         # grbl settings
         if line.startswith("$"):
@@ -1067,7 +935,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
              # OctoPrint records positions in some instances.
              # It needs a different format. Put both on the same line so the GRBL info is not lost
              # and is accessible for "controls" to read.
-            response = 'ok X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
+            response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
 
             self.grblMode = "MPos" if "MPos" in line else "WPos" if "WPos" in line else "N/A"
             self.grblState = str(match.groups(1)[0])
@@ -1102,9 +970,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.grblState.upper().strip() == "HOME":
                 self.addToNotifyQueue(["Machine has been homed"])
 
-            # add a notification if we just z-probed
-            if self.grblState.upper().strip() == "PRB":
-                self.addToNotifyQueue(["Z-Probe run completed"])
+            # parse the line to see if we have any other useful data
+            # for stat in line.replace("<", "").replace(">", "").split("|"):
+            #     # buffer stats and Pin stats
+            #     if stat.startswith("Bf:") or stat.startswith("Pn:"):
+            #         self.addToNotifyQueue(stat)
 
             # pop any queued notifications
             if len(self.notifyQueue) > 0:
