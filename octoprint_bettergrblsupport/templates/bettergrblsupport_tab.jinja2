@@ -1,61 +1,54 @@
-<!-- <div class="webcam_fixed_ratio_inner" style="padding: 10px 0px 0px 0px;">
-   <img id="webcam_image_framing" data-bind="css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }" class="flipH flipV" src="/webcam/?action=stream">
-   </div> -->
+<!-- ko if: settings.settings.webcam.webcamEnabled -->
+<hr>
 <div id="webcam_container_framing">
    <div id="webcam_rotator_framing" data-bind="css: { webcam_rotated: settings.webcam_rotate90(), webcam_unrotated: !settings.webcam_rotate90() }">
       <div class="webcam_fixed_ratio" data-bind="css: webcamFrameRatioClass">
-         <div class="webcam_fixed_ratio_inner">
-            <img id="webcam_image_framing" data-bind="click: function() { fsClick() }, css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }, event: { error: onWebcamFrameErrored }">
+         <div id="webcam_div" class="webcam_fixed_ratio_inner">
+            <img id="webcam_image_framing" data-bind="click: function() { fsClick() }, css: { flipH: settings.webcam_flipH(), flipV: settings.webcam_flipV() }, event: { load: onWebcamFrameLoaded, error: onWebcamFrameErrored }">
          </div>
       </div>
    </div>
 </div>
-
 <hr>
 <h5>&nbsp;Control</h5>
+<!-- /ko -->
 
-<div style="text-align: center; overflow: hidden">
-   <span with="200px" style="padding: 20px 40px 40px 20px; display: inline-block;">
-      <table border=1 style="border-spacing: 1px; border: 1px; border-radius: 5px;">
-         <tr>
-            <td>
-               <table border=0>
-                  <tr>
-                     <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
-                     <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: mode()"></strong></td>
-                  </tr>
-                  <tr>
-                     <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">State</td>
-                     <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle" width="40px"><strong data-bind="text: state()"></strong></td>
-                  </tr>
-                  <tr>
-                     <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">X</td>
-                     <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: xPos()"></strong></td>
-                  </tr>
-                  <tr>
-                     <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
-                     <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: yPos()"></strong></td>
-                  </tr>
-                  <tr>
-                     <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
-                     <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
-                  </tr>
-                  <tr>
-                     <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
-                     <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
-                  </tr>
-                  <tr>
-                     <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Speed</td>
-                     <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: speed()"></strong></td>
-                  </tr>
-               </table>
-             </td>
-         </tr>
+<div style="text-align: center; overflow: hidden" valign="top" align="center">
+   <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 60px 20px 0px;" ">
+      <table align="center" style="margin: 0 auto;">
+        <tr>
+           <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
+           <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="60px"><strong data-bind="text: mode()"></strong></td>
+        </tr>
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">State</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: state()"></strong></td>
+        </tr>
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">X</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: xPos()"></strong></td>
+        </tr>
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: yPos()"></strong></td>
+        </tr>
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
+        </tr>
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
+        </tr>
+        <tr>
+           <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Speed</td>
+           <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: speed()"></strong></td>
+        </tr>
       </table>
    </span>
 
-   <span width="400px" style="padding: 0px 40px 40px 40px; display: inline-block;">
-      <table class="jog-panel" id="jog_panel" border=0>
+   <span style="display: inline-block; margin: 0px 60px 20px 0px;">
+      <table class="jog-panel" id="jog_panel" border=0 style="margin: 0 auto;"">
          <tr>
             <td style="padding: 0px 55px 0px 0px;" align="center">
                <h5>Z</h5>
@@ -132,12 +125,11 @@
       </table>
    </span>
 
-   <span id="laser_buttons" valign="middle" style="padding: 0px 20px 0px 40px; display: inline-block;" >
-      <!-- <td id="laser_buttons" align="right" valign="middle" width="25%" style="padding: 0px 20px 0px 0px;" > -->
+   <span id="laser_buttons" valign="top" style="margin: 0px 0px 40px 0px; display: inline-block;" >
       <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
-      <button id="grblLaserButton" style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
-      <br>
-      <br>
+        <button id="grblLaserButton" style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
+        <br>
+        <br>
       <!-- /ko -->
       <button style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Machine Home</button>
       <br>
@@ -183,7 +175,7 @@
      </table>
   </span>
 
-  <span style="padding: 0px 30px 20px 30px; display: inline-block;">
+  <span id="framingPanel" style="padding: 0px 30px 20px 30px; display: inline-block;">
      <table width="200px" border=0 cellpadding=0>
         <tr>
            <td align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
@@ -220,7 +212,7 @@
      </table>
   </span>
 
-  <span style="padding: 0px 20px 10px 30px; display: inline-block;" >
+  <span id="frame_button" style="padding: 0px 20px 10px 30px; display: inline-block;" >
    <table width="130px" height="68px" border=0>
      <tr>
        <td valign="top" align="center">

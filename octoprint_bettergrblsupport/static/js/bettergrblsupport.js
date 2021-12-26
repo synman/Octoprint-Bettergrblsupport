@@ -15,6 +15,8 @@ $(function() {
       var radioButtons = $('#radio_buttons');
       var frameButton = $('#frame_button');
       var laserButtons = $('#laser_buttons');
+      var webcam_div = $('#webcam_div');
+      var webcam_image_framing = $('#webcam_image_framing');
 
       var container;
 
@@ -252,15 +254,19 @@ $(function() {
             break;
           }
         }
+
+        if (self.settings.settings.webcam.webcamEnabled()) {
+          document.getElementById("webcam_image_framing").src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
+        }
       };
 
       self.onTabChange = function (current, previous) {
-          var streamImg = document.getElementById("webcam_image_framing");
-
-          if (current == "#tab_plugin_bettergrblsupport") {
-              streamImg.src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
-          } else if (previous == "#tab_plugin_bettergrblsupport") {
-              streamImg.src = "about:blank";
+          if (self.settings.settings.webcam.webcamEnabled()) {
+            if (current == "#tab_plugin_bettergrblsupport") {
+                document.getElementById("webcam_image_framing").src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
+            } else if (previous == "#tab_plugin_bettergrblsupport") {
+                document.getElementById("webcam_image_framing").src = "about:blank";
+            }
           }
       };
 
@@ -400,7 +406,6 @@ $(function() {
 
       self.fsClick = function () {
         // console.log("fsClick");
-        var streamImg = document.getElementById("webcam_image_framing");
 
         $body.toggleClass('inlineFullscreen');
         $container.toggleClass("inline fullscreen");
@@ -439,6 +444,12 @@ $(function() {
 
       self.onWebcamFrameErrored = function() {
         // alert("webcam frame error");
+         webcam_div.hide();
+         webcam_image_framing.src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
+      }
+      self.onWebcamFrameLoaded= function() {
+        // alert("webcam frame error");
+        webcam_div.show();
       }
     }
 
