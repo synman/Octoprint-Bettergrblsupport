@@ -13,8 +13,8 @@
 <h5>&nbsp;Control</h5>
 <!-- /ko -->
 
-<div style="text-align: center; overflow: hidden" valign="top" align="center">
-   <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 60px 20px 0px;" ">
+<div style="text-align: center; overflow: hidden; margin: 0px 10px 0px 10px;" valign="top" align="center">
+   <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 0px 40px 0px; vertical-align: middle;">
       <table align="center" style="margin: 0 auto;">
         <tr>
            <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
@@ -47,7 +47,7 @@
       </table>
    </span>
 
-   <span style="display: inline-block; margin: 0px 60px 20px 0px;">
+   <span style="display: inline-block; margin: 0px 80px 40px 80px; vertical-align: middle;">
       <table class="jog-panel" id="jog_panel" border=0 style="margin: 0 auto;"">
          <tr>
             <td style="padding: 0px 55px 0px 0px;" align="center">
@@ -125,7 +125,7 @@
       </table>
    </span>
 
-   <span id="laser_buttons" valign="top" style="margin: 0px 0px 40px 0px; display: inline-block;" >
+   <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 10px 0px 40px 0px" >
       <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
         <button id="grblLaserButton" style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
         <br>
@@ -148,8 +148,8 @@
 <hr>
 <h5>&nbsp;Framing</h5>
 
-<div style="text-align: center; overflow: hidden">
-  <span style="padding: 0px 30px 10px 10px; display: inline-block;">
+<div style="text-align: center; overflow: hidden; margin: 0px 10px 0px 10px;">
+  <span style="margin: 0px 0px 20px 0px; display: inline-block; vertical-align: middle;">
      <table width="200px" align="left" border=0>
         <tr>
            <td align="left" valign="middle">Length&nbsp;</td>
@@ -175,7 +175,7 @@
      </table>
   </span>
 
-  <span id="framingPanel" style="padding: 0px 30px 20px 30px; display: inline-block;">
+  <span id="framingPanel" style="margin: 0px 65px 40px 65px; display: inline-block; vertical-align: middle;">
      <table width="200px" border=0 cellpadding=0>
         <tr>
            <td align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
@@ -212,13 +212,7 @@
      </table>
   </span>
 
-  <span id="frame_button" style="padding: 0px 20px 10px 30px; display: inline-block;" >
-   <table width="130px" height="68px" border=0>
-     <tr>
-       <td valign="top" align="center">
-         <button class="btn" style="width: 130px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
-       </td>
-     </tr>
-   </table>
+  <span id="frame_button" style="margin: 0px 0px 40px 0px; display: inline-block; vertical-align: middle;" >
+    <button class="btn" style="width: 130px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
   </span>
 </div>

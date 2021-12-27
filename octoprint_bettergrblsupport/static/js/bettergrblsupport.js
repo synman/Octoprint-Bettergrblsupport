@@ -376,6 +376,23 @@ $(function() {
           return
         }
 
+        if (plugin == 'bettergrblsupport' && data.type == 'restart_required') {
+          new PNotify({
+            title: "Restart Required",
+            text: "Octoprint may need to be restarted for your changes to take full effect.",
+            hide: false,
+            animation: "fade",
+            animateSpeed: "slow",
+            mouseReset: true,
+            buttons: {
+              sticker: true,
+              closer: true
+            },
+            type: "notice"
+          });
+          return
+        }
+
         if (plugin == 'bettergrblsupport' && data.type == 'send_notification') {
           $.ajax({
             url: API_BASEURL + "plugin/action_command_notification",

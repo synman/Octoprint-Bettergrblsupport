@@ -169,9 +169,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not os.path.exists(dest):
             src = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep + "_bgs.profile"
             copyfile(src, dest)
-            self._settings.set(["old_profile"], self._printer_profile_manager.get_default()["id"])
+            self._settings.set(["old_profile"], self._printer_profile_manager.get_current_or_default()["id"])
             self._printer_profile_manager.select("_bgs")
             self._printer_profile_manager.set_default("_bgs")
+            self._logger.info("bgs printer profile created and selected")
+
+        # let's only do stuff if our profile is selected
+        if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
+            self._logger.info("bgs printer profile is not active")
+            return
 
         # initialize all of our settings
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
@@ -258,6 +264,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if "control" in disabledTabs:
                 disabledTabs.remove("control")
 
+        if self.hideGCodeTab:
+            if "gcodeviewer" not in disabledTabs:
+                disabledTabs.append("gcodeviewer")
+        else:
+            if "gcodeviewer" in disabledTabs:
+                disabledTabs.remove("gcodeviewer")
+
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
 
         if not self.hideControlTab:
@@ -299,9 +312,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
 
-            if "gcodeviewer" in disabledTabs:
-                disabledTabs.remove("gcodeviewer")
-
             if "plugin_gcodeviewer" in disabledTabs:
                 disabledTabs.remove("plugin_gcodeviewer")
 
@@ -313,6 +323,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
             self._settings.save()
+
             self._logger.info("Migrated to settings v%d from v%d", target, 1 if current == None else current)
 
 
@@ -368,7 +379,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblSettingsText = ret
         return ret
-    
+
 
     def on_settings_save(self, data):
         self._logger.debug("saving settings")
@@ -376,6 +387,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # reload our config
         self.on_after_startup()
+
+        # let's only do stuff if our profile is selected
+        if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
+            return
 
         # refresh our grbl settings
         if not self._printer.is_printing():
@@ -411,7 +426,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD)
 
         if event not in subscribed_events:
-            # self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
+            self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
             return
 
         # our plugin is being uninstalled
@@ -419,6 +434,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('we are being uninstalled :(')
             self.cleanUpDueToUninstall()
             self._logger.debug('uninstall cleanup completed (this house is clean)')
+            return
+
+        if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return
 
         # 'PrintStarted'
@@ -439,7 +457,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Print Cancelling
         if event == Events.PRINT_CANCELLING:
             self._logger.debug("canceling job")
-            self._printer.commands("!", force=True)
+            self._printer.commands(["!", "?"], force=True)
             self.queue_cmds_and_send(["M999"], wait=True)
             self._printer.commands("G21 G90 G1 Z5 F100")
 
@@ -454,7 +472,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Print Resumed
         if event == Events.PRINT_RESUMED:
             self._logger.debug("resuming job")
-            self._printer.commands("~", force=True)
+            self._printer.commands(["~", "?"], force=True)
+            self.queue_cmds_and_send(["?"])
 
         # File uploaded
         if event == Events.UPLOAD:
@@ -551,7 +570,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._logger.debug('uninstall cleanup completed (this house is clean)')
 
 
-    def cleanUpDueToUninstall(self):
+    def cleanUpDueToUninstall(self, remove_profile=True):
         # re-enable model size detection and send checksum
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], self.disableModelSizeDetection)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], not self.neverSendChecksum)
@@ -610,17 +629,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             orderedTabs.remove("plugin_bettergrblsupport")
             self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
-        # restore the original printer profile (if it exists) and delete mine
-        old_profile = self._settings.get(["old_profile"])
+        if remove_profile:
+            # restore the original printer profile (if it exists) and delete mine
+            old_profile = self._settings.get(["old_profile"])
 
-        if not old_profile or not self._printer_profile_manager.exists(old_profile):
-            old_profile = "_default"
+            if not old_profile or not self._printer_profile_manager.exists(old_profile):
+                old_profile = "_default"
 
-        self._printer_profile_manager.select(old_profile)
-        self._printer_profile_manager.set_default(old_profile)
+            self._printer_profile_manager.select(old_profile)
+            self._printer_profile_manager.set_default(old_profile)
 
-        if self._printer_profile_manager.exists("_bgs"):
-            self._printer_profile_manager.remove("_bgs")
+            if self._printer_profile_manager.exists("_bgs"):
+                self._printer_profile_manager.remove("_bgs")
+                self._logger.debug("bgs profile has been deleted")
 
         self._settings.save()
 
@@ -633,6 +654,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        # let's only do stuff if our profile is selected
+        if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
+            return None
+
         # suppress comments and extraneous commands that may cause wayward
         # grbl instances to error out
         if cmd.upper().lstrip().startswith(tuple([';', '(', '%'])):
@@ -793,6 +818,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     # original author:  https://github.com/mic159
     # source: https://github.com/mic159/octoprint-grbl-plugin)
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
+        # let's only do stuff if our profile is selected
+        if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
+            return None
 
         if line.startswith('Grbl'):
             # Hack to make Arduino based GRBL work.
@@ -811,7 +839,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblVersion = line.strip("\n").strip("\r")
             self._settings.set(["grblVersion"], self.grblVersion)
             self._settings.save()
-            return line
+            return
 
         # grbl opt Signature
         if line.startswith("[OPT:"):
@@ -893,12 +921,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 else:
                     self.addToNotifyQueue([line.replace("[","").replace("]","").replace("MSG:","")])
 
-            return line
+            return
 
         # add a notification if we just z-probed
         if "PRB:" in line.upper():
             self.addToNotifyQueue([line])
-            return line
+            return
 
         # grbl settings
         if line.startswith("$"):
@@ -930,7 +958,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if match is None:
                 self._logger.warning('Bad data %s', line.rstrip())
-                return line
+                return
 
              # OctoPrint records positions in some instances.
              # It needs a different format. Put both on the same line so the GRBL info is not lost
@@ -986,7 +1014,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return response
 
         if not line.rstrip().endswith('ok'):
-            return line
+            return
 
         if line.startswith('{'):
              # Regular ACKs
