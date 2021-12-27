@@ -14,7 +14,7 @@
 <!-- /ko -->
 
 <div style="text-align: center; overflow: hidden; margin: 0px 10px 0px 10px;" valign="top" align="center">
-   <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 0px 40px 0px; vertical-align: middle;">
+   <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 40px 40px 40px; vertical-align: middle;">
       <table align="center" style="margin: 0 auto;">
         <tr>
            <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
@@ -47,7 +47,7 @@
       </table>
    </span>
 
-   <span style="display: inline-block; margin: 0px 80px 40px 80px; vertical-align: middle;">
+   <span style="display: inline-block; margin: 0px 40px 40px 40px; vertical-align: middle;">
       <table class="jog-panel" id="jog_panel" border=0 style="margin: 0 auto;"">
          <tr>
             <td style="padding: 0px 55px 0px 0px;" align="center">
@@ -125,7 +125,7 @@
       </table>
    </span>
 
-   <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 10px 0px 40px 0px" >
+   <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 10px 40px 40px 40px" >
       <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
         <button id="grblLaserButton" style="width: 130px" class="btn" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
         <br>

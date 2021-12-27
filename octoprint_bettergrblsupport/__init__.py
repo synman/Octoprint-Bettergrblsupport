@@ -266,10 +266,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if self.hideGCodeTab:
             if "gcodeviewer" not in disabledTabs:
-                disabledTabs.append("gcodeviewer")
+                disabledTabs.append("plugin_gcodeviewer")
         else:
             if "gcodeviewer" in disabledTabs:
-                disabledTabs.remove("gcodeviewer")
+                disabledTabs.remove("plugin_gcodeviewer")
 
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
 
@@ -312,8 +312,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
 
-            if "plugin_gcodeviewer" in disabledTabs:
-                disabledTabs.remove("plugin_gcodeviewer")
+            if "gcodeviewer" in disabledTabs:
+                disabledTabs.remove("gcodeviewer")
 
             if self._settings.get(["statusCommand"]) == "?$G":
                 self._settings.set(["statusCommand"], "?")
@@ -575,10 +575,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], self.disableModelSizeDetection)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], not self.neverSendChecksum)
 
-        # load a map of disabled plugins
+        # load maps of disabled plugins & tabs
         disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
+        disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
+        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+
         if disabledPlugins == None:
             disabledPlugins = []
+
+        if disabledTabs == None:
+            disabledTabs = []
+
+        if orderedTabs == None:
+            orderedTabs = []
 
         # re-enable the printer safety check plugin
         if self.disablePrinterSafety:
@@ -589,12 +598,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self.hideGCodeTab:
             if "gcodeviewer" in disabledPlugins:
                 disabledPlugins.remove("gcodeviewer")
-
-        self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
-
-        disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
-        if disabledTabs == None:
-            disabledTabs = []
+            if "plugin_gcodeviewer" in disabledTabs:
+                disabledTabs.remove("plugin_gcodeviewer")
 
         # re-enable the built-in temp tab if it was hidden
         if self.hideTempTab:
@@ -606,28 +611,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if "control" in disabledTabs:
                 disabledTabs.remove("control")
 
-        # clean up old versions since octoprint renamed gcodeviewer to plugin_gcodeviewer
-        if "gcodeviewer" in disabledTabs:
-            disabledTabs.remove("gcodeviewer")
-
-        # clean up old versions since we now disable gcodeviewer instead of just hiding it
-        if "plugin_gcodeviewer" in disabledTabs:
-            disabledTabs.remove("plugin_gcodeviewer")
-
-        self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
-
         # delete my custom controls if the built-in control tab is active
         if not self.hideControlTab:
             controls = self._settings.global_get(["controls"])
             if self.customControls and controls:
                 self._settings.global_set(["controls"], [])
 
-        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
-
         # remove me from ordered tabs if i'm in there
         if "plugin_bettergrblsupport" in orderedTabs:
             orderedTabs.remove("plugin_bettergrblsupport")
-            self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
         if remove_profile:
             # restore the original printer profile (if it exists) and delete mine
@@ -642,6 +634,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self._printer_profile_manager.exists("_bgs"):
                 self._printer_profile_manager.remove("_bgs")
                 self._logger.debug("bgs profile has been deleted")
+
+        self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
+        self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
+        self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
         self._settings.save()
 
