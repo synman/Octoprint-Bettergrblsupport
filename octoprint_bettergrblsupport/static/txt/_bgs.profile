@@ -13,7 +13,7 @@ axes:
     speed: 200
 color: default
 extruder:
-  count: 2
+  count: 20
   nozzleDiameter: 0.4
   offsets:
   - - 0.0

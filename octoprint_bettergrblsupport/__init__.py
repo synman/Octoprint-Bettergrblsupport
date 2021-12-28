@@ -106,9 +106,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblVersion = "unknown"
 
-        # fail-safe for homing if origin has not been set
-        self.originSet = False
-
         # load up our item/value pairs for errors, warnings, and settings
         self.loadGrblDescriptions()
 
@@ -135,6 +132,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             frame_origin = None,
             distance = 10,
             distances = [.1, 1, 5, 10, 50, 100],
+            origin_axis = "XY",
+            origin_axes = ["Z", "Y", "X", "XY", "ALL"],
             is_printing = False,
             is_operational = False,
             disableModelSizeDetection = True,
@@ -423,7 +422,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_event(self, event, payload):
         subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
-                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD)
+                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING)
 
         if event not in subscribed_events:
             self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
@@ -439,6 +438,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return
 
+        # - CONNECTING
+        if event == Events.CONNECTING:
+            # let's make sure we don't have any commands queued up
+            self.grblCmdQueue.clear()
+
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
             if self.grblState != "Idle":
@@ -447,6 +451,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             self.grblState = "Run"
+            addToNotifyQueue(["Pgm Begin"])
             return
 
         # Print ended (finished / failed / cancelled)
@@ -458,11 +463,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if event == Events.PRINT_CANCELLING:
             self._logger.debug("canceling job")
             self._printer.commands(["!", "?"], force=True)
-            self.queue_cmds_and_send(["M999"], wait=True)
-            self._printer.commands("G21 G90 G1 Z5 F100")
-
-            if self.originSet:
-                self._printer.commands("G28")
+            self.queue_cmds_and_send(["M999", "?"], wait=True)
 
         # Print Paused
         if event == Events.PRINT_PAUSED:
@@ -643,7 +644,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_extension_tree(self, *args, **kwargs):
     		return dict(
-    			model=dict(
+                    model=dict(
     				grbl_gcode=["gc", "nc"]
     			)
     		)
@@ -1157,9 +1158,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 self._printer.commands("$X")
 
-            #fail-safe for ensuring we do not home
-            self.originSet = False
-
             return
 
         if command == "reset":
@@ -1257,19 +1255,41 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # do move stuff
             direction = data.get("direction")
             distance = data.get("distance")
+            axis = data.get("axis")
+
+            # max X feed rate
+            xf = int(float(self.grblSettings.get(110)[0]))
+            # max Y feed rate
+            yf = int(float(self.grblSettings.get(111)[0]))
+            # max Z feed rate
+            zf = int(float(self.grblSettings.get(112)[0]))
 
             if distance != self._settings.get(["distance"]):
                 self._settings.set(["distance"], distance)
                 self._settings.save()
 
-            self._logger.debug("move direction={} distance={}".format(direction, distance))
+            if axis != self._settings.get(["origin_axis"]):
+                self._settings.set(["origin_axis"], axis)
+                self._settings.save()
+
+            self._logger.debug("move direction={} distance={} axis={}".format(direction, distance, axis))
 
             if direction == "home":
-                self._printer.commands("G28")
-                # add a notification if we just homed
-                self.addToNotifyQueue(["Machine has been (work) homed"])
+                self._printer.commands(["G54", "G90"])
 
-                self.originSet = True
+                if axis == "X":
+                    self._printer.commands(["G0 X0", "G91"])
+                elif axis == "Y":
+                    self._printer.commands(["G0 Y0", "G91"])
+                elif axis == "Z":
+                    self._printer.commands(["G0 Z0", "G91"])
+                elif axis == "XY":
+                    self._printer.commands(["G0 X0 Y0", "G91"])
+                else:
+                    self._printer.commands(["G0 X0 Y0 Z0", "G91"])
+
+                # add a notification if we just homed
+                self.addToNotifyQueue(["Moved to work home for {}".format(axis)])
 
             if direction == "probez":
                 # probe z using offset
@@ -1278,52 +1298,59 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                           "G92 Z{}".format(self.zProbeOffset),
                                           "G0 Z5"])
 
-            if direction == "forward":
-                # max Y feed rate
-                f = int(float(self.grblSettings.get(111)[0]))
-                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, f))
+            if direction == "northwest":
+                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, distance, xf if xf < yf else yf))
 
-            if direction == "backward":
-                # max Y feed rate
-                f = int(float(self.grblSettings.get(111)[0]))
-                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, f))
+            if direction == "north":
+                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, yf))
 
-            if direction == "left":
-                # max X feed rate
-                f = int(float(self.grblSettings.get(110)[0]))
-                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, f))
+            if direction == "northeast":
+                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * 1, distance, xf if xf < yf else yf))
 
-            if direction == "right":
-                # max X feed rate
-                f = int(float(self.grblSettings.get(110)[0]))
-                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, f))
+            if direction == "west":
+                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, xf))
+
+            if direction == "east":
+                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, xf))
+
+            if direction == "southwest":
+                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, distance * -1, xf if xf < yf else yf))
+
+            if direction == "south":
+                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, yf))
+
+            if direction == "southeast":
+                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, distance * -1, xf if xf < yf else yf))
 
             if direction == "up":
-                # max Z feed rate
-                f = int(float(self.grblSettings.get(112)[0]))
-                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, f))
+                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance, zf))
 
             if direction == "down":
-                # max Z feed rate
-                f = int(float(self.grblSettings.get(112)[0]))
-                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, f))
+                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, zf))
 
             return
 
         if command == "origin":
-            self._printer.commands(["G28.1", "G10 P1 L20 X0 Y0 Z0", "G92 X0 Y0 Z0"])
-            self.addToNotifyQueue(["Work origin set"])
-            return
+            axis = data.get("origin_axis")
 
-        # this command is deprecated
-        if command == "originz":
-            # technically this is unnecessary - may revisit the whole need for
-            # for separating Z from X/Y when managing work plane home
+            if axis != self._settings.get(["origin_axis"]):
+                self._settings.set(["origin_axis"], axis)
+                self._settings.save()
 
-            self._printer.commands("G28.1")
-            # i really like this zeroing feature - may need to make it configurable
-            self._printer.commands("G92 Z0")
+            self._logger.debug("origin axis={}".format(axis))
 
+            if axis == "X":
+                self._printer.commands(["G91 G10 P1 L20 X0"])
+            elif axis == "Y":
+                self._printer.commands(["G91 G10 P1 L20 Y0"])
+            elif axis == "Z":
+                self._printer.commands(["G91 G10 P1 L20 Z0"])
+            elif axis == "XY":
+                self._printer.commands(["G91 G10 P1 L20 X0 Y0"])
+            else:
+                self._printer.commands(["G91 G10 P1 L20 X0 Y0 Z0"])
+
+            self.addToNotifyQueue(["Work origin for {} set".format(axis)])
             return
 
         if command == "toggleWeak":

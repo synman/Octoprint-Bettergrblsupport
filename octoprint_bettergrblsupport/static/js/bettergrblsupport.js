@@ -38,6 +38,9 @@ $(function() {
       self.distances = ko.observableArray([.1, 1, 5, 10, 50, 100]);
       self.distance = ko.observable(10);
 
+      self.origin_axes = ko.observableArray(["X", "Y", "Z", "ALL"]);
+      self.origin_axis = ko.observable("ALL");
+
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
 
@@ -141,7 +144,8 @@ $(function() {
           data: JSON.stringify({
             command: "move",
             direction: direction,
-            distance: self.distance()
+            distance: self.distance(),
+            axis: self.origin_axis()
           }),
           contentType: "application/json; charset=UTF-8",
           error: function (data, status) {
@@ -217,7 +221,8 @@ $(function() {
           type: "POST",
           dataType: "json",
           data: JSON.stringify({
-            command: command
+            command: command,
+            origin_axis: self.origin_axis()
           }),
           contentType: "application/json; charset=UTF-8",
           error: function (data, status) {
@@ -241,6 +246,9 @@ $(function() {
 
         self.distance(self.settings.settings.plugins.bettergrblsupport.distance());
         self.distances(self.settings.settings.plugins.bettergrblsupport.distances());
+
+        self.origin_axis(self.settings.settings.plugins.bettergrblsupport.origin_axis());
+        self.origin_axes(self.settings.settings.plugins.bettergrblsupport.origin_axes());
 
         self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
         self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
