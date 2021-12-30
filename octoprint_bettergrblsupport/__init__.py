@@ -74,6 +74,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.weakLaserValue = 1
         self.framingPercentOfMaxSpeed = 25
 
+        self.lastGCommand = ""
+
         self.overrideM8 = False
         self.overrideM9 = False
         self.m8Command = ""
@@ -87,6 +89,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSpeed = 0
         self.grblPowerLevel = 0
         self.positioning = 0
+        self.distance = float(0)
 
         self.timeRef = 0
 
@@ -105,6 +108,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.customControlsJson = r'[{"layout": "horizontal", "children": [{"commands": ["$10=0", "G28.1", "G92 X0 Y0 Z0"], "name": "Set Origin", "confirm": null}, {"command": "M999", "name": "Reset", "confirm": null}, {"commands": ["G1 F4000 S0", "M5", "$SLP"], "name": "Sleep", "confirm": null}, {"command": "$X", "name": "Unlock", "confirm": null}, {"commands": ["$32=0", "M4 S1"], "name": "Weak Laser", "confirm": null}, {"commands": ["$32=1", "M5"], "name": "Laser Off", "confirm": null}], "name": "Laser Commands"}, {"layout": "vertical", "type": "section", "children": [{"regex": "<([^,]+)[,|][WM]Pos:([+\\-\\d.]+,[+\\-\\d.]+,[+\\-\\d.]+)", "name": "State", "default": "", "template": "State: {0} - Position: {1}", "type": "feedback"}, {"regex": "F([\\d.]+) S([\\d.]+)", "name": "GCode State", "default": "", "template": "Speed: {0}  Power: {1}", "type": "feedback"}], "name": "Realtime State"}]'
 
         self.grblVersion = "unknown"
+
+        self.xLimit = float(0)
+        self.yLimit = float(0)
+        self.zLimit = float(0)
 
         # load up our item/value pairs for errors, warnings, and settings
         self.loadGrblDescriptions()
@@ -130,10 +137,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             frame_length = 100,
             frame_width = 100,
             frame_origin = None,
-            distance = 10,
-            distances = [.1, 1, 5, 10, 50, 100],
-            origin_axis = "XY",
-            origin_axes = ["Z", "Y", "X", "XY", "ALL"],
+            distance = 0,
             is_printing = False,
             is_operational = False,
             disableModelSizeDetection = True,
@@ -213,6 +217,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblSettingsText = self._settings.get(["grblSettingsText"])
         self.grblVersion = self._settings.get(["grblVersion"])
+
+        self.distance = self._settings.get(["distance"])
 
         # hardcoded global settings -- should revisit how I manage these
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
@@ -502,34 +508,37 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             x = float(0)
             y = float(0)
 
-            self.positioning = 0
+            lastGCommand = ""
+            positioning = 0
 
             start = timer()
 
             for line in f:
-                #T2 # HACK:
-                if line.upper().lstrip().startswith("X"):
-                    match = re.search(r"^X *(-?[\d.]+).*", line)
-                    if not match is None:
-                        command = "G01 " + line.upper().strip()
-                    else:
-                        command = line.upper().strip()
+                # save our G command for shorthand post processors
+                if line.upper().startswith("G"):
+                    lastGCommand = line[:3] if line[2:3].isnumeric() else line[:2]
+
+                # use our saved G command if our line starts with a coordinate
+                if line.upper().lstrip().startswith(("X", "Y", "Z")) and line.lstrip()[1:2].isnumeric():
+                    command = lastGCommand + " " + line.upper().strip()
+
                 else:
                     command = line.upper().strip()
 
                 if "G90" in command.upper():
                     # absolute positioning
-                    self.positioning = 0
+                    positioning = 0
                     continue
 
                 if "G91" in command.upper():
                     # relative positioning
-                    self.positioning = 1
+                    positioning = 1
                     continue
 
                 match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+                # match = re.search(r".*[Xx]\ *(-?[\d.]+).*", command)
                 if not match is None:
-                    if self.positioning == 1:
+                    if positioning == 1:
                         x = x + float(match.groups(1)[2])
                     else:
                         x = float(match.groups(1)[2])
@@ -539,8 +548,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         maxX = x
 
                 match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+                # match = re.search(r".*[Yy]\ *(-?[\d.]+).*", command)
                 if not match is None:
-                    if self.positioning == 1:
+                    if positioning == 1:
                         y = y + float(match.groups(1)[2])
                     else:
                         y = float(match.groups(1)[2])
@@ -738,46 +748,41 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # relative positioning
             self.positioning = 1
 
-        #T2 # HACK:
-        if cmd.upper().lstrip().startswith("X"):
-            match = re.search(r"^X *(-?[\d.]+).*", cmd)
-            if not match is None:
-                command = "G01 " + cmd.upper().strip()
-            else:
-                command = cmd.upper().strip()
+        # save our G command for shorthand post processors
+        if cmd.upper().startswith("G"):
+            self.lastGCommand = cmd[:3] if cmd[2:3].isnumeric() else cmd[:2]
+
+        # use our saved G command if our line starts with a coordinate
+        if cmd.upper().lstrip().startswith(("X", "Y", "Z")) and cmd.upper().lstrip()[1:2].isnumeric():
+            command = self.lastGCommand + " " + cmd.upper().strip()
         else:
             command = cmd.upper().strip()
 
         # keep track of distance traveled
         found = False
 
-        match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+        # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Xx]\ *(-?[\d.]+).*", command)
         if not match is None:
-            if self.positioning == 1:
-                self.grblX = self.grblX + float(match.groups(1)[2])
-            else:
-                self.grblX = float(match.groups(1)[2])
+            self.grblX = float(match.groups(1)[0]) if self.positioning == 0 else self.grblX + float(match.groups(1)[0])
             found = True
 
-        match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+        # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Yy]\ *(-?[\d.]+).*", command)
         if not match is None:
-            if self.positioning == 1:
-                self.grblY = self.grblY + float(match.groups(1)[2])
-            else:
-                self.grblY = float(match.groups(1)[2])
+            self.grblY = float(match.groups(1)[0]) if self.positioning == 0 else self.grblY + float(match.groups(1)[0])
             found = True
 
-        match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
+        # match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Zz]\ *(-?[\d.]+).*", command)
         if not match is None:
-            if self.positioning == 1:
-                self.grblZ = self.grblZ + float(match.groups(1)[2])
-            else:
-                self.grblZ = float(match.groups(1)[2])
+            self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
             found = True
 
-        match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
+        # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Ff]\ *(-?[\d.]+).*", command)
         if not match is None:
-            grblSpeed = round(float(match.groups(1)[2]))
+            grblSpeed = round(float(match.groups(1)[0]))
 
             # make sure we post all speed on / off events
             if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
@@ -786,9 +791,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblSpeed = grblSpeed
             found = True
 
-        match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
+        # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Ss]\ *(-?[\d.]+).*", command)
         if not match is None:
-            grblPowerLevel = round(float(match.groups(1)[2]))
+            grblPowerLevel = round(float(match.groups(1)[0]))
 
             # make sure we post all power on / off events
             self.grblPowerLevel = grblPowerLevel
@@ -796,7 +802,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if found:
             currentTime = int(round(time.time() * 1000))
-            if currentTime > self.timeRef + 500:
+            if currentTime > self.timeRef + 250:
                 # self._logger.info("x={} y={} z={} f={} s={}".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                 mode=self.grblMode,
@@ -939,8 +945,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if settingsId >= 132:
                     self._settings.set(["grblSettingsText"], self.saveGrblSettings())
                     self._settings.set_boolean(["laserMode"], self.isLaserMode())
-                    self._settings.save()
 
+                    # lets populate our x,y,z limits
+                    self.xLimit = float(self.grblSettings.get(130)[0])
+                    self.yLimit = float(self.grblSettings.get(131)[0])
+                    self.zLimit = float(self.grblSettings.get(132)[0])
+
+                    # assign our default distance if it is not already set to the lower of x,y limits
+                    if self.distance == 0:
+                        self.distance = min([self.xLimit, self.yLimit])
+                        self._settings.set(["distance"], self.distance)
+
+                    self._settings.save()
                     self.addToNotifyQueue(["Grbl Settings sent"])
 
                 return line
@@ -1254,7 +1270,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "move":
             # do move stuff
             direction = data.get("direction")
-            distance = data.get("distance")
+            distance = float(data.get("distance"))
             axis = data.get("axis")
 
             # max X feed rate
@@ -1264,13 +1280,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # max Z feed rate
             zf = int(float(self.grblSettings.get(112)[0]))
 
-            if distance != self._settings.get(["distance"]):
-                self._settings.set(["distance"], distance)
-                self._settings.save()
+            # we don't need to save distance -- knockout takes of it for us
+            if distance != self.distance:
+                self.distance = distance
 
-            if axis != self._settings.get(["origin_axis"]):
-                self._settings.set(["origin_axis"], axis)
-                self._settings.save()
+            # if axis != self._settings.get(["origin_axis"]):
+            #     self._settings.set(["origin_axis"], axis)
+            #     self._settings.save()
 
             self._logger.debug("move direction={} distance={} axis={}".format(direction, distance, axis))
 
@@ -1290,13 +1306,23 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 # add a notification if we just homed
                 self.addToNotifyQueue(["Moved to work home for {}".format(axis)])
+                return
 
             if direction == "probez":
                 # probe z using offset
-                self.queue_cmds_and_send(["G91 G21 G38.2 Z-50 F100 ?",
+                self.queue_cmds_and_send(["G91 G21 G38.2 Z-{} F100 ?".format(self.zLimit),
                                           "?",
                                           "G92 Z{}".format(self.zProbeOffset),
                                           "G0 Z5"])
+                return
+
+            # check distance against limits
+            if "west" in direction or "east" in direction and abs(distance) > abs(self.xLimit):
+                return flask.jsonify({'res' : "Distance exceeds X axis limit"})
+            if "north" in direction or "south" in direction and abs(distance) > abs(self.yLimit):
+                return flask.jsonify({'res' : "Distance exceeds Y axis limit"})
+            if "up" in direction or "down" in direction and abs(distance) > abs(self.zLimit):
+                return flask.jsonify({'res' : "Distance exceeds Z axis limit"})
 
             if direction == "northwest":
                 self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if self.isGrblOneDotOne() else "G1 ", distance * -1, distance, xf if xf < yf else yf))
@@ -1333,9 +1359,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "origin":
             axis = data.get("origin_axis")
 
-            if axis != self._settings.get(["origin_axis"]):
-                self._settings.set(["origin_axis"], axis)
-                self._settings.save()
+            # if axis != self._settings.get(["origin_axis"]):
+            #     self._settings.set(["origin_axis"], axis)
+            #     self._settings.save()
 
             self._logger.debug("origin axis={}".format(axis))
 

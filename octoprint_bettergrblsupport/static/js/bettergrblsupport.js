@@ -35,11 +35,12 @@ $(function() {
       self.length = ko.observable("100");
       self.width = ko.observable("100");
 
-      self.distances = ko.observableArray([.1, 1, 5, 10, 50, 100]);
-      self.distance = ko.observable(10);
+      self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
+      self.origin_axis = ko.observable("XY");
 
-      self.origin_axes = ko.observableArray(["X", "Y", "Z", "ALL"]);
-      self.origin_axis = ko.observable("ALL");
+      self.operator = ko.observable("=");
+      self.distances = ko.observableArray([.1, 1, 5, 10, 50, 100]);
+      self.distance = ko.observable(100);
 
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
@@ -129,6 +130,39 @@ $(function() {
         });
       };
 
+      self.distanceClicked = function(distance) {
+        var operator;
+        if (self.operator() == "+") {
+          operator = 1;
+        } else {
+          if (self.operator() == "-") {
+            operator = -1;
+          } else {
+            operator = 0;
+          }
+        }
+
+        if (operator != 0) {
+          self.distance(parseFloat(self.distance()) + (parseFloat(distance) * operator));
+        } else {
+          self.distance(parseFloat(distance));
+        }
+      };
+
+      self.operatorClicked = function() {
+        if (self.operator() == "+") {
+          self.operator("-");
+        } else {
+          if (self.operator() == "-") {
+            self.operator("=");
+          } else {
+            if (self.operator() == "=") {
+              self.operator("+");
+            }
+          }
+        }
+      };
+
       self.moveHead = function(direction) {
         // if (direction == "probez") {
         //   OctoPrint.control.sendGcode("G91 G21 G38.2 F100 Z-50 ?");
@@ -148,6 +182,20 @@ $(function() {
             axis: self.origin_axis()
           }),
           contentType: "application/json; charset=UTF-8",
+          success: function(data) {
+            if (data["res"] && data["res"].length > 0) {
+              new PNotify({
+                title: "Unable to Move!",
+                text: data["res"],
+                hide: true,
+                buttons: {
+                  sticker: false,
+                  closer: true
+                },
+                type: "error"
+              });
+            }
+          },
           error: function (data, status) {
             new PNotify({
               title: "Move Head failed!",
@@ -245,10 +293,6 @@ $(function() {
         self.width(self.settings.settings.plugins.bettergrblsupport.frame_width());
 
         self.distance(self.settings.settings.plugins.bettergrblsupport.distance());
-        self.distances(self.settings.settings.plugins.bettergrblsupport.distances());
-
-        self.origin_axis(self.settings.settings.plugins.bettergrblsupport.origin_axis());
-        self.origin_axes(self.settings.settings.plugins.bettergrblsupport.origin_axes());
 
         self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
         self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
@@ -428,13 +472,20 @@ $(function() {
 
       };
 
-
       self.fsClick = function () {
         // console.log("fsClick");
 
         $body.toggleClass('inlineFullscreen');
         $container.toggleClass("inline fullscreen");
         // streamImg.classList.toggle("fullscreen");
+
+        var progressBar = document.getElementById("state");
+
+        if (progressBar.style.visibility == "" || progressBar.style.visibility == "visible") {
+          progressBar.style.visibility = "hidden";
+        } else {
+          progressBar.style.visibility = "visible";
+        }
 
         if (jogPanel.is(':visible')) {
           jogPanel.hide();

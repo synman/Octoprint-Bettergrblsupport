@@ -142,10 +142,16 @@
          </tr>
          <tr>
             <td colspan=4 align="center" class="distance">
-               <span align="center" class="btn-group" data-toggle="buttons-radio">
+              <span>
+                <button type="button" class="btn" style="border: 1px solid; width: 35px; margin: 0px 2px 0px 0px" data-bind="click: function() { operatorClicked() }, text: operator"></button>
+              </span>
+               <span align="center" class="btn-group">
                   <!-- ko foreach: distances -->
-                    <button type="button" class="btn distance" style="border: 1px solid;" data-bind="click: function() { $root.distance($data) }, text: $data, css: { active: $root.distance() === $data }"></button>
+                    <button type="button" class="btn dist" style="border: 1px solid;" data-bind="click: function() { $parent.distanceClicked($data) }, text: $data "></button>
                   <!-- /ko -->
+               </span>
+               <span>
+                 <input type="number" value="1000" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 0px 0px 0px 2px" data-bind="textInput: distance"></button>
                </span>
             </td>
          </tr>
