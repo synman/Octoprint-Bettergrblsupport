@@ -519,9 +519,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     lastGCommand = line[:3] if line[2:3].isnumeric() else line[:2]
 
                 # use our saved G command if our line starts with a coordinate
-                if line.upper().lstrip().startswith(("X", "Y", "Z")) and line.lstrip()[1:2].isnumeric():
+                if line.upper().lstrip().startswith(("X", "Y", "Z")):
                     command = lastGCommand + " " + line.upper().strip()
-
                 else:
                     command = line.upper().strip()
 
@@ -753,7 +752,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.lastGCommand = cmd[:3] if cmd[2:3].isnumeric() else cmd[:2]
 
         # use our saved G command if our line starts with a coordinate
-        if cmd.upper().lstrip().startswith(("X", "Y", "Z")) and cmd.upper().lstrip()[1:2].isnumeric():
+        if cmd.upper().lstrip().startswith(("X", "Y", "Z")):
             command = self.lastGCommand + " " + cmd.upper().strip()
         else:
             command = cmd.upper().strip()
