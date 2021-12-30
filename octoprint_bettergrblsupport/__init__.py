@@ -1219,7 +1219,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # catch-all (should revisit state management) for validating printer State
-        if not self._printer.is_ready() or self.grblState != "Idle":
+        if not self._printer.is_ready() or not self.grblState in ("Idle", "Jog"):
             self._logger.debug("ignoring move related command - printer is not available")
             return
 
@@ -1279,7 +1279,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # max Z feed rate
             zf = int(float(self.grblSettings.get(112)[0]))
 
-            # we don't need to save distance -- knockout takes of it for us
+            # we don't need to save distance -- knockout takes care of it for us
             if distance != self.distance:
                 self.distance = distance
 
@@ -1287,7 +1287,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             #     self._settings.set(["origin_axis"], axis)
             #     self._settings.save()
 
-            self._logger.debug("move direction={} distance={} axis={}".format(direction, distance, axis))
+            self._logger.debug("move direction={} distance={} axis={} xlimit={} ylimit={} zlimit={}".format(direction, distance, axis, self.xLimit, self.yLimit, self.zLimit))
 
             if direction == "home":
                 self._printer.commands(["G54", "G90"])
@@ -1316,11 +1316,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             # check distance against limits
-            if "west" in direction or "east" in direction and abs(distance) > abs(self.xLimit):
+            if ("west" in direction or "east" in direction) and abs(distance) > abs(self.xLimit):
                 return flask.jsonify({'res' : "Distance exceeds X axis limit"})
-            if "north" in direction or "south" in direction and abs(distance) > abs(self.yLimit):
+            if ("north" in direction or "south" in direction) and abs(distance) > abs(self.yLimit):
                 return flask.jsonify({'res' : "Distance exceeds Y axis limit"})
-            if "up" in direction or "down" in direction and abs(distance) > abs(self.zLimit):
+            if ("up" in direction or "down" in direction) and abs(distance) > abs(self.zLimit):
                 return flask.jsonify({'res' : "Distance exceeds Z axis limit"})
 
             if direction == "northwest":
