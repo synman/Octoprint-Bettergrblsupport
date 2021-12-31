@@ -594,32 +594,27 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             orderedTabs = []
 
         # re-enable the printer safety check plugin
-        if self.disablePrinterSafety:
-            if "printer_safety_check" in disabledPlugins:
-                disabledPlugins.remove("printer_safety_check")
+        if "printer_safety_check" in disabledPlugins:
+            disabledPlugins.remove("printer_safety_check")
 
         # re-enable the gcodeviewer plugin
-        if self.hideGCodeTab:
-            if "gcodeviewer" in disabledPlugins:
-                disabledPlugins.remove("gcodeviewer")
-            if "plugin_gcodeviewer" in disabledTabs:
-                disabledTabs.remove("plugin_gcodeviewer")
+        if "gcodeviewer" in disabledPlugins:
+            disabledPlugins.remove("gcodeviewer")
+        if "plugin_gcodeviewer" in disabledTabs:
+            disabledTabs.remove("plugin_gcodeviewer")
 
         # re-enable the built-in temp tab if it was hidden
-        if self.hideTempTab:
-            if "temperature" in disabledTabs:
-                disabledTabs.remove("temperature")
+        if "temperature" in disabledTabs:
+            disabledTabs.remove("temperature")
 
         # re-enable the built-in control tab if it was hidden
-        if self.hideControlTab:
-            if "control" in disabledTabs:
-                disabledTabs.remove("control")
+        if "control" in disabledTabs:
+            disabledTabs.remove("control")
 
         # delete my custom controls if the built-in control tab is active
-        if not self.hideControlTab:
-            controls = self._settings.global_get(["controls"])
-            if self.customControls and controls:
-                self._settings.global_set(["controls"], [])
+        controls = self._settings.global_get(["controls"])
+        if self.customControls and controls:
+            self._settings.global_set(["controls"], [])
 
         # remove me from ordered tabs if i'm in there
         if "plugin_bettergrblsupport" in orderedTabs:
