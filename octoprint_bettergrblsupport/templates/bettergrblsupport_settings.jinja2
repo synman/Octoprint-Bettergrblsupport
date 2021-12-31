@@ -84,23 +84,39 @@
 
 		<label class="control-label">Framing Feed Rate</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed">% of max
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed">% of max
 		</div>
 
 		<br>
 
 		<label class="control-label">Weak Laser Intensity</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.weakLaserValue">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.weakLaserValue">
 		</div>
 
+		<br>
 		<br>
 
 		<label class="control-label" style="transform: translate(0px, -10px);">Z-Probe Touchplate Height</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.zProbeOffset">mm
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.zProbeOffset">mm
 		</div>
 
+		<br>
+
+		<label class="control-label">Z-Probe Travel Distance</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.zProbeTravel">mm (0 - use machine Z limit)
+		</div>
+
+		<br>
+
+		<label class="control-label">Z-Probe End Position</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.zProbeEndPos">mm
+		</div>
+
+		<br>
 		<br>
 
     <label class="control-label">Air Assist Overrides</label>

@@ -70,7 +70,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.neverSendChecksum = True
         self.reOrderTabs = True
         self.disablePrinterSafety = True
-        self.zProbeOffset = 15.00
         self.weakLaserValue = 1
         self.framingPercentOfMaxSpeed = 25
 
@@ -113,6 +112,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.yLimit = float(0)
         self.zLimit = float(0)
 
+        self.zProbeOffset = float(15.00)
+        self.zProbeTravel = float(0.00)
+        self.zProbeEndPos = float(5.00)
+
         # load up our item/value pairs for errors, warnings, and settings
         self.loadGrblDescriptions()
 
@@ -146,7 +149,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             disablePrinterSafety = True,
             grblSettingsText = None,
             grblSettingsBackup = "",
-            zProbeOffset = 15.00,
+            zProbeOffset = float(15.00),
+            zProbeTravel = float(0.00),
+            zProbeEndPos = float(5.00),
             weakLaserValue = 1,
             framingPercentOfMaxSpeed = 25,
             overrideM8 = False,
@@ -211,7 +216,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.ignoreErrors = self._settings.get(["ignoreErrors"])
         self.doSmoothie = self._settings.get(["doSmoothie"])
 
-        self.zProbeOffset = self._settings.get(["zProbeOffset"])
         self.weakLaserValue = self._settings.get(["weakLaserValue"])
         self.framingPercentOfMaxSpeed = self._settings.get(["framingPercentOfMaxSpeed"])
 
@@ -219,6 +223,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblVersion = self._settings.get(["grblVersion"])
 
         self.distance = self._settings.get(["distance"])
+
+        self.zProbeOffset = self._settings.get(["zProbeOffset"])
+        self.zProbeTravel = self._settings.get(["zProbeTravel"])
+        self.zProbeEndPos = self._settings.get(["zProbeEndPos"])
 
         # hardcoded global settings -- should revisit how I manage these
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
@@ -576,8 +584,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def cleanUpDueToUninstall(self, remove_profile=True):
         # re-enable model size detection and send checksum
-        self._settings.global_set_boolean(["feature", "modelSizeDetection"], self.disableModelSizeDetection)
-        self._settings.global_set_boolean(["serial", "neverSendChecksum"], not self.neverSendChecksum)
+        self._settings.global_set_boolean(["feature", "modelSizeDetection"], True)
+        self._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
 
         # load maps of disabled plugins & tabs
         disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
@@ -640,12 +648,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.save()
 
+
     def get_extension_tree(self, *args, **kwargs):
     		return dict(
                     model=dict(
     				grbl_gcode=["gc", "nc"]
     			)
     		)
+
 
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -1298,10 +1308,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "probez":
                 # probe z using offset
-                self.queue_cmds_and_send(["G91 G21 G38.2 Z-{} F100 ?".format(self.zLimit),
+                self.queue_cmds_and_send(["G91 G21 G38.2 Z-{} F100 ?".format(self.zLimit if self.zProbeTravel == 0 else self.zProbeTravel),
                                           "?",
                                           "G92 Z{}".format(self.zProbeOffset),
-                                          "G0 Z5"])
+                                          "G0 Z{}".format(self.zProbeEndPos)])
                 return
 
             # check distance against limits
