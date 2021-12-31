@@ -1468,11 +1468,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             "name": "Release Candidate",
                             "branch": "rc",
                             "commitish": ["rc", "master"],
-                        },
-                        {
-                            "name": "Development",
-                            "branch": "devel",
-                            "commitish": ["devel", "rc", "master"],
                         }
                     ],
                 pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
