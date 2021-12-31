@@ -1176,7 +1176,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "reset":
-            self._printer.commands("M999")
+            self._printer.commands("M999", force=True)
             return
 
         if command == "updateGrblSetting":
