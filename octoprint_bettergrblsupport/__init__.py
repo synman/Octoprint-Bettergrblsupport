@@ -162,7 +162,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             doSmoothie = False,
             grblVersion = "unknown",
             laserMode = False,
-            old_profile = "_default"
+            old_profile = "_default",
+            useDevChannel = False
         )
 
 
@@ -1434,32 +1435,47 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
         # for details.
 
-        return dict(bettergrblsupport=dict(  # version check: github repository
-                                             # update method: pip
-            displayName='Better Grbl Support',
-            displayVersion=self._plugin_version,
-            type='github_release',
-            user='synman',
-            repo='OctoPrint-Bettergrblsupport',
-            current=self._plugin_version,
-            stable_branch={
-                    "name": "Stable",
-                    "branch": "master",
-                    "commitish": ["master"],
-                },
-            prerelease_branches=[
-                    {
-                        "name": "Release Candidate",
-                        "branch": "rc",
-                        "commitish": ["rc", "master"],
+        useDevChannel = self._settings.get_boolean(["useDevChannel"])
+
+        if useDevChannel:
+            return dict(bettergrblsupport=dict(  # version check: github repository
+                                                 # update method: pip
+                displayName='Better Grbl Support (Development Branch)',
+                type='github_commit',
+                user='synman',
+                repo='OctoPrint-Bettergrblsupport',
+                branch="devel",
+                current="fd0b1bac7a23ba4b01f58353c7a19c6bc4ea219e",
+                method="pip",
+                pip='https://github.com/synman/Octoprint-Bettergrblsupport/archive/refs/heads/devel.zip'))
+
+        else:
+            return dict(bettergrblsupport=dict(  # version check: github repository
+                                                 # update method: pip
+                displayName='Better Grbl Support',
+                displayVersion=self._plugin_version,
+                type='github_release',
+                user='synman',
+                repo='OctoPrint-Bettergrblsupport',
+                current=self._plugin_version,
+                stable_branch={
+                        "name": "Stable",
+                        "branch": "master",
+                        "commitish": ["master"],
                     },
-                    {
-                        "name": "Development",
-                        "branch": "devel",
-                        "commitish": ["devel", "rc", "master"],
-                    }
-                ],
-            pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
+                prerelease_branches=[
+                        {
+                            "name": "Release Candidate",
+                            "branch": "rc",
+                            "commitish": ["rc", "master"],
+                        },
+                        {
+                            "name": "Development",
+                            "branch": "devel",
+                            "commitish": ["devel", "rc", "master"],
+                        }
+                    ],
+                pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
