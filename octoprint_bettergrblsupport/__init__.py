@@ -227,10 +227,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
 
-        # load a map of disabled plugins
+        # initialize config.yaml disabled plugins list
         disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
         if disabledPlugins == None:
             disabledPlugins = []
+
+        # initialize config.yaml disabled tabs list
+        disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
+        if disabledTabs == None:
+            disabledTabs = []
+
+        # initialize config.yaml ordered tabs list
+        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+        if orderedTabs == None:
+            orderedTabs = []
 
         # disable the printer safety check plugin
         if self.disablePrinterSafety:
@@ -244,16 +254,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self.hideGCodeTab:
             if "gcodeviewer" not in disabledPlugins:
                 disabledPlugins.append("gcodeviewer")
+            if "plugin_gcodeviewer" not in disabledTabs:
+                disabledTabs.append("plugin_gcodeviewer")
         else:
             if "gcodeviewer" in disabledPlugins:
                 disabledPlugins.remove("gcodeviewer")
-
-        self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
-
-        # process tabs marked as disabled
-        disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
-        if disabledTabs == None:
-            disabledTabs = []
+            if "plugin_gcodeviewer" in disabledTabs:
+                disabledTabs.remove("plugin_gcodeviewer")
 
         if self.hideTempTab:
             if "temperature" not in disabledTabs:
@@ -269,15 +276,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if "control" in disabledTabs:
                 disabledTabs.remove("control")
 
-        if self.hideGCodeTab:
-            if "gcodeviewer" not in disabledTabs:
-                disabledTabs.append("plugin_gcodeviewer")
-        else:
-            if "gcodeviewer" in disabledTabs:
-                disabledTabs.remove("plugin_gcodeviewer")
-
-        self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
-
         if not self.hideControlTab:
             controls = self._settings.global_get(["controls"])
 
@@ -289,17 +287,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._logger.debug("clearing custom controls")
                     self._settings.global_set(["controls"], [])
 
-        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
-
         # ensure i am always the first tab
+        if "plugin_bettergrblsupport" in orderedTabs:
+            orderedTabs.remove("plugin_bettergrblsupport")
         if self.reOrderTabs:
-            orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
-
-            if "plugin_bettergrblsupport" in orderedTabs:
-                orderedTabs.remove("plugin_bettergrblsupport")
-
             orderedTabs.insert(0, "plugin_bettergrblsupport")
-            self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
+
+        self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
+        self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
+        self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
         self._settings.save()
         self.loadGrblSettings()
@@ -316,17 +312,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
             disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
-
             if "gcodeviewer" in disabledTabs:
                 disabledTabs.remove("gcodeviewer")
+                self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
 
             if self._settings.get(["statusCommand"]) == "?$G":
                 self._settings.set(["statusCommand"], "?")
                 self.statusCommand = "?"
 
             self._settings.remove(["showZ"])
-
-            self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
             self._settings.save()
 
             self._logger.info("Migrated to settings v%d from v%d", target, 1 if current == None else current)
