@@ -1445,7 +1445,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 user='synman',
                 repo='OctoPrint-Bettergrblsupport',
                 branch="devel",
-                current="fd0b1bac7a23ba4b01f58353c7a19c6bc4ea219e",
                 method="pip",
                 pip='https://github.com/synman/Octoprint-Bettergrblsupport/archive/refs/heads/devel.zip'))
 
