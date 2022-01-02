@@ -431,7 +431,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_event(self, event, payload):
         subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
-                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING)
+                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED)
 
         if event not in subscribed_events:
             self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
@@ -452,6 +452,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # let's make sure we don't have any commands queued up
             self.grblCmdQueue.clear()
 
+        # - CONNECTED
+        if event == Events.CONNECTED:
+            self._printer.commands("$G")
+
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
             if self.grblState != "Idle":
@@ -459,8 +463,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.cancel_print()
                 return
 
+            self.addToNotifyQueue(["Pgm Begin"])
+            self._printer.commands("?", force=True)
+
             self.grblState = "Run"
-            addToNotifyQueue(["Pgm Begin"])
             return
 
         # Print ended (finished / failed / cancelled)
@@ -512,7 +518,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             y = float(0)
 
             lastGCommand = ""
-            positioning = 0
+            positioning = self.positioning
 
             start = timer()
 
@@ -537,34 +543,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     positioning = 1
                     continue
 
-                match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
-                # match = re.search(r".*[Xx]\ *(-?[\d.]+).*", command)
+                # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+                match = re.search(r".*[Xx]\ *(-?[\d.]+).*", command)
                 if not match is None:
-                    if positioning == 1:
-                        x = x + float(match.groups(1)[2])
-                    else:
-                        x = float(match.groups(1)[2])
-                    if x < minX:
-                        minX = x
-                    if x > maxX:
-                        maxX = x
+                    x = float(match.groups(1)[0]) if positioning == 0 else x + float(match.groups(1)[0])
+                    if x < minX: minX = x
+                    if x > maxX: maxX = x
 
-                match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
-                # match = re.search(r".*[Yy]\ *(-?[\d.]+).*", command)
+                # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+                match = re.search(r".*[Yy]\ *(-?[\d.]+).*", command)
                 if not match is None:
-                    if positioning == 1:
-                        y = y + float(match.groups(1)[2])
-                    else:
-                        y = float(match.groups(1)[2])
-                    if y < minY:
-                        minY = y
-                    if y > maxY:
-                        maxY = y
+                    y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
+                    if y < minY: minY = y
+                    if y > maxY: maxY = y
+
+                # self._logger.debug("x=%.2f y=%.2f", x, y)
 
             length = math.ceil(maxY - minY)
             width = math.ceil(maxX - minX)
 
-            self._logger.debug('finished reading file length={} width={} time={}'.format(length, width, timer() - start))
+            self._logger.debug('finished reading file length={} width={} positioning={} time={}'.format(length, width, positioning, timer() - start))
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_frame_size",
                                                                             length=length,
@@ -666,7 +664,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress comments and extraneous commands that may cause wayward
         # grbl instances to error out
-        if cmd.upper().lstrip().startswith(tuple([';', '(', '%'])):
+        if cmd.upper().lstrip().startswith((";", "(", "%")):
             self._logger.debug('Ignoring extraneous [%s]', cmd)
             return (None, )
 
@@ -850,19 +848,56 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.save()
             return
 
+        # $G response
+        if line.startswith("[GC:"):
+            parserState = line.replace("[", "").replace("]", "").replace("GC:", "")
+
+            for state in parserState.split(" "):
+                if state in ("G90", "G91"):
+                    self.positioning = int(state[2:3])
+                    self._logger.debug("parser state indicates [%s] distance mode", "absolute" if self.positioning == 1 else "relative")
+
+                elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
+                    self._logger.debug("parser state indicates [%s] motion mode", state)
+                elif state in ("G54", "G55", "G56", "G57", "G58", "G59"):
+                    self._logger.debug("parser state indicates [%s] coordinate system available", state)
+                elif state in ("G17", "G18", "G19"):
+                    self._logger.debug("parser state indicates [%s] plane selected", state)
+                elif state in ("G20", "G21"):
+                    self._logger.debug("parser state indicates [%s] uom active", "metric" if state == "G21" else "imperial")
+                elif state in ("G93", "G94"):
+                    self._logger.debug("parser state indicates [%s] feed rate mode", state)
+                elif state in ("M3", "M4", "M5"):
+                    self._logger.debug("parser state indicates [%s] spindle state", state)
+                elif state in ("M7", "M8", "M9"):
+                    self._logger.debug("parser state indicates [%s] coolant state", state)
+
+                elif state.startswith("F"):
+                    self.grblSpeed = round(float(state.replace("F", "")))
+                    self._logger.debug("parser state indicates feed rate of [%d]", self.grblSpeed)
+                elif state.startswith("S"):
+                    self.grblPowerLevel = round(float(state.replace("S", "")))
+                    self._logger.debug("parser state indicates spindle speed of [%d]", self.grblPowerLevel)
+                elif state.startswith("T"):
+                    self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
+
+            return
+
         # look for an alarm
         if line.lower().startswith('alarm:'):
-            match = re.search(r'alarm:\ *(-?[\d.]+)', line.lower())
-
             error = int(0)
+            desc = line
 
+            match = re.search(r'alarm:\ *(-?[\d.]+)', line.lower())
             if not match is None:
                 error = int(match.groups(1)[0])
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_alarm",
-                                                                                code=error,
-                                                                                description=self.grblAlarms.get(error)))
+                desc = self.grblAlarms.get(error)
 
-                self._logger.warning("alarm received: %d: %s", error, self.grblAlarms.get(error))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_alarm",
+                                                                            code=error,
+                                                                            description=desc))
+
+            self._logger.warning("alarm received: %d: %s", error, self.grblAlarms.get(error))
 
             # clear out any pending queued Commands
             if len(self.grblCmdQueue) > 0:
@@ -870,14 +905,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblCmdQueue.clear()
 
             # put a message on our notification queue and force an inquiry
-            self.addToNotifyQueue([line if error == 0 else self.grblAlarms.get(error)])
+            self.addToNotifyQueue([desc])
             self._printer.commands("?")
 
             # we need to pause if we are printing
             if self._printer.is_printing():
                 self._printer.pause_print()
 
-            return 'Error: ' + line if error == 0 else self.grblAlarms.get(error)
+            # return 'Error: ' + desc
+            return "ok " + desc
 
         # look for an error
         if not self.ignoreErrors and line.lower().startswith('error:'):
@@ -890,6 +926,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 error = int(match.groups(1)[0])
                 desc = self.grblErrors.get(error)
 
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
+                                                                            code=error,
+                                                                            description=desc))
             self._logger.warning("error received: %d: %s", error, desc)
 
             # clear out any pending queued Commands
@@ -901,15 +940,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.addToNotifyQueue([desc])
             self._printer.commands("?")
 
-            # lets not let octoprint know if we have a gcode lock error
-            if error == 9:
-                self._logger.debug("not forwarding grbl error 9 to octoprint")
-                return "ok " + line
-            else:
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
-                                                                                code=error,
-                                                                                description=desc))
-            return 'Error: ' + desc
+            # we need to pause if we are printing
+            if self._printer.is_printing():
+                self._printer.pause_print()
+
+            # lets not let octoprint know if we have an "informational" error
+            # if error in (9, 15):
+            #     self._logger.debug("not forwarding grbl error [%d] to octoprint", error)
+            #     return "ok " + line
+
+            # return 'Error: ' + desc
+            return "ok " + desc
 
         # forward any messages to the notification plugin_name
         if "MSG:" in line.upper():
@@ -921,7 +962,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     # automatically perform a soft reset if GRBL says we need one
                     self._printer.commands("M999")
                 else:
+                    # replace MSG: Disabled / Enabled with check mode info
+                    line = line.replace("MSG:Disabled", "Check Mode Disabled")
+                    line = line.replace("MSG:Enabled", "Check Mode Enabled")
+
                     self.addToNotifyQueue([line.replace("[","").replace("]","").replace("MSG:","")])
+                    self._printer.commands("?", force=True)
 
             return
 
@@ -952,7 +998,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     # assign our default distance if it is not already set to the lower of x,y limits
                     if self.distance == 0:
-                        self.distance = min([self.xLimit, self.yLimit])
+                        self.distance = min([self.xLimit - 5, self.yLimit - 5])
                         self._settings.set(["distance"], self.distance)
 
                     self._settings.save()

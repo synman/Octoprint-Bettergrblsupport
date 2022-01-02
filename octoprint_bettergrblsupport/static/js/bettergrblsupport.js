@@ -345,7 +345,7 @@ $(function() {
           self.zPos(Number.parseFloat(data.z).toFixed(2));
           self.speed(data.speed);
 
-          if (data.state != "Run") {
+          if (data.state != "Run" && !self.is_printing()) {
             var btn = document.getElementById("grblLaserButton");
 
             if (btn != null) {
@@ -528,6 +528,9 @@ $(function() {
         webcam_div.show();
       }
     }
+
+    // cute little hack for removing "Print" from the start button
+    $('#job_print')[0].innerHTML = "<i class=\"fas\" data-bind=\"css: {'fa-print': !isPaused(), 'fa-undo': isPaused()}\"></i> <span data-bind=\"text: (isPaused() ? 'Restart' : 'Start')\">Start</span>"
 
 
     /* view model class, parameters for constructor, container to bind to
