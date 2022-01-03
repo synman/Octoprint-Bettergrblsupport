@@ -454,7 +454,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # - CONNECTED
         if event == Events.CONNECTED:
-            self._printer.commands("$G")
+            self._logger.debug('machine connected')
+            self.queue_cmds_and_send(["$G"])
+            # self._printer.commands("$G")
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
@@ -965,8 +967,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     # replace MSG: Disabled / Enabled with check mode info
                     line = line.replace("MSG:Disabled", "Check Mode Disabled")
                     line = line.replace("MSG:Enabled", "Check Mode Enabled")
+                    # general clean up of the message
+                    line = line.replace("[","").replace("]","").replace("MSG:","")
+                    line = line.replace("\n", "").replace("\r", "")
 
-                    self.addToNotifyQueue([line.replace("[","").replace("]","").replace("MSG:","")])
+                    self.addToNotifyQueue([line])
                     self._printer.commands("?", force=True)
 
             return
