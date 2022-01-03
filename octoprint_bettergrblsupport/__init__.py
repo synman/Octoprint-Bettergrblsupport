@@ -1497,7 +1497,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 repo='OctoPrint-Bettergrblsupport',
                 branch="devel",
                 method="pip",
-                pip='https://github.com/synman/Octoprint-Bettergrblsupport/archive/refs/heads/devel.zip'))
+                current="909e128f6e73309457fb23afa0b8ac06c3b9dd33",
+                pip='https://github.com/synman/Octoprint-Bettergrblsupport/archive/{target_version}.zip'))
 
         else:
             return dict(bettergrblsupport=dict(  # version check: github repository
