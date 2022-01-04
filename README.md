@@ -1,6 +1,6 @@
 # Better Grbl Support Plugin for Octoprint
 
-![grbl](https://raw.githubusercontent.com/gnea/gnea-Media/master/Grbl%20Logo/Grbl%20Logo%20250px.png)
+![grbl](https://user-images.githubusercontent.com/1299716/147993411-7005d1bb-53bf-4277-9e09-5022b40ccc0b.png)
 
 This plugin was inspired by mic159's Grbl Support plugin (https://plugins.octoprint.org/plugins/octoprint-grbl-plugin/).  His plugin gets you 90% of the way there for adding Grbl support to Octoprint but had a couple limitations and lacked some bells and whistles from a UI and configuration perspective.
 
