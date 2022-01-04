@@ -17,6 +17,7 @@ $(function() {
       var laserButtons = $('#laser_buttons');
       var webcam_div = $('#webcam_div');
       var webcam_image_framing = $('#webcam_image_framing');
+      var overridesPanel = $('#overrides_panel');
 
       var container;
 
@@ -52,6 +53,11 @@ $(function() {
       self.zPos = ko.observable("N/A");
       self.power = ko.observable("N/A");
       self.speed = ko.observable("N/A");
+
+      self.feedRate = ko.observable(undefined);
+      self.plungeRate = ko.observable(undefined);
+      self.powerRate = ko.observable(undefined);
+
 
       tab = document.getElementById("tab_plugin_bettergrblsupport_link");
       tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
@@ -270,9 +276,17 @@ $(function() {
           dataType: "json",
           data: JSON.stringify({
             command: command,
-            origin_axis: self.origin_axis()
+            origin_axis: self.origin_axis(),
+            feed_rate: self.feedRate(),
+            plunge_rate: self.plungeRate(),
+            power_rate: self.powerRate()
           }),
           contentType: "application/json; charset=UTF-8",
+          success: function(data) {
+            if (command == "feedRate") self.feedRate(undefined);
+            if (command == "plungeRate") self.plungeRate(undefined);
+            if (command == "powerRate") self.powerRate(undefined);
+          },
           error: function (data, status) {
             new PNotify({
               title: "Unable to send command: " + command,
@@ -360,7 +374,7 @@ $(function() {
           }
 
           self.power(data.power);
-          console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
+          // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
           return
         }
 
@@ -516,6 +530,12 @@ $(function() {
         } else {
           laserButtons.show();
         }
+
+        if (overridesPanel.is(':visible')) {
+          overridesPanel.hide();
+        } else {
+          overridesPanel.show();
+        }
       }
 
       self.onWebcamFrameErrored = function() {
@@ -528,6 +548,61 @@ $(function() {
         webcam_div.show();
       }
     }
+
+    self.feedRateResetter = ko.observable();
+    self.resetFeedRateDisplay = function () {
+        self.cancelFeedRateDisplayReset();
+        self.feedRateResetter(
+            setTimeout(function () {
+                self.feedRate(undefined);
+                self.feedRateResetter(undefined);
+            }, 5000)
+        );
+    };
+    self.cancelFeedRateDisplayReset = function () {
+        var resetter = self.feedRateResetter();
+        if (resetter) {
+            clearTimeout(resetter);
+            self.feedRateResetter(undefined);
+        }
+    };
+
+    self.plungeRateResetter = ko.observable();
+    self.resetPlungeRateDisplay = function () {
+        self.cancelPlungeRateDisplayReset();
+        self.plungeRateResetter(
+            setTimeout(function () {
+                self.plungeRate(undefined);
+                self.plungeRateResetter(undefined);
+            }, 5000)
+        );
+    };
+    self.cancelPlungeRateDisplayReset = function () {
+        var resetter = self.plungeRateResetter();
+        if (resetter) {
+            clearTimeout(resetter);
+            self.plungeRateResetter(undefined);
+        }
+    };
+
+    self.powerRateResetter = ko.observable();
+    self.resetPowerRateDisplay = function () {
+        self.cancelPowerRateDisplayReset();
+        self.powerRateResetter(
+            setTimeout(function () {
+                self.powerRate(undefined);
+                self.powerRateResetter(undefined);
+            }, 5000)
+        );
+    };
+    self.cancelPowerRateDisplayReset = function () {
+        var resetter = self.powerRateResetter();
+        if (resetter) {
+            clearTimeout(resetter);
+            self.powerRateResetter(undefined);
+        }
+    };
+
 
     // cute little hack for removing "Print" from the start button
     $('#job_print')[0].innerHTML = "<i class=\"fas\" data-bind=\"css: {'fa-print': !isPaused(), 'fa-undo': isPaused()}\"></i> <span data-bind=\"text: (isPaused() ? 'Restart' : 'Start')\">Start</span>"

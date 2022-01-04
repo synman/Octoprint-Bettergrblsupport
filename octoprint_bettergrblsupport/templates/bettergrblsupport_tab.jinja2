@@ -1,5 +1,71 @@
-<!-- ko if: settings.settings.webcam.webcamEnabled -->
+<h5>&nbsp;Framing</h5>
+
+<div id="framing_panel" style="text-align: center; overflow: hidden; margin: 10px 10px 10px 10px;" valign="top">
+  <span style="margin: 0px 10px 0px 10px; display: inline-block; vertical-align: bottom; border: 1px solid; border-radius: 15px">
+     <table>
+        <tr>
+           <td style="padding: 0px 0px 0px 10px;" align="left">Length</td>
+           <td style="padding: 10px 10px 0px 10px; vertical-align: middle;">
+              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: length" placeholder="100">mm
+           </td>
+        </tr>
+        <tr>
+           <td colspan=2>&nbsp;</td>
+        </tr>
+        <tr>
+           <td  style="padding: 0px 0px 0px 10px;" align="left">&nbsp;Width</td>
+           <td style="padding: 0px 10px 0px 10px; vertical-align: middle;">
+              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: width" placeholder="100">mm
+           </td>
+        </tr>
+     </table>
+  </span>
+
+  <span style="margin: 10px 10px 0px 10px; display: inline-block; vertical-align: middle;">
+     <table width="200px" border=0 cellpadding=0>
+        <tr>
+           <td align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
+              <label>Starting Position</label>
+           </td>
+        </tr>
+        <tr>
+           <td align="center">
+              <table style="border: 1px solid;" >
+                 <tr>
+                    <td>
+                       <table border=0 align="center" id="radio_buttons">
+                          <tr>
+                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 0px 20px 10px 20px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                          <tr>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterLeft" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblCenter" name="frameOrigin" type="radio" checked/></td>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                          <tr>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomLeft" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblBottomCenter" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                       </table>
+                    </td>
+                 </tr>
+              </table>
+           </td>
+        </tr>
+     </table>
+  </span>
+
+  <span id="frame_button" style="margin: 30px 10px 0px 10px; display: inline-block; vertical-align: middle;" >
+    <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
+  </span>
+</div>
+
 <hr>
+
+<!-- ko if: settings.settings.webcam.webcamEnabled -->
 <div id="webcam_container_framing">
    <div id="webcam_rotator_framing" data-bind="css: { webcam_rotated: settings.webcam_rotate90(), webcam_unrotated: !settings.webcam_rotate90() }">
       <div class="webcam_fixed_ratio" data-bind="css: webcamFrameRatioClass">
@@ -10,8 +76,9 @@
    </div>
 </div>
 <hr>
-<h5>&nbsp;Control</h5>
 <!-- /ko -->
+
+<h5>&nbsp;Control</h5>
 
 <div style="text-align: center; overflow: hidden; margin: 0px 10px 0px 10px;" valign="top" align="center">
    <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 20px 20px 20px; vertical-align: middle;">
@@ -63,61 +130,61 @@
                <h5>Z</h5>
             </td>
             <td style="padding: 0px 0px 10px 20px;" align="left">
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('origin') }">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('origin') }">
                <i class="fa fa-crosshairs"></i>
                </button>
             </td>
          </tr>
          <tr>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('up')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('up')}">
                  <i class="fa fa-arrow-up"></i>
                </button>
             </td>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('northwest')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('northwest')}">
                  <i class="fa fa-arrow-up" style="transform: rotate(-45deg);"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('north')}">
+               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('north')}">
                  <i class="fa fa-arrow-up"></i>
                </button>
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('northeast')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('northeast')}">
                  <i class="fa fa-arrow-up" style="transform: rotate(45deg);"></i>
                </button>
             </td>
          </tr>
          <tr>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('probez')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('probez')}">
                  <i class="fa fa-search-plus"></i>
                </button>
             </td>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('west')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('west')}">
                  <i class="fa fa-arrow-left"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('home')}">
+               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('home')}">
                  <i class="fa fa-home"></i>
                </button>
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('east')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('east')}">
                  <i class="fa fa-arrow-right"></i>
                </button>
             </td>
          </tr>
          <tr>
             <td style="padding: 0px 0px 20px 0px;">
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('down')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('down')}">
                <i class="fa fa-arrow-down"></i>
                </button>
             </td>
             <td style="padding: 0px 0px 20px 0px;">
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('southwest')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('southwest')}">
                <i class="fa fa-arrow-down" style="transform: rotate(45deg);"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('south')}">
+               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('south')}">
                <i class="fa fa-arrow-down"></i>
                </button>
-               <button class="btn box" style="border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('southeast')}">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Jog'), click: function() {moveHead('southeast')}">
                <i class="fa fa-arrow-down" style="transform: rotate(-45deg);"></i>
                </button>
             </td>
@@ -133,7 +200,7 @@
                   <!-- /ko -->
                </span>
                <span>
-                 <input type="number" value="1000" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 0px 0px 0px 2px" data-bind="textInput: distance"></button>
+                 <input type="number" value="100" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 0px 0px 0px 2px" data-bind="textInput: distance"></button>
                </span>
             </td>
          </tr>
@@ -160,68 +227,33 @@
    </span>
 </div>
 
-<hr>
-<h5>&nbsp;Framing</h5>
+<br>
 
-<div style="text-align: center; overflow: hidden; margin: 0px 20px 0px 20px;">
-  <span style="margin: 0px 49px 20px 49px; display: inline-block; vertical-align: middle; border: 1px solid; border-radius: 15px">
-     <table>
-        <tr>
-           <td style="padding: 0px 0px 0px 10px;" align="left">Length</td>
-           <td style="padding: 10px 10px 0px 10px; vertical-align: middle;">
-              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: length" placeholder="100">mm
-           </td>
-        </tr>
-        <tr>
-           <td colspan=2>&nbsp;</td>
-        </tr>
-        <tr>
-           <td  style="padding: 0px 0px 0px 10px;" align="left">&nbsp;Width</td>
-           <td style="padding: 0px 10px 0px 10px; vertical-align: middle;">
-              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: width" placeholder="100">mm
-           </td>
-        </tr>
-     </table>
+<div id="overrides_panel" style="text-align: center; overflow: hidden; margin: 0px 10px 0px 10px;" valign="top" align="center">
+  <span id="grbl-control-jog-zy-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 10px 20px 20px 20px; margin: 10px 20px 10px 20px;">
+      <label>Feed Rate Modifier</label>
+      <span class="input-append control-box">
+          <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: feedRate, event: { blur: resetFeedRateDisplay, focus: cancelFeedRateDisplayReset }, css: { pulsate_text_opacity: feedRateResetter() !== undefined }">
+          <span class="add-on">%</span>
+          <button class="btn" data-bind="enable: is_operational() && is_printing() && feedRate(), click: function() { $root.sendCommand('feedRate') }">Set</button>
+      </span>
   </span>
 
-  <span id="framingPanel" style="margin: 0px 49px 40px 49px; display: inline-block; vertical-align: middle;">
-     <table width="200px" border=0 cellpadding=0>
-        <tr>
-           <td align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
-              <label>Starting Position</label>
-           </td>
-        </tr>
-        <tr>
-           <td align="center">
-              <table style="border: 1px solid;" >
-                 <tr>
-                    <td>
-                       <table border=0 align="center" id="radio_buttons">
-                          <tr>
-                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 0px 20px 10px 20px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                          <tr>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblCenter" name="frameOrigin" type="radio" checked/></td>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                          <tr>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblBottomCenter" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                       </table>
-                    </td>
-                 </tr>
-              </table>
-           </td>
-        </tr>
-     </table>
+  <span id="grbl-control-jog-z-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 10px 20px 20px 20px; margin: 10px 20px 10px 20px;">
+      <label>Plunge Rate Modifier</label>
+      <span class="input-append control-box">
+          <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: plungeRate, event: { blur: resetPlungeRateDisplay, focus: cancelPlungeRateDisplayReset }, css: { pulsate_text_opacity: plungeRateResetter() !== undefined }">
+          <span class="add-on">%</span>
+          <button class="btn" data-bind="enable: is_operational() && is_printing() && plungeRate(), click: function() { $root.sendCommand('plungeRate') }">Set</button>
+      </span>
   </span>
 
-  <span id="frame_button" style="margin: 0px 49px 40px 49px; display: inline-block; vertical-align: middle;" >
-    <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
+  <span id="grbl-control-jog-flowrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 10px 20px 20px 20px; margin: 10px 20px 10px 20px;">
+      <label>Spindle / Power Modifier</label>
+      <span class="input-append control-box">
+          <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: powerRate, event: { blur: resetPowerRateDisplay, focus: cancelPowerRateDisplayReset }, css: { pulsate_text_opacity: powerRateResetter() !== undefined }">
+          <span class="add-on">%</span>
+          <button class="btn" data-bind="enable: is_operational() && is_printing() && powerRate(), click: function() { $root.sendCommand('powerRate') }">Set</button>
+      </span>
   </span>
 </div>

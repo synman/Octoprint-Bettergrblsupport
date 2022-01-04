@@ -116,6 +116,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.zProbeTravel = float(0.00)
         self.zProbeEndPos = float(5.00)
 
+        self.feedRate = float(0)
+        self.plungeRate = float(0)
+        self.powerRate = float(0)
+
         # load up our item/value pairs for errors, warnings, and settings
         self.loadGrblDescriptions()
 
@@ -460,15 +464,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
-            if self.grblState != "Idle":
+            if not self.grblState in ("Idle", "Check"):
                 # we have to stop This
                 self._printer.cancel_print()
                 return
 
+            # reset our rate overrides
+            self.feedRate = 0
+            self.plungeRate = 0
+            self.powerRate = 0
+
             self.addToNotifyQueue(["Pgm Begin"])
             self._printer.commands("?", force=True)
-
-            self.grblState = "Run"
             return
 
         # Print ended (finished / failed / cancelled)
@@ -531,7 +538,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 # use our saved G command if our line starts with a coordinate
                 if line.upper().lstrip().startswith(("X", "Y", "Z")):
-                    command = lastGCommand + " " + line.upper().strip()
+                    command = lastGCommand.upper() + " " + line.upper().strip()
                 else:
                     command = line.upper().strip()
 
@@ -546,14 +553,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     continue
 
                 # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
-                match = re.search(r".*[Xx]\ *(-?[\d.]+).*", command)
+                match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
                 if not match is None:
                     x = float(match.groups(1)[0]) if positioning == 0 else x + float(match.groups(1)[0])
                     if x < minX: minX = x
                     if x > maxX: maxX = x
 
                 # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
-                match = re.search(r".*[Yy]\ *(-?[\d.]+).*", command)
+                match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
                 if not match is None:
                     y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
                     if y < minY: minY = y
@@ -753,35 +760,54 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # use our saved G command if our line starts with a coordinate
         if cmd.upper().lstrip().startswith(("X", "Y", "Z")):
-            command = self.lastGCommand + " " + cmd.upper().strip()
+            command = self.lastGCommand.upper() + " " + cmd.upper().strip()
         else:
             command = cmd.upper().strip()
 
         # keep track of distance traveled
         found = False
+        foundZ = False
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Xx]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
         if not match is None:
             self.grblX = float(match.groups(1)[0]) if self.positioning == 0 else self.grblX + float(match.groups(1)[0])
             found = True
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Yy]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
         if not match is None:
             self.grblY = float(match.groups(1)[0]) if self.positioning == 0 else self.grblY + float(match.groups(1)[0])
             found = True
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Zz]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Z]\ *(-?[\d.]+).*", command)
         if not match is None:
             self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
             found = True
+            foundZ = True
 
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Ff]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[F]\ *(-?[\d.]+).*", command)
         if not match is None:
             grblSpeed = round(float(match.groups(1)[0]))
+
+            if (self.feedRate != 0 or self.plungeRate != 0) and grblSpeed != 0:
+                # check if feed rate is overridden
+                if self.feedRate != 0:
+                    if not foundZ:
+                        grblSpeed = round(grblSpeed * self.feedRate)
+                        command = command.replace("F" + match.groups(1)[0], "F{}".format(grblSpeed))
+                        command = command.replace("F " + match.groups(1)[0], "F {}".format(grblSpeed))
+                        self._logger.debug("feed rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
+
+                # check if plunge rate is overridden
+                if self.plungeRate != 0:
+                    if foundZ:
+                        grblSpeed = roud(grblSpeed * self.plungeRate)
+                        command = command.replace("F" + match.groups(1)[0], "F{:.5f}".format(grblSpeed))
+                        command = command.replace("F " + match.groups(1)[0], "F {:.5f}".format(grblSpeed))
+                        self._logger.debug("plunge rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
 
             # make sure we post all speed on / off events
             if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
@@ -791,9 +817,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             found = True
 
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Ss]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[S]\ *(-?[\d.]+).*", command)
         if not match is None:
             grblPowerLevel = round(float(match.groups(1)[0]))
+
+            # check if power rate is overridden
+            if self.powerRate != 0 and grblPowerLevel != 0:
+                grblPowerLevel = round(grblPowerLevel * self.powerRate)
+                command = command.replace("S" + match.groups(1)[0], "S{:.5f}".format(grblPowerLevel))
+                command = command.replace("S " + match.groups(1)[0], "S {:.5f}".format(grblPowerLevel))
+                self._logger.debug("power rate modified from [{}] to [{}]".format(match.groups(1)[0], grblPowerLevel))
 
             # make sure we post all power on / off events
             self.grblPowerLevel = grblPowerLevel
@@ -1050,8 +1083,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel))
 
-            # pop any queued commands if state is IDLE or HOLD:0
-            if len(self.grblCmdQueue) > 0 and (self.grblState.upper().strip() == "IDLE" or self.grblState.upper().strip() == "HOLD:0"):
+            # pop any queued commands if state is IDLE or HOLD:0 or Check
+            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK"):
                 self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
                 self._printer.commands(self.grblCmdQueue[0])
                 self.grblCmdQueue.pop(0)
@@ -1070,8 +1103,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # pop any queued notifications
             if len(self.notifyQueue) > 0:
                 notification = self.notifyQueue[0]
+                if notification == "Pgm Begin": self.grblState = "Run"
+
                 self._logger.debug('sending queued notification [%s] - depth [%d]', notification, len(self.notifyQueue))
                 self.notifyQueue.pop(0)
+
                 return "//action:notification " + notification
 
             return response
@@ -1209,7 +1245,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             homing=[],
             updateGrblSetting=[],
             backupGrblSettings=[],
-            restoreGrblSettings=[]
+            restoreGrblSettings=[],
+            feedRate=[],
+            plungeRate=[],
+            powerRate=[]
         )
 
 
@@ -1268,6 +1307,37 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             speed="N/A",
                                                                             power="N/A"))
             return
+
+        if command == "feedRate":
+            feedRate = float(data.get("feed_rate"))
+            if not feedRate in (0, 100):
+                self.feedRate = feedRate * .01
+            else:
+                self.feedRate = float(0)
+
+            self._logger.info("feed rate overriden by %.0f%%", feedRate)
+            return
+
+        if command == "plungeRate":
+            plungeRate = float(data.get("plunge_rate"))
+            if not plungeRate in (0, 100):
+                self.plungeRate = plungeRate * .01
+            else:
+                self.plungeRate = float(0)
+
+            self._logger.info("plunge rate overriden by %.0f%%", plungeRate)
+            return
+
+        if command == "powerRate":
+            powerRate = float(data.get("power_rate"))
+            if not powerRate in (0, 100):
+                self.powerRate = powerRate * .01
+            else:
+                self.powerRate = float(0)
+
+            self._logger.info("power rate overriden by %.0f%%", powerRate)
+            return
+
 
         # catch-all (should revisit state management) for validating printer State
         if not self._printer.is_ready() or not self.grblState in ("Idle", "Jog"):
