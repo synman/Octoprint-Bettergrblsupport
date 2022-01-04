@@ -235,6 +235,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # hardcoded global settings -- should revisit how I manage these
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
+        self._settings.global_set_boolean(["feature", "sdSupport"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
 
         if self.neverSendChecksum:
@@ -591,8 +592,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def cleanUpDueToUninstall(self, remove_profile=True):
-        # re-enable model size detection and send checksum
+        # re-enable model size detection, sd card support, and send checksum
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], True)
+        self._settings.global_set_boolean(["feature", "sdSupport"], True)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
 
         # load maps of disabled plugins & tabs
