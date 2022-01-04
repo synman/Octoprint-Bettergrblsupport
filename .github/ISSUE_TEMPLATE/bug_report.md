@@ -23,7 +23,7 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Logs
+**Logs**
 Please provide your octoprint.log and serial.log files.  At the very least copy/paste your terminal tab contents.
 
 **Additional context**
