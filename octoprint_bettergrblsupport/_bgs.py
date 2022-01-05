@@ -29,6 +29,11 @@
 import os
 import time
 import re
+import requests
+
+from .zprobe import ZProbe
+
+zProbe = None
 
 def loadGrblDescriptions(_plugin):
     path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
@@ -309,6 +314,23 @@ def toggleWeak(_plugin):
 
     return res
 
+def do_probez(_plugin):
+    global zProbe
+
+    if not zProbe == None:
+        zProbe.teardown()
+        zProbe = None
+
+    zProbe = ZProbe(_plugin, zProbe_hook)
+    zProbe.probe()
+
+def zProbe_hook(_plugin, notification):
+    global zProbe
+
+    _plugin._logger.debug("hooked on " + notification)
+
+    zProbe.teardown()
+    zProbe = None
 
 def queue_cmds_and_send(_plugin, cmds, wait=False):
     for cmd in cmds:
@@ -323,7 +345,12 @@ def queue_cmds_and_send(_plugin, cmds, wait=False):
 
         _plugin._logger.debug("done waiting for command queue to drain")
 
+
 def addToNotifyQueue(_plugin, notifications):
+
+    if not zProbe is None:
+        zProbe.notify(notifications)
+
     for notification in notifications:
         _plugin._logger.debug("queuing notification [%s]", notification)
         _plugin.notifyQueue.append(notification)

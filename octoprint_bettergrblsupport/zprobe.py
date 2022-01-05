@@ -9,6 +9,10 @@ class ZProbe:
         self._hook = _hook
         _plugin._logger.info("ZProbe initialized")
 
+    def probe(self):
+        _plugin._printer.commands("G91 G21 G38.2 Z-{} F100 ?".format(_plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
+
+
     def notify(self, notifications):
         for notification in notifications:
             if "Check Mode" in notification:

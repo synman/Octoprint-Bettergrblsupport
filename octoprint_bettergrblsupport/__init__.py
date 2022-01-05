@@ -31,7 +31,6 @@ from octoprint.events import Events
 from timeit import default_timer as timer
 from shutil import copyfile
 
-# from .zprobe import ZProbe
 from . import _bgs
 
 import octoprint.plugin
@@ -125,8 +124,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.loadGrblDescriptions(self)
-
-        # self.zProbe = ZProbe()
 
     # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
@@ -1183,6 +1180,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "probez":
                 # probe z using offset
+                # _bgs.do_probez(self)
                 _bgs.queue_cmds_and_send(self, ["G91 G21 G38.2 Z-{} F100 ?".format(self.zLimit if self.zProbeTravel == 0 else self.zProbeTravel),
                                           "?",
                                           "G92 Z{}".format(self.zProbeOffset),
