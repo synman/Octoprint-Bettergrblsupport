@@ -3,23 +3,20 @@
 	<hr>
 		<div class="control-group">
 				<div class="controls">
-						<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
+							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
 						<br>
-						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
+							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
 						<br>
-						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
+							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
 						<br>
-						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
+							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
 						<!-- ko ifnot: settings.settings.plugins.bettergrblsupport.hideControlTab -->
-							<br>
-							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
+								<br>
+								<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
 						<!-- /ko -->
 						<br>
 						<br>
-						<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
-
-						</label>
+							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
 				</div>
 		</div>
 
@@ -41,11 +38,9 @@
 			<div class="controls">
 					<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.statusCommand">
 					<br>
-					<label class="checkbox">
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
 					<br>
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.disablePolling"> Disable status polling while printing
-					</label>
 			</div>
 		</div>
 
@@ -68,7 +63,6 @@
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
 				</label>
 				<br>
-				<label class="checkbox">
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.doSmoothie"> Smoothieware Support (EXPERIMENTAL)
 					<br>
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
@@ -81,7 +75,6 @@
 					<br>
 					<br>
 					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.ignoreErrors"> Ignore Firmware Errors (NOT RECOMMENDED)
-				</label>
 		</div>
 
 		<br>
@@ -164,7 +157,7 @@
 					<tr>
 						<td align="center" data-bind="text: id"></td>
 						<td align="center">
-									<input type="text" class="input-min" style="width: 120px" data-bind="numeric, value: value, event: { change: $parent.updateSetting(id, value, oldvalue) }">
+									<input type="text" class="input-min" style="width: 80px" data-bind="numeric, value: value, event: { change: $parent.updateSetting(id, value, oldvalue) }">
 						</td>
 						<td align="left" data-bind="text: description"></td>
 					</tr>
