@@ -1180,11 +1180,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "probez":
                 # probe z using offset
-                # _bgs.do_probez(self)
-                _bgs.queue_cmds_and_send(self, ["G91 G21 G38.2 Z-{} F100 ?".format(self.zLimit if self.zProbeTravel == 0 else self.zProbeTravel),
-                                          "?",
-                                          "G92 Z{}".format(self.zProbeOffset),
-                                          "G0 Z{}".format(self.zProbeEndPos)])
+                _bgs.do_probez(self)
+                # _bgs.queue_cmds_and_send(self, ["G91 G21 G38.2 Z-{} F100 ?".format(self.zLimit if self.zProbeTravel == 0 else self.zProbeTravel),
+                #                           "?",
+                #                           "G92 Z{}".format(self.zProbeOffset),
+                #                           "G0 Z{}".format(self.zProbeEndPos)])
                 return
 
             # check distance against limits
