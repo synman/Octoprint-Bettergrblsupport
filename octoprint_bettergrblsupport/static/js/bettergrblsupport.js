@@ -10,14 +10,11 @@ $(function() {
       var fs = false;
 
       var $body = $('body');
-      var jogPanel = $('#jog_panel');
       var framingPanel = $('#framing_panel');
-      var radioButtons = $('#radio_buttons');
-      var frameButton = $('#frame_button');
-      var laserButtons = $('#laser_buttons');
+      var controlPanel = $('#control_panel');
+      var overridesPanel = $('#overrides_panel');
       var webcam_div = $('#webcam_div');
       var webcam_image_framing = $('#webcam_image_framing');
-      var overridesPanel = $('#overrides_panel');
 
       var container;
 
@@ -501,34 +498,16 @@ $(function() {
           progressBar.style.visibility = "visible";
         }
 
-        if (jogPanel.is(':visible')) {
-          jogPanel.hide();
-        } else {
-          jogPanel.show();
-        }
-
         if (framingPanel.is(':visible')) {
           framingPanel.hide();
         } else {
           framingPanel.show();
         }
 
-        if (radioButtons.is(':visible')) {
-          radioButtons.hide();
+        if (controlPanel.is(':visible')) {
+          controlPanel.hide();
         } else {
-          radioButtons.show();
-        }
-
-        if (frameButton.is(':visible')) {
-          frameButton.hide();
-        } else {
-          frameButton.show();
-        }
-
-        if (laserButtons.is(':visible')) {
-          laserButtons.hide();
-        } else {
-          laserButtons.show();
+          controlPanel.show();
         }
 
         if (overridesPanel.is(':visible')) {
