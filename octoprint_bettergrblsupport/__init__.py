@@ -1263,7 +1263,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         useDevChannel = self._settings.get_boolean(["useDevChannel"])
 
         if useDevChannel:
-            __plugin_version__ = "0.1.0" 
+            __plugin_version__ = str(os.path.getmtime(os.path.realpath(__file__)))
 
             return dict(bettergrblsupport=dict(  # version check: github repository
                                                  # update method: pip
