@@ -814,9 +814,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 error = int(match.groups(1)[0])
                 desc = self.grblAlarms.get(error)
 
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_alarm",
-                                                                            code=error,
-                                                                            description=desc))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
+                                                                            title="Grbl Alarm #" + error + " Received",
+                                                                            text=desc,
+                                                                            hide=True,
+                                                                            delay=10000,
+                                                                            type="notice"))
 
             self._logger.warning("alarm received: %d: %s", error, self.grblAlarms.get(error))
 
@@ -847,9 +850,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 error = int(match.groups(1)[0])
                 desc = self.grblErrors.get(error)
 
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_error",
-                                                                            code=error,
-                                                                            description=desc))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
+                                                                            title="Grbl Error #" + error + " Received",
+                                                                            text=desc,
+                                                                            hide=True,
+                                                                            delay=10000,
+                                                                            type="error"))
             self._logger.warning("error received: %d: %s", error, desc)
 
             # clear out any pending queued Commands

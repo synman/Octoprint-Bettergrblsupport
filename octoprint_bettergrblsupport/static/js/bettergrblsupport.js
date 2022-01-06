@@ -401,41 +401,21 @@ $(function() {
           return
         }
 
-        if (plugin == 'bettergrblsupport' && data.type == 'grbl_error') {
+        if (plugin == 'bettergrblsupport' && data.type == 'simple_notify') {
           new PNotify({
-            title: "Grbl Error #" + data.code + " Received",
-            text: data.description,
-            hide: true,
+            title: data.title,
+            text: data.text,
+            hide: data.hide,
             animation: "fade",
             animateSpeed: "slow",
             mouseReset: true,
-            delay: 10000,
+            delay: data.delay,
             buttons: {
               sticker: true,
               closer: true
             },
-            type: "error",
+            type: data.type,
           });
-          console.log("error code=" + data.code + " desc=" + data.description);
-          return
-        }
-
-        if (plugin == 'bettergrblsupport' && data.type == 'grbl_alarm') {
-          new PNotify({
-            title: "Grbl Alarm #" + data.code + " Received",
-            text: data.description,
-            hide: true,
-            animation: "fade",
-            animateSpeed: "slow",
-            mouseReset: true,
-            delay: 10000,
-            buttons: {
-              sticker: true,
-              closer: true
-            },
-            type: "notice"
-          });
-          console.log("alarm code=" + data.code + " desc=" + data.description);
           return
         }
 

@@ -324,13 +324,34 @@ def do_probez(_plugin):
     zProbe = ZProbe(_plugin, zProbe_hook)
     zProbe.probe()
 
-def zProbe_hook(_plugin, notification):
+def zProbe_hook(_plugin, result, position):
     global zProbe
-
-    _plugin._logger.debug("hooked on " + notification)
-
     zProbe.teardown()
     zProbe = None
+
+    title = ""
+    text = ""
+    type = ""
+
+    if result == 1:
+        text = "Z Axis Home has been calcuated as [{:.3f}]".format(position - _plugin.zProbeOffset)
+        type="simple_notify"
+        title="Z Probe Completed"
+        type="success"
+    else:
+        type="simple_notify"
+        title="Z Probe Failed"
+        text="Please check the machine to determine the cause of this failure."
+        type="notice"
+
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
+                                                                         title=title,
+                                                                          text=text,
+                                                                          hide=False,
+                                                                         delay=0,
+                                                                          type=type
+
+    _plugin._logger.debug("zprobe hook position: [%f] result: [%d]", position, result)
 
 def queue_cmds_and_send(_plugin, cmds, wait=False):
     for cmd in cmds:
