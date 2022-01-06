@@ -329,27 +329,31 @@ def zProbe_hook(_plugin, result, position):
     zProbe.teardown()
     zProbe = None
 
+    type = ""
     title = ""
     text = ""
-    type = ""
+    notify_type = ""
 
     if result == 1:
-        text = "Z Axis Home has been calcuated as [{:.3f}]".format(position - _plugin.zProbeOffset)
+        _plugin._printer.commands(["G91", "G21", "G92 Z{}".format(_plugin.zProbeOffset), "G0 Z{}".format(_plugin.zProbeEndPos)])
+
         type="simple_notify"
         title="Z Probe Completed"
-        type="success"
-    else:
-        type="simple_notify"
-        title="Z Probe Failed"
-        text="Please check the machine to determine the cause of this failure."
-        type="notice"
+        text = "Z Axis Home has been calculated and (temporarily) set to machine location {:.3f}".format(position - _plugin.zProbeOffset)
+        notify_type="success"
 
-    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
-                                                                         title=title,
-                                                                          text=text,
-                                                                          hide=False,
-                                                                         delay=0,
-                                                                          type=type
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
+                                                                             title=title,
+                                                                              text=text,
+                                                                              hide=False,
+                                                                             delay=0,
+                                                                       notify_type=notify_type))
+    # else:
+    #     type="simple_notify"
+    #     title="Z Probe Failed!"
+    #     text="Please check the machine to determine the cause of this failure."
+    #     notify_type="notice"
+
 
     _plugin._logger.debug("zprobe hook position: [%f] result: [%d]", position, result)
 

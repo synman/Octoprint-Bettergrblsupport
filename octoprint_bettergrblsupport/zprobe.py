@@ -26,32 +26,41 @@
 # https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface#grbl-push-messages
 # https://reprap.org/wiki/G-codeimport os
 #
+from . import _bgs
 
 class ZProbe:
     _plugin = None
     _hook = None
+
 
     def __init__(self, _plugin, _hook):
         self._plugin = _plugin
         self._hook = _hook
         _plugin._logger.debug("ZProbe initialized")
 
+
     def probe(self):
-        _plugin._printer.commands("G91 G21 G38.2 Z-{} F100".format(_plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel))
-        _plugin._logger.debug("ZProbe probe")
+        _bgs.addToNotifyQueue(self._plugin, ["Z-Probe Initiated"])
+
+        self._plugin._plugin_manager.send_plugin_message(self._plugin._identifier, dict(type="grbl_state", state="Run"))
+        self._plugin._printer.commands(["$G", "G91", "G21", "G38.2 Z-{} F100".format(self._plugin.zLimit if self._plugin.zProbeTravel == 0 else self._plugin.zProbeTravel)], force=True)
+        self._plugin._logger.debug("ZProbe probe")
+
 
     def notify(self, notifications):
         for notification in notifications:
             # [PRB:0.000,0.000,0.000:0]
             if notification.startswith("[PRB:"):
-                firstSplit = notification.split(":")
+                firstSplit = notification.replace("[", "").replace("]", "").split(":")
                 secondSplit = firstSplit[1].split(",")
 
                 result = int(float(firstSplit[2]))
                 position = float(secondSplit[2])
 
+                notifications.remove(notification)
                 self._hook(self._plugin, result, position)
 
+
     def teardown(self):
-        _hook = None
-        _plugin = None
+        self._hook = None
+        self._plugin = None

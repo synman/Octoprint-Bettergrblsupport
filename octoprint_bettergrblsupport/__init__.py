@@ -802,7 +802,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif state.startswith("T"):
                     self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
 
-            return
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", speed=self.grblSpeed, power=self.grblPowerLevel))
+
+            return self.pick_a_response(None)
 
         # look for an alarm
         if line.lower().startswith('alarm:'):
@@ -815,11 +817,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 desc = self.grblAlarms.get(error)
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
-                                                                            title="Grbl Alarm #" + error + " Received",
+                                                                            title="Grbl Alarm #{} Received".format(error),
                                                                             text=desc,
                                                                             hide=True,
                                                                             delay=10000,
-                                                                            type="notice"))
+                                                                            notify_type="notice"))
 
             self._logger.warning("alarm received: %d: %s", error, self.grblAlarms.get(error))
 
@@ -851,11 +853,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 desc = self.grblErrors.get(error)
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
-                                                                            title="Grbl Error #" + error + " Received",
+                                                                            title="Grbl Error #{} Received".format(error),
                                                                             text=desc,
                                                                             hide=True,
                                                                             delay=10000,
-                                                                            type="error"))
+                                                                            notify_type="error"))
             self._logger.warning("error received: %d: %s", error, desc)
 
             # clear out any pending queued Commands
@@ -992,17 +994,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             #     if stat.startswith("Bf:") or stat.startswith("Pn:"):
             #         self.addToNotifyQueue(stat)
 
-            # pop any queued notifications
-            if len(self.notifyQueue) > 0:
-                notification = self.notifyQueue[0]
-                if notification == "Pgm Begin": self.grblState = "Run"
-
-                self._logger.debug('sending queued notification [%s] - depth [%d]', notification, len(self.notifyQueue))
-                self.notifyQueue.pop(0)
-
-                return "//action:notification " + notification
-
-            return response
+            return self.pick_a_response(response)
 
         if not line.rstrip().endswith('ok'):
             return
@@ -1019,6 +1011,25 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 'ok ' + before
         else:
             return 'ok'
+
+
+    def pick_a_response(self, firstChoice):
+        # pop any queued notifications
+        if len(self.notifyQueue) > 0:
+            notification = self.notifyQueue[0]
+            if notification in ("Pgm Begin", "Z-Probe Initiated"):
+                self.grblState = "Run"
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
+
+            self._logger.debug('sending queued notification [%s] - depth [%d]', notification, len(self.notifyQueue))
+            self.notifyQueue.pop(0)
+
+            return "//action:notification " + notification
+
+        if firstChoice is None:
+            return
+
+        return firstChoice
 
 
     def get_api_commands(self):

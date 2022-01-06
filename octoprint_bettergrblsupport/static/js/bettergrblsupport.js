@@ -349,14 +349,14 @@ $(function() {
 
       self.onDataUpdaterPluginMessage = function(plugin, data) {
         if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
-          self.mode(data.mode);
-          self.state(data.state);
-          self.xPos(Number.parseFloat(data.x).toFixed(2));
-          self.yPos(Number.parseFloat(data.y).toFixed(2));
-          self.zPos(Number.parseFloat(data.z).toFixed(2));
-          self.speed(data.speed);
+          if (data.mode != undefined) self.mode(data.mode);
+          if (data.state != undefined) self.state(data.state);
+          if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
+          if (data.y != undefined) self.yPos(Number.parseFloat(data.y).toFixed(2));
+          if (data.z != undefined) self.zPos(Number.parseFloat(data.z).toFixed(2));
+          if (data.speed != undefined) self.speed(data.speed);
 
-          if (data.state != "Run" && !self.is_printing()) {
+          if (data.state != "Run" && data.power != "N/A" && !self.is_printing()) {
             var btn = document.getElementById("grblLaserButton");
 
             if (btn != null) {
@@ -370,7 +370,7 @@ $(function() {
             }
           }
 
-          self.power(data.power);
+          if (data.power != undefined) self.power(data.power);
           // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
           return
         }
@@ -561,10 +561,16 @@ $(function() {
             self.powerRateResetter(undefined);
         }
     };
-
+ 
 
     // cute little hack for removing "Print" from the start button
     $('#job_print')[0].innerHTML = "<i class=\"fas\" data-bind=\"css: {'fa-print': !isPaused(), 'fa-undo': isPaused()}\"></i> <span data-bind=\"text: (isPaused() ? 'Restart' : 'Start')\">Start</span>"
+
+    // cute hack for changing printer to machine for the action notify sidebar plugin
+    var x = document.getElementById("sidebar_plugin_action_command_notification_wrapper");
+    if (x != undefined) {
+      x.firstElementChild.firstElementChild.innerText = x.firstElementChild.firstElementChild.innerText.replace("Printer", "Machine");
+    }
 
 
     OCTOPRINT_VIEWMODELS.push([
