@@ -35,6 +35,7 @@ from . import _bgs
 
 import octoprint.plugin
 
+import sys
 import os
 import time
 import math
