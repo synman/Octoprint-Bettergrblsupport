@@ -339,7 +339,7 @@ def zProbe_hook(_plugin, result, position):
 
         type="simple_notify"
         title="Z Probe Completed"
-        text = "Z Axis Home has been calculated and (temporarily) set to machine location {:.3f}".format(position - _plugin.zProbeOffset)
+        text = "Z Axis Home has been calculated and (temporarily) set to machine location: [{:.3f}]".format(position - _plugin.zProbeOffset)
         notify_type="success"
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
@@ -348,6 +348,7 @@ def zProbe_hook(_plugin, result, position):
                                                                               hide=False,
                                                                              delay=0,
                                                                        notify_type=notify_type))
+        addToNotifyQueue(_plugin, [text])
     # else:
     #     type="simple_notify"
     #     title="Z Probe Failed!"

@@ -594,7 +594,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('Ignoring %s', cmd)
             return (None,)
 
-        # suppress temperature if printer is printing
+        # suppress temperature if machine is printing
         if cmd.upper().startswith('M105'):
             if self.disablePolling and self._printer.is_printing():
                 self._logger.debug('Ignoring %s', cmd)
