@@ -1263,11 +1263,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         useDevChannel = self._settings.get_boolean(["useDevChannel"])
 
         if useDevChannel:
-            update_script = sys.executable + " -m pip --disable-pip-version-check install {target_version}.zip --ignore-installed --force-reinstall --no-deps --no-cache-dir"
-<<<<<<< HEAD
-            
-=======
->>>>>>> 5a29160ee7fb095dd1d69d292131fd95146e0c57
+            checkout_folder = os.path.dirname(os.path.realpath(sys.executable))
             return dict(bettergrblsupport=dict(  # version check: github repository
                                                  # update method: pip
                 displayName='Better Grbl Support (Development Branch)',
@@ -1276,9 +1272,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 repo='OctoPrint-Bettergrblsupport',
                 branch="devel",
                 method="update_script",
-                update_script=update_script,
-                current="909e128f6e73309457fb23afa0b8ac06c3b9dd33"))
-
+                update_script="{python} -m pip --disable-pip-version-check install https://github.com/synman/Octoprint-Bettergrblsupport/archive/refs/heads/devel.zip --ignore-installed --force-reinstall --no-deps --no-cache-dir",
+                checkout_folder=checkout_folder))
         else:
             return dict(bettergrblsupport=dict(  # version check: github repository
                                                  # update method: pip
