@@ -31,6 +31,8 @@ from . import _bgs
 class ZProbe:
     _plugin = None
     _hook = None
+    _step = -1
+    _locations=[]
 
 
     def __init__(self, _plugin, _hook):

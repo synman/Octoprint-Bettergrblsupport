@@ -315,17 +315,18 @@ def toggleWeak(_plugin):
 
     return res
 
-def do_probez(_plugin):
+
+def do_simple_zprobe(_plugin):
     global zProbe
 
     if not zProbe == None:
         zProbe.teardown()
         zProbe = None
 
-    zProbe = ZProbe(_plugin, zProbe_hook)
+    zProbe = ZProbe(_plugin, simple_zprobe_hook)
     zProbe.probe()
 
-def zProbe_hook(_plugin, result, position):
+def simple_zprobe_hook(_plugin, result, position):
     global zProbe
     zProbe.teardown()
     zProbe = None
@@ -350,14 +351,67 @@ def zProbe_hook(_plugin, result, position):
                                                                              delay=0,
                                                                        notify_type=notify_type))
         addToNotifyQueue(_plugin, [text])
-    # else:
-    #     type="simple_notify"
-    #     title="Z Probe Failed!"
-    #     text="Please check the machine to determine the cause of this failure."
-    #     notify_type="notice"
-
 
     _plugin._logger.debug("zprobe hook position: [%f] result: [%d]", position, result)
+
+
+def do_multipoint_zprobe(_plugin):
+    global zProbe
+
+    if zProbe == None:
+        zProbe = ZProbe(_plugin, multipoint_zprobe_hook)
+
+    if zProbe._step == -1:
+        zProbe._step+=1
+
+        origin = _plugin._settings.get(["frame_origin"])
+        width = float(_plugin._settings.get(["frame_width"])) * .8
+        length = float(_plugin._settings.get(["frame_length"])) * .8
+
+        if origin == "grblTopLeft":
+            zProbe.teardown()
+            zProbe = None
+        elif origin == "grblTopCenter":
+            zProbe.teardown()
+            zProbe = None
+        elif origin == "grblTopRight":
+            zProbe.teardown()
+            zProbe = None
+        elif origin == "grblCenterLeft":
+            zProbe.teardown()
+            zProbe = None
+        elif origin == "grblCenter":
+            zProbe._locations =
+                [
+                    {"x"=0, "y"=0, "action"="probe"},
+                    {"x"=width / 2 * -1, "y"=height / 2 * -1, "action"="probe"},
+                    {"x"=width, "y"=0, "action"="probe"},
+                    {"x"=0, "y"=width, "action"="probe"},
+                    {"x"=width * -1, "y"=0, "action"="probe"},
+                    {"x"=width / 2, "y"=height / 2, "action"="end"}
+                ]
+
+
+        elif origin == "grblCenterRight":
+            zProbe.teardown()
+            zProbe = None
+        elif origin == "grblBottomLeft":
+            zProbe.teardown()
+            zProbe = None
+        elif origin == "grblBottomCenter":
+            zProbe.teardown()
+            zProbe = None
+        elif origin == "grblBottomRight":
+            zProbe.teardown()
+            zProbe = None
+
+    zProbe.probe()
+
+def multipoint_zprobe_hook(_plugin, result, position):
+    zProbe._step+=1
+    _plugin._logger.debug("multipoint_zprobe_hook")
+
+
 
 def queue_cmds_and_send(_plugin, cmds, wait=False):
     for cmd in cmds:

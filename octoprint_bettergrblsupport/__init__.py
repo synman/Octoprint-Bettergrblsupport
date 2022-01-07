@@ -396,7 +396,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_event(self, event, payload):
         subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
-                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED)
+                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED,
+                            Events.DISCONNECTING, Events.DISCONNECTED)
 
         if event not in subscribed_events:
             self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
@@ -422,6 +423,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('machine connected')
             _bgs.queue_cmds_and_send(self, ["$G"])
             # self._printer.commands("$G")
+
+        # Disconnecting & Disconnected
+        if event in (Events.DISCONNECTING, Events.DISCONNECTED):
+            self.grblState = None
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
@@ -595,7 +600,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
-            return ("$I" if self.grblState == "Idle" else "?" , )
+            return ("$I" if self.grblState in (None, "Idle") else "?", )
 
         # suppress initialize SD - M21
         if cmd.upper().startswith('M21'):
@@ -1153,13 +1158,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "frame":
             _bgs.do_framing(self, data)
-
-            self._settings.set(["frame_length"], data.get("length"))
-            self._settings.set(["frame_width"], data.get("width"))
-            self._settings.set(["frame_origin"], data.get("origin"))
-
-            self._settings.save()
-
             self._logger.debug("frame submitted l={} w={} o={}".format(data.get("length"), data.get("width"), data.get("origin")))
             return
 
@@ -1205,12 +1203,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             if direction == "probez":
-                # probe z using offset
-                _bgs.do_probez(self)
-                # _bgs.queue_cmds_and_send(self, ["G91 G21 G38.2 Z-{} F100 ?".format(self.zLimit if self.zProbeTravel == 0 else self.zProbeTravel),
-                #                           "?",
-                #                           "G92 Z{}".format(self.zProbeOffset),
-                #                           "G0 Z{}".format(self.zProbeEndPos)])
+                _bgs.do_simple_zprobe(self)
                 return
 
             # check distance against limits

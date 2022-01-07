@@ -33,19 +33,19 @@
                     <td>
                        <table border=0 align="center" id="radio_buttons">
                           <tr>
-                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 0px 20px 10px 20px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopRight" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" data-bind="click: function() { originChanged('grblTopLeft');return true; }" type="radio"/></td>
+                             <td align="center" style="padding: 0px 20px 10px 20px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" data-bind="click: function() { originChanged('grblTopCenter');return true; }" type="radio"/></td>
+                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopRight" name="frameOrigin" data-bind="click: function() { originChanged('grblTopRight');return true; }" type="radio"/></td>
                           </tr>
                           <tr>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblCenter" name="frameOrigin" type="radio" checked/></td>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterRight" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterLeft" name="frameOrigin" data-bind="click: function() { originChanged('grblCenterLeft');return true; }" type="radio"/></td>
+                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblCenter" name="frameOrigin" data-bind="click: function() { originChanged('grblCenter');return true; }" type="radio" checked/></td>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterRight" name="frameOrigin" data-bind="click: function() { originChanged('grblCenterRight');return true; }" type="radio"/></td>
                           </tr>
                           <tr>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblBottomCenter" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomRight" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomLeft" name="frameOrigin" data-bind="click: function() { originChanged('grblBottomLeft');return true; }" type="radio"/></td>
+                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblBottomCenter" name="frameOrigin" data-bind="click: function() { originChanged('grblBottomCenter');return true; }" type="radio"/></td>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomRight" name="frameOrigin" data-bind="click: function() { originChanged('grblBottomRight');return true; }" type="radio"/></td>
                           </tr>
                        </table>
                     </td>

@@ -17,7 +17,18 @@ $(function () {
 
         self.onBeforeBinding = function() {
           self.length(self.settings.settings.plugins.bettergrblsupport.frame_length());
+
+          self.length.subscribe(function (newValue) {
+            self.settings.settings.plugins.bettergrblsupport.frame_length(newValue);
+            self.settings.saveData();
+          });
+
           self.width(self.settings.settings.plugins.bettergrblsupport.frame_width());
+
+          self.width.subscribe(function (newValue) {
+            self.settings.settings.plugins.bettergrblsupport.frame_width(newValue);
+            self.settings.saveData();
+          });
 
           self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
           self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
@@ -26,9 +37,9 @@ $(function () {
 
           var i;
           for (i = 0; i < x.length; i++) {
+            x[i].checked = false;
             if (x[i].id == self.settings.settings.plugins.bettergrblsupport.frame_origin()) {
               x[i].checked = true;
-              break;
             }
           }
         };
@@ -46,6 +57,10 @@ $(function () {
             self.is_operational(data.flags.operational);
         };
 
+        self.originChanged = function(newOrigin) {
+          self.settings.settings.plugins.bettergrblsupport.frame_origin(newOrigin);
+          self.settings.saveData();
+        };
 
         self.doFrame = function() {
           var o;
