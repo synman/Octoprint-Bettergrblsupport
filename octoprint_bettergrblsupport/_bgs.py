@@ -381,15 +381,14 @@ def do_multipoint_zprobe(_plugin):
             zProbe.teardown()
             zProbe = None
         elif origin == "grblCenter":
-            zProbe._locations =
-                [
-                    {"x"=0, "y"=0, "action"="probe"},
-                    {"x"=width / 2 * -1, "y"=height / 2 * -1, "action"="probe"},
-                    {"x"=width, "y"=0, "action"="probe"},
-                    {"x"=0, "y"=width, "action"="probe"},
-                    {"x"=width * -1, "y"=0, "action"="probe"},
-                    {"x"=width / 2, "y"=height / 2, "action"="end"}
-                ]
+            zProbe._locations = [
+                                    {x: 0, y: 0, action: "probe"},
+                                    {x: width / 2 * -1, y: height / 2 * -1, action: "probe"},
+                                    {x: width, y: 0, action: "probe"},
+                                    {x: 0, y: width, action: "probe"},
+                                    {x: width * -1, y: 0, action: "probe"},
+                                    {x: width / 2, y: height / 2, action: "end"}
+                                ]
 
 
         elif origin == "grblCenterRight":
