@@ -1,9 +1,9 @@
 <div id="framing_panel" style="text-align: center; overflow: hidden;" valign="top">
-  <span style="margin: 10px 0px 0px 0px; display: inline-block; vertical-align: bottom; border: 1px solid; border-radius: 15px">
+  <span style="margin: 5px 5px 5px 5px; display: inline-block; vertical-align: bottom; border: 1px solid; border-radius: 15px">
      <table>
         <tr>
            <td style="padding: 0px 0px 0px 10px;" align="left">Length</td>
-           <td style="padding: 10px 10px 0px 10px; vertical-align: middle; white-space: nowrap;">
+           <td style="padding: 0px 10px 0px 10px; vertical-align: middle; white-space: nowrap;">
               <input type="number" step="1.0" class="input-mini text-right" data-bind="value: length" placeholder="100">mm
            </td>
         </tr>
@@ -19,10 +19,10 @@
      </table>
   </span>
 
-  <span style="margin: 10px 0px 0px 0px; display: inline-block; vertical-align: middle;">
+  <span style="margin: 5px 5px 5px 5px; display: inline-block; vertical-align: middle;">
      <table border=0 cellpadding=0>
         <tr>
-           <td align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
+           <td align="center" valign="bottom">
               <label>Starting Position</label>
            </td>
         </tr>
@@ -56,7 +56,8 @@
      </table>
   </span>
 
-  <span id="frame_button" style="margin: 30px 0px 20px 0px; display: inline-block; vertical-align: middle;" >
+  <span id="frame_button" style="margin: 0px 10px 10px 10px; display: inline-block; vertical-align: middle;" >
+    <br>
     <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
   </span>
 </div>
