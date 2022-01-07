@@ -1287,9 +1287,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # for details.
 
         useDevChannel = self._settings.get_boolean(["useDevChannel"])
+        checkout_folder = os.path.dirname(os.path.realpath(sys.executable))
 
         if useDevChannel:
-            checkout_folder = os.path.dirname(os.path.realpath(sys.executable))
             return dict(bettergrblsupport=dict(  # version check: github repository
                                                  # update method: pip
                 displayName='Better Grbl Support (Development Branch)',
@@ -1321,8 +1321,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             "commitish": ["rc", "master"],
                         }
                     ],
-                pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
+                method="update_script",
+                update_script="{python} -m pip --disable-pip-version-check install https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip --ignore-installed --force-reinstall --no-deps --no-cache-dir",
+                checkout_folder=checkout_folder))
 
+# pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
