@@ -1298,7 +1298,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 repo='OctoPrint-Bettergrblsupport',
                 branch="devel",
                 method="update_script",
-                update_script="{python} -m pip --disable-pip-version-check install https://github.com/synman/Octoprint-Bettergrblsupport/archive/refs/heads/devel.zip --ignore-installed --force-reinstall --no-deps --no-cache-dir",
+                update_script="{python} -m pip --disable-pip-version-check install https://github.com/synman/Octoprint-Bettergrblsupport/archive/refs/heads/devel.zip --force-reinstall --no-deps --no-cache-dir",
                 checkout_folder=checkout_folder))
         else:
             return dict(bettergrblsupport=dict(  # version check: github repository
@@ -1321,11 +1321,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             "commitish": ["rc", "master"],
                         }
                     ],
-                method="update_script",
-                update_script="{python} -m pip --disable-pip-version-check install https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip --ignore-installed --force-reinstall --no-deps --no-cache-dir",
-                checkout_folder=checkout_folder))
+                pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'))
 
-# pip='https://github.com/synman/OctoPrint-Bettergrblsupport/archive/{target_version}.zip'
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
