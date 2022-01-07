@@ -1,0 +1,10 @@
+#bgsframingsidebar {
+    height: 250px;
+    min-width: 280px;
+    width: 100%;
+}
+
+#sidebar_plugin_bgsframingsidebar > div.accordion-inner {
+	padding-left: 5px;
+	padding-right: 0px;
+}

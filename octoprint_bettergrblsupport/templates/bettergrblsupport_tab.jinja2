@@ -1,70 +1,3 @@
-<h5>&nbsp;Framing</h5>
-
-<div id="framing_panel" style="text-align: center; overflow: hidden; margin: 10px 10px 10px 10px;" valign="top">
-  <span style="margin: 0px 10px 0px 10px; display: inline-block; vertical-align: bottom; border: 1px solid; border-radius: 15px">
-     <table>
-        <tr>
-           <td style="padding: 0px 0px 0px 10px;" align="left">Length</td>
-           <td style="padding: 10px 10px 0px 10px; vertical-align: middle;">
-              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: length" placeholder="100">mm
-           </td>
-        </tr>
-        <tr>
-           <td colspan=2>&nbsp;</td>
-        </tr>
-        <tr>
-           <td  style="padding: 0px 0px 0px 10px;" align="left">&nbsp;Width</td>
-           <td style="padding: 0px 10px 0px 10px; vertical-align: middle;">
-              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: width" placeholder="100">mm
-           </td>
-        </tr>
-     </table>
-  </span>
-
-  <span style="margin: 10px 10px 0px 10px; display: inline-block; vertical-align: middle;">
-     <table width="200px" border=0 cellpadding=0>
-        <tr>
-           <td align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
-              <label>Starting Position</label>
-           </td>
-        </tr>
-        <tr>
-           <td align="center">
-              <table style="border: 1px solid;" >
-                 <tr>
-                    <td>
-                       <table border=0 align="center" id="radio_buttons">
-                          <tr>
-                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 0px 20px 10px 20px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                          <tr>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblCenter" name="frameOrigin" type="radio" checked/></td>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                          <tr>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomLeft" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblBottomCenter" name="frameOrigin" type="radio"/></td>
-                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomRight" name="frameOrigin" type="radio"/></td>
-                          </tr>
-                       </table>
-                    </td>
-                 </tr>
-              </table>
-           </td>
-        </tr>
-     </table>
-  </span>
-
-  <span id="frame_button" style="margin: 30px 10px 0px 10px; display: inline-block; vertical-align: middle;" >
-    <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
-  </span>
-</div>
-
-<hr>
-
 <!-- ko if: settings.settings.webcam.webcamEnabled -->
 <div id="webcam_container_framing">
    <div id="webcam_rotator_framing" data-bind="css: { webcam_rotated: settings.webcam_rotate90(), webcam_unrotated: !settings.webcam_rotate90() }">
@@ -75,14 +8,10 @@
       </div>
    </div>
 </div>
-<hr>
 <!-- /ko -->
-
-<h5>&nbsp;Control</h5>
-
-<div id="control_panel" style="text-align: center; overflow: hidden; margin: 0px 10px 0px 10px;" valign="top" align="center">
+<div id="control_panel" style="text-align: center; overflow: hidden; margin: 20px 10px 10px 10px;" valign="top" align="center">
    <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 20px 20px 20px; vertical-align: middle;">
-      <table align="center" style="margin: 0 auto; margin: 5px 5px 5px 5px;">
+      <table align="center" style="margin: 0 auto; margin: 0px 5px 5px 5px;">
         <tr>
            <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
            <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="60px"><strong data-bind="text: mode()"></strong></td>
@@ -114,7 +43,7 @@
       </table>
    </span>
 
-   <span style="display: inline-block; margin: 0px 20px 20px 20px; vertical-align: middle;">
+   <span style="display: inline-block; margin: 0px 20px 10px 20px; vertical-align: middle;">
       <table class="jog-panel" id="jog_panel" border=0 style="margin: 0 auto;"">
         <tr>
           <td colspan=2 align="center">
@@ -192,22 +121,22 @@
          <tr>
             <td colspan=2 class="distance">
               <span>
-                <button type="button" class="btn" style="border: 1px solid; width: 35px; margin: 5px 2px 5px 0px" data-bind="click: function() { operatorClicked() }, text: operator"></button>
+                <button type="button" class="btn" style="border: 1px solid; width: 35px; margin: 5px 2px 0px 0px" data-bind="click: function() { operatorClicked() }, text: operator"></button>
               </span>
                <span align="center" class="btn-group">
                   <!-- ko foreach: distances -->
-                    <button type="button" class="btn dist" style="border: 1px solid; margin: 5px 0px 5px 0px" data-bind="click: function() { $parent.distanceClicked($data) }, text: $data "></button>
+                    <button type="button" class="btn dist" style="border: 1px solid; margin: 5px 0px 0px 0px" data-bind="click: function() { $parent.distanceClicked($data) }, text: $data "></button>
                   <!-- /ko -->
                </span>
                <span>
-                 <input type="number" value="100" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 5px 0px 5px 2px" data-bind="textInput: distance"></button>
+                 <input type="number" value="100" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 5px 0px 0px 2px" data-bind="textInput: distance"></button>
                </span>
             </td>
          </tr>
       </table>
    </span>
 
-   <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 10px 20px 20px 20px" >
+   <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 0px 20px 0px 20px" >
       <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
         <button id="grblLaserButton" class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
         <br>
@@ -227,10 +156,8 @@
    </span>
 </div>
 
-<br>
-
 <div id="overrides_panel" style="text-align: center; overflow: hidden; margin: 0px 10px 0px 10px;" valign="top" align="center">
-  <span id="grbl-control-jog-zy-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 10px 20px 20px 20px; margin: 10px 20px 10px 20px;">
+  <span id="grbl-control-jog-zy-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 20px 20px 20px; margin: 10px 20px 10px 20px;">
       <label>Feed Rate Modifier</label>
       <span class="input-append control-box">
           <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: feedRate, event: { blur: resetFeedRateDisplay, focus: cancelFeedRateDisplayReset }, css: { pulsate_text_opacity: feedRateResetter() !== undefined }">
@@ -239,7 +166,7 @@
       </span>
   </span>
 
-  <span id="grbl-control-jog-z-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 10px 20px 20px 20px; margin: 10px 20px 10px 20px;">
+  <span id="grbl-control-jog-z-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 20px 20px 20px; margin: 10px 20px 10px 20px;">
       <label>Plunge Rate Modifier</label>
       <span class="input-append control-box">
           <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: plungeRate, event: { blur: resetPlungeRateDisplay, focus: cancelPlungeRateDisplayReset }, css: { pulsate_text_opacity: plungeRateResetter() !== undefined }">
@@ -248,7 +175,7 @@
       </span>
   </span>
 
-  <span id="grbl-control-jog-flowrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 10px 20px 20px 20px; margin: 10px 20px 10px 20px;">
+  <span id="grbl-control-jog-flowrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 20px 20px 20px; margin: 10px 20px 10px 20px;">
       <label>Spindle / Power Modifier</label>
       <span class="input-append control-box">
           <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: powerRate, event: { blur: resetPowerRateDisplay, focus: cancelPowerRateDisplayReset }, css: { pulsate_text_opacity: powerRateResetter() !== undefined }">

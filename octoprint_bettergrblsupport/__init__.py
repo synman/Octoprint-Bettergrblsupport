@@ -369,19 +369,27 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def get_assets(self):
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js'],
-                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css'],
-                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less"])
+        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgsframing.js'],
+                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css', 'css/bgsframing.css'],
+                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less", "less/bgsframing.less"])
 
 
     # #~~ TemplatePlugin mixin
     def get_template_configs(self):
         return [
-            dict(type="settings", template="bettergrblsupport_settings.jinja2", custom_bindings=True)
+            {
+                    "type": "settings",
+                    "template": "bettergrblsupport_settings.jinja2",
+                    "custom_bindings": True
+            },
+            {
+                    "type": "sidebar",
+                    "name": "Material Framing",
+                    "icon": "th",
+                    "template": "bgsframing_sidebar.jinja2",
+                    "custom_bindings": True
+            }
         ]
-
-    # def get_template_vars(self):
-    #     return dict(grblSettingsText=self.saveGrblSettings())
 
 
     # #-- EventHandlerPlugin mix-in

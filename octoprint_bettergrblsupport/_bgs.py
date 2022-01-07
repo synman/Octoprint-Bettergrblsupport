@@ -202,11 +202,12 @@ def send_frame_init_gcode(_plugin):
     if isLaserMode(_plugin):
         _plugin._printer.commands("M3 S{}".format(_plugin.weakLaserValue))
 
+    _plugin.grblState = "Jog"
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Jog"))
+
 
 def send_frame_end_gcode(_plugin):
-    queue_cmds_and_send(_plugin, ["M5 S0 G0"], wait=True)
-    addToNotifyQueue(_plugin, ["Framing operation completed"])
-    _plugin._printer.commands("?")
+    queue_cmds_and_send(_plugin, ["M5 S0 G0"])
 
 def send_bounding_box_upper_left(_plugin, y, x):
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))

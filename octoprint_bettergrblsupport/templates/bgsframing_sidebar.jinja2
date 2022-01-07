@@ -1,0 +1,62 @@
+<div id="framing_panel" style="text-align: center; overflow: hidden;" valign="top">
+  <span style="margin: 10px 0px 0px 0px; display: inline-block; vertical-align: bottom; border: 1px solid; border-radius: 15px">
+     <table>
+        <tr>
+           <td style="padding: 0px 0px 0px 10px;" align="left">Length</td>
+           <td style="padding: 10px 10px 0px 10px; vertical-align: middle; white-space: nowrap;">
+              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: length" placeholder="100">mm
+           </td>
+        </tr>
+        <tr>
+           <td colspan=2>&nbsp;</td>
+        </tr>
+        <tr>
+           <td  style="padding: 0px 0px 0px 10px;" align="left">&nbsp;Width</td>
+           <td style="padding: 0px 10px 0px 10px; vertical-align: middle; white-space: nowrap;">
+              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: width" placeholder="100">mm
+           </td>
+        </tr>
+     </table>
+  </span>
+
+  <span style="margin: 10px 0px 0px 0px; display: inline-block; vertical-align: middle;">
+     <table border=0 cellpadding=0>
+        <tr>
+           <td align="center" valign="bottom" style="padding: 10px 0px 0px 0px;">
+              <label>Starting Position</label>
+           </td>
+        </tr>
+        <tr>
+           <td align="center">
+              <table style="border: 1px solid;" >
+                 <tr>
+                    <td>
+                       <table border=0 align="center" id="radio_buttons">
+                          <tr>
+                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopLeft" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 0px 20px 10px 20px;" valign="middle"><input id="grblTopCenter" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 0px 10px 10px 10px;" valign="middle"><input id="grblTopRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                          <tr>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterLeft" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblCenter" name="frameOrigin" type="radio" checked/></td>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblCenterRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                          <tr>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomLeft" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 10px 20px 10px 20px;" valign="middle"><input id="grblBottomCenter" name="frameOrigin" type="radio"/></td>
+                             <td align="center" style="padding: 10px 10px 10px 10px;" valign="middle"><input id="grblBottomRight" name="frameOrigin" type="radio"/></td>
+                          </tr>
+                       </table>
+                    </td>
+                 </tr>
+              </table>
+           </td>
+        </tr>
+     </table>
+  </span>
+
+  <span id="frame_button" style="margin: 30px 0px 20px 0px; display: inline-block; vertical-align: middle;" >
+    <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { doFrame() }">Draw Frame</button>
+  </span>
+</div>

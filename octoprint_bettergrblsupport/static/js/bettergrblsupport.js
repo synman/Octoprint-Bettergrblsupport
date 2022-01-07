@@ -30,9 +30,6 @@ $(function() {
       self.settings = parameters[0];
       self.loginState = parameters[1];
 
-      self.length = ko.observable("100");
-      self.width = ko.observable("100");
-
       self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
       self.origin_axis = ko.observable("XY");
 
@@ -67,43 +64,6 @@ $(function() {
           }
       });
 
-      self.doFrame = function() {
-        var o;
-        var x = document.getElementsByName("frameOrigin");
-        var i;
-
-        for (i = 0; i < x.length; i++) {
-          if (x[i].checked) {
-            o = x[i].id;
-            break;
-          }
-        }
-
-        $.ajax({
-          url: API_BASEURL + "plugin/bettergrblsupport",
-          type: "POST",
-          dataType: "json",
-          data: JSON.stringify({
-            command: "frame",
-            length: self.length(),
-            width: self.width(),
-            origin: o
-          }),
-          contentType: "application/json; charset=UTF-8",
-          error: function (data, status) {
-            new PNotify({
-              title: "Framing failed!",
-              text: data.responseText,
-              hide: true,
-              buttons: {
-                sticker: false,
-                closer: true
-              },
-              type: "error"
-            });
-          }
-        });
-      };
 
       self.toggleWeak = function() {
         $.ajax({
@@ -300,23 +260,10 @@ $(function() {
       };
 
       self.onBeforeBinding = function() {
-        self.length(self.settings.settings.plugins.bettergrblsupport.frame_length());
-        self.width(self.settings.settings.plugins.bettergrblsupport.frame_width());
-
         self.distance(self.settings.settings.plugins.bettergrblsupport.distance());
 
         self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
         self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
-
-        var x = document.getElementsByName("frameOrigin");
-
-        var i;
-        for (i = 0; i < x.length; i++) {
-          if (x[i].id == self.settings.settings.plugins.bettergrblsupport.frame_origin()) {
-            x[i].checked = true;
-            break;
-          }
-        }
 
         if (self.settings.settings.webcam.webcamEnabled()) {
           document.getElementById("webcam_image_framing").src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
@@ -372,32 +319,6 @@ $(function() {
 
           if (data.power != undefined) self.power(data.power);
           // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
-          return
-        }
-
-        if (plugin == 'bettergrblsupport' && data.type == 'grbl_frame_size') {
-          width = Number.parseFloat(data.width).toFixed(0);
-          length = Number.parseFloat(data.length).toFixed(0);
-
-          self.width(width);
-          self.length(length);
-
-          new PNotify({
-            title: "Frame Size Computed",
-            text: "Dimensions are " + length + "L x " + width + "W",
-            hide: true,
-            animation: "fade",
-            animateSpeed: "slow",
-            mouseReset: true,
-            delay: 10000,
-            buttons: {
-              sticker: true,
-              closer: true
-            },
-            type: "success"
-          });
-
-          console.log("frame length=" + data.length + " width=" + data.width);
           return
         }
 
@@ -460,7 +381,6 @@ $(function() {
             }
           });
         }
-
       };
 
       self.fsClick = function () {
@@ -495,6 +415,9 @@ $(function() {
         } else {
           overridesPanel.show();
         }
+
+        $('#sidebar_plugin_bettergrblsupport_wrapper').toggle();
+        $('#sidebar_plugin_action_command_notification_wrapper').toggle();
       }
 
       self.onWebcamFrameErrored = function() {
@@ -561,7 +484,7 @@ $(function() {
             self.powerRateResetter(undefined);
         }
     };
- 
+
 
     // cute little hack for removing "Print" from the start button
     $('#job_print')[0].innerHTML = "<i class=\"fas\" data-bind=\"css: {'fa-print': !isPaused(), 'fa-undo': isPaused()}\"></i> <span data-bind=\"text: (isPaused() ? 'Restart' : 'Start')\">Start</span>"
@@ -569,7 +492,7 @@ $(function() {
     // cute hack for changing printer to machine for the action notify sidebar plugin
     var x = document.getElementById("sidebar_plugin_action_command_notification_wrapper");
     if (x != undefined) {
-      x.firstElementChild.firstElementChild.innerText = x.firstElementChild.firstElementChild.innerText.replace("Printer", "Machine");
+      x.firstElementChild.outerHTML = x.firstElementChild.outerHTML.replace("Printer", "");
     }
 
 
