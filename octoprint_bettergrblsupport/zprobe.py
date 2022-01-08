@@ -36,20 +36,24 @@ class ZProbe:
 
 
     def __init__(self, _plugin, _hook):
+        _plugin._logger.debug("ZProbe: __init__")
+
         self._plugin = _plugin
         self._hook = _hook
-        _plugin._logger.debug("ZProbe initialized")
 
 
-    def probe(self):
+    def simple_probe(self):
+        _plugin._logger.debug("ZProbe: simple_probe")
+
         _bgs.addToNotifyQueue(self._plugin, ["Z-Probe Initiated"])
 
         self._plugin._plugin_manager.send_plugin_message(self._plugin._identifier, dict(type="grbl_state", state="Run"))
         self._plugin._printer.commands(["$G", "G91", "G21", "G38.2 Z-{} F100".format(self._plugin.zLimit if self._plugin.zProbeTravel == 0 else self._plugin.zProbeTravel)], force=True)
-        self._plugin._logger.debug("ZProbe probe")
 
 
     def notify(self, notifications):
+        _plugin._logger.debug("ZProbe: simple_probe notifications=[{}]".format(notifications))
+
         for notification in notifications:
             # [PRB:0.000,0.000,0.000:0]
             if notification.startswith("[PRB:"):
@@ -64,5 +68,7 @@ class ZProbe:
 
 
     def teardown(self):
+        _plugin._logger.debug("ZProbe: teardown")
+
         self._hook = None
         self._plugin = None

@@ -64,6 +64,8 @@ def loadGrblDescriptions(_plugin):
 
 
 def loadGrblSettings(_plugin):
+    _plugin._logger.debug("_bgs: loadGrblSettings")
+
     _plugin.grblSettingsText = _plugin._settings.get(["grblSettingsText"])
 
     if not _plugin.grblSettingsText is None:
@@ -79,6 +81,8 @@ def loadGrblSettings(_plugin):
 
 
 def saveGrblSettings(_plugin):
+    _plugin._logger.debug("_bgs: saveGrblSettings")
+
     ret = ""
     for id, data in sorted(_plugin.grblSettings.items(), key=lambda x: int(x[0])):
         ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
@@ -86,10 +90,13 @@ def saveGrblSettings(_plugin):
     _plugin._logger.debug("saveGrblSettings=[{}]".format(ret))
 
     _plugin.grblSettingsText = ret
+
     return ret
 
 
 def cleanUpDueToUninstall(_plugin, remove_profile=True):
+    _plugin._logger.debug("_bgs: cleanUpDueToUninstall remove_profile=[{}]".format(remove_profile))
+
     # re-enable model size detection, sd card support, and send checksum
     _plugin._settings.global_set_boolean(["feature", "modelSizeDetection"], True)
     _plugin._settings.global_set_boolean(["feature", "sdSupport"], True)
@@ -158,6 +165,8 @@ def cleanUpDueToUninstall(_plugin, remove_profile=True):
 
 
 def do_framing(_plugin, data):
+    _plugin._logger.debug("_bgs: do_framing data=[{}]".format(data))
+
     origin = data.get("origin").strip()
 
     send_frame_init_gcode(_plugin)
@@ -193,6 +202,8 @@ def do_framing(_plugin, data):
 
 
 def send_frame_init_gcode(_plugin):
+    _plugin._logger.debug("_bgs: send_frame_init_gcode")
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     # Linear mode, feedrate f% of max, spindle off
@@ -207,9 +218,12 @@ def send_frame_init_gcode(_plugin):
 
 
 def send_frame_end_gcode(_plugin):
+    _plugin._logger.debug("_bgs: send_frame_end_gcode")
     queue_cmds_and_send(_plugin, ["M5 S0 G0"])
 
 def send_bounding_box_upper_left(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_upper_left y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ",x, f))
@@ -219,6 +233,8 @@ def send_bounding_box_upper_left(_plugin, y, x):
 
 
 def send_bounding_box_upper_center(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_upper_center y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2, f))
@@ -229,6 +245,8 @@ def send_bounding_box_upper_center(_plugin, y, x):
 
 
 def send_bounding_box_upper_right(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_upper_right y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
@@ -238,6 +256,8 @@ def send_bounding_box_upper_right(_plugin, y, x):
 
 
 def send_bounding_box_center_left(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_center_left y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y / 2, f))
@@ -248,6 +268,8 @@ def send_bounding_box_center_left(_plugin, y, x):
 
 
 def send_bounding_box_center(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_center y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 X{:f} Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2 * -1, y / 2, f))
@@ -259,6 +281,8 @@ def send_bounding_box_center(_plugin, y, x):
 
 
 def send_bounding_box_center_right(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_center_right y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y / 2 * -1, f))
@@ -269,6 +293,8 @@ def send_bounding_box_center_right(_plugin, y, x):
 
 
 def send_bounding_box_lower_left(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_lower_left y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
@@ -278,6 +304,8 @@ def send_bounding_box_lower_left(_plugin, y, x):
 
 
 def send_bounding_box_lower_center(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_lower_center y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2 * -1, f))
@@ -288,6 +316,8 @@ def send_bounding_box_lower_center(_plugin, y, x):
 
 
 def send_bounding_box_lower_right(_plugin, y, x):
+    _plugin._logger.debug("_bgs: send_bounding_box_lower_right y=[{}] x=[{}]".format(y, x))
+
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
@@ -297,6 +327,8 @@ def send_bounding_box_lower_right(_plugin, y, x):
 
 
 def toggleWeak(_plugin):
+    _plugin._logger.debug("_bgs: toggleWeak")
+
     # only execute if laser mode enabled
     if not isLaserMode(_plugin):
         return
@@ -317,6 +349,8 @@ def toggleWeak(_plugin):
 
 
 def do_simple_zprobe(_plugin):
+    _plugin._logger.debug("_bgs: do_simple_zprobe")
+
     global zProbe
 
     if not zProbe == None:
@@ -324,9 +358,11 @@ def do_simple_zprobe(_plugin):
         zProbe = None
 
     zProbe = ZProbe(_plugin, simple_zprobe_hook)
-    zProbe.probe()
+    zProbe.simple_probe()
 
 def simple_zprobe_hook(_plugin, result, position):
+    _plugin._logger.debug("_bgs: simple_zprobe_hook result=[{}] position=[{}]".format(result, position))
+
     global zProbe
     zProbe.teardown()
     zProbe = None
@@ -356,17 +392,24 @@ def simple_zprobe_hook(_plugin, result, position):
 
 
 def do_multipoint_zprobe(_plugin):
+    _plugin._logger.debug("_bgs: do_multipoint_zprobe")
+
     global zProbe
+    _plugin._logger.debug("do_multipoint_zprobe step=%d", zProbe._step + 1 if zProbe != None else 0)
 
     if zProbe == None:
         zProbe = ZProbe(_plugin, multipoint_zprobe_hook)
 
-    if zProbe._step == -1:
-        zProbe._step+=1
+    zProbe._step+=1
 
+    if zProbe._step == 0:
         origin = _plugin._settings.get(["frame_origin"])
         width = float(_plugin._settings.get(["frame_width"])) * .8
         length = float(_plugin._settings.get(["frame_length"])) * .8
+        preamble = "$J=" if isGrblOneDotOne(_plugin) else "G1 "
+        zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
+        zProbeEndPos = _plugin.zProbeEndPos
+        feedrate = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
         if origin == "grblTopLeft":
             zProbe.teardown()
@@ -382,15 +425,17 @@ def do_multipoint_zprobe(_plugin):
             zProbe = None
         elif origin == "grblCenter":
             zProbe._locations = [
-                                    {x: 0, y: 0, action: "probe"},
-                                    {x: width / 2 * -1, y: height / 2 * -1, action: "probe"},
-                                    {x: width, y: 0, action: "probe"},
-                                    {x: 0, y: width, action: "probe"},
-                                    {x: width * -1, y: 0, action: "probe"},
-                                    {x: width / 2, y: height / 2, action: "end"}
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Center"},
+                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Top Left"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Top Left"},
+                                    {"gcode": "{}G21 G91 X{:f} F{}".format(preamble, width, feedrate), "action": "move", "location": "Top Right"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Top Right"},
+                                    {"gcode": "{}G21 G91 Y{:f} F{}".format(preamble, length * -1, feedrate), "action": "move", "location": "Bottom Right"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Bottom Right"},
+                                    {"gcode": "{}G21 G91 X{:f} F{}".format(preamble, width * -1, feedrate), "action": "move", "location": "Bottom Left"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Bottom Left"},
+                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2, feedrate), "action": "move", "location": "Center"},
                                 ]
-
-
         elif origin == "grblCenterRight":
             zProbe.teardown()
             zProbe = None
@@ -403,16 +448,73 @@ def do_multipoint_zprobe(_plugin):
         elif origin == "grblBottomRight":
             zProbe.teardown()
             zProbe = None
+        else:
+            # we shouldn't be here
+            zProbe.teardown()
+            zProbe = None
+            return
+    else:
+        # we shouldn't be here
+        if zProbe._step > 9:
+            zProbe.teardown()
+            zProbe = None
+            return
 
-    zProbe.probe()
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier,
+                                                dict(type="multipoint_zprobe",
+                                                     instruction=zProbe._locations[zProbe._step]))
 
 def multipoint_zprobe_hook(_plugin, result, position):
-    zProbe._step+=1
-    _plugin._logger.debug("multipoint_zprobe_hook")
+    _plugin._logger.debug("_bgs: multipoint_zprobe_hook result=[{}] position=[{}]".format(result, position))
 
+    global zProbe
+
+    # did we have a problem?
+    if result == 0:
+        zProbe.teardown()
+        zProbe = None
+        return
+    else:
+        if zProbe._step >=9:
+            text = "Multipoint Z-Probe has completed."
+            _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                                 title="Multipoint Z-Probe",
+                                                                                  text=text,
+                                                                                  hide=True,
+                                                                                 delay=10000,
+                                                                           notify_type=notify_type))
+            addToNotifyQueue(_plugin, [text])
+
+            zProbe.teardown()
+            zProbe = None
+        else:
+            location = zProbe._locations[zProbe._step]['location']
+            notification = "Multipoint Z-Probe {} position result [{:.3f}]".format(location, position)
+            addToNotifyQueue(_plugin, [notification])
+
+            _plugin._printer.commands(["G91", "G21", "G0 Z{}".format(_plugin.zProbeEndPos)])
+
+    # setup the next step
+    do_multipoint_zprobe(_plugin)
+
+def multipoint_zprobe_move(_plugin):
+    _plugin._logger.debug("_bgs: multipoint_zprobe_move")
+    # setup the next step
+    do_multipoint_zprobe(_plugin)
+
+
+def grbl_alarm_or_error_occurred(_plugin):
+    _plugin._logger.debug("_bgs: grbl_alarm_or_error_occurred")
+    global zProbe
+
+    if zProbe != None:
+        zProbe.teardown()
+        zProbe = None
 
 
 def queue_cmds_and_send(_plugin, cmds, wait=False):
+    _plugin._logger.debug("_bgs: queue_cmds_and_send cmds=[{}] wait=[{}]".format(cmds, wait))
+
     for cmd in cmds:
         _plugin._logger.debug("queuing command [%s] wait=%r", cmd, wait)
         _plugin.grblCmdQueue.append(cmd)
@@ -427,6 +529,7 @@ def queue_cmds_and_send(_plugin, cmds, wait=False):
 
 
 def addToNotifyQueue(_plugin, notifications):
+    _plugin._logger.debug("_bgs: addToNotifyQueue notifications=[{}]".format(notifications))
 
     if not zProbe is None:
         zProbe.notify(notifications)
@@ -437,8 +540,10 @@ def addToNotifyQueue(_plugin, notifications):
 
 
 def isLaserMode(_plugin):
+    _plugin._logger.debug("_bgs: isLaserMode")
     return int(float(_plugin.grblSettings.get(32)[0])) != 0
 
 
 def isGrblOneDotOne(_plugin):
+    _plugin._logger.debug("_bgs: isGrblOneDotOne")
     return "1.1" in _plugin.grblVersion

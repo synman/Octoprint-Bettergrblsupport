@@ -128,6 +128,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #~~ SettingsPlugin mixin
     def get_settings_defaults(self):
+        self._logger.debug("__init__: get_settings_defaults")
+
         return dict(
             hideTempTab = True,
             hideControlTab = True,
@@ -174,8 +176,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def on_after_startup(self):
-
-        # self.zProbe.doStuff(self)
+        self._logger.debug("__init__: on_after_startup")
 
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
@@ -321,10 +322,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def get_settings_version(self):
+        self._logger.debug("__init__: get_settings_version")
         return 3
 
 
     def on_settings_migrate(self, target, current):
+        self._logger.debug("__init__: on_settings_migrate target=[{}] current=[{}]".format(target, current))
+
         if current == None or current != target:
             orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
             if "gcodeviewer" in orderedTabs:
@@ -347,6 +351,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def on_settings_save(self, data):
+        self._logger.debug("__init__: on_settings_save data=[{}] current=[{}]".format(data))
+
         self._logger.debug("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
@@ -367,6 +373,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #~~ AssetPlugin mixin
     def get_assets(self):
+        self._logger.debug("__init__: get_assets")
+
         # Define your plugin's asset files to automatically include in the
         # core UI here.
         return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgsframing.js'],
@@ -376,6 +384,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #~~ TemplatePlugin mixin
     def get_template_configs(self):
+        self._logger.debug("__init__: get_template_configs")
+
         return [
             {
                     "type": "settings",
@@ -394,13 +404,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
+        self._logger.debug("__init__: on_event event=[{}] payload=[{}]".format(event, payload))
+
         subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
                             Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED,
                             Events.DISCONNECTING, Events.DISCONNECTED)
 
         if event not in subscribed_events:
-            self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
+            # self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
             return
 
         # our plugin is being uninstalled
@@ -536,7 +548,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             length = math.ceil(maxY - minY)
             width = math.ceil(maxX - minX)
 
-            self._logger.debug('finished reading file length={} width={} positioning={} time={}'.format(length, width, positioning, timer() - start))
+            self._logger.debug('finished reading file length=[{}] width=[{}] positioning=[{}] time=[{}]'.format(length, width, positioning, timer() - start))
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_frame_size",
                                                                             length=length,
@@ -550,24 +562,32 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def on_plugin_pending_uninstall(self):  # this will work in some next release of octoprint
+        self._logger.debug("__init__: on_plugin_pending_uninstall")
+
         self._logger.debug('we are being uninstalled via on_plugin_pending_uninstall :(')
         _bgs.cleanUpDueToUninstall(self)
         self._logger.debug('uninstall cleanup completed (this house is clean)')
 
 
     def get_extension_tree(self, *args, **kwargs):
-    		return dict(
-                    model=dict(
-    				grbl_gcode=["gc", "nc"]
-    			)
-    		)
+        return dict(
+                model=dict(
+        		grbl_gcode=["gc", "nc"]
+                )
+        )
 
 
     # #-- gcode sending hook
     def hook_gcode_sending(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        self._logger.debug("__init__: hook_gcode_sending phase=[{}] cmd=[{}] cmd_type=[{}] gcode=[{}]".format(phase, cmd, cmd_type, gcode))
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return None
+
+        # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
+        if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
+            _bgs.multipoint_zprobe_move(self)
+            return (None, )
 
         # suppress comments and extraneous commands that may cause wayward
         # grbl instances to error out
@@ -733,7 +753,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if found:
             currentTime = int(round(time.time() * 1000))
             if currentTime > self.timeRef + 250:
-                # self._logger.info("x={} y={} z={} f={} s={}".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
+                # self._logger.info("x=[{}] y=[{}] z=[{}] f=[{}] s=[{}]".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                 mode=self.grblMode,
                                                                                 state=self.grblState,
@@ -751,6 +771,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     # original author:  https://github.com/mic159
     # source: https://github.com/mic159/octoprint-grbl-plugin)
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
+        self._logger.debug("__init__: hook_gcode_received line=[{}]".format(line.replace("\r", "<cr>").replace("\n", "<lf>")))
+
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return None
@@ -760,11 +782,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # When the serial port is opened, it resets and the "hello" command
             # is not processed.
             # This makes Octoprint recognise the startup message as a successful connection.
-
-            # force an inquiry
-            # self._printer.commands("?")
-
-            # self._plugin_manager.send_plugin_message(self._identifier, dict(type="send_notification", message=line))
             return "ok " + line
 
         # grbl version signature
@@ -774,7 +791,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.save()
             return
 
-        # grbl opt Signature
+        # grbl opt aignature
         if line.startswith("[OPT:"):
             self.grblVersion = self.grblVersion + " " + line.strip("\n").strip("\r")
             self._settings.set(["grblVersion"], self.grblVersion)
@@ -788,7 +805,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             for state in parserState.split(" "):
                 if state in ("G90", "G91"):
                     self.positioning = int(state[2:3])
-                    self._logger.debug("parser state indicates [%s] distance mode", "absolute" if self.positioning == 1 else "relative")
+                    self._logger.debug("parser state indicates [%s] distance mode", "absolute" if self.positioning == 0 else "relative")
 
                 elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
                     self._logger.debug("parser state indicates [%s] motion mode", state)
@@ -850,6 +867,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self._printer.is_printing():
                 self._printer.pause_print()
 
+            # inform _bgs in case it has something going on
+            _bgs.grbl_alarm_or_error_occurred(self)
+
             # return 'Error: ' + desc
             return "ok " + desc
 
@@ -885,15 +905,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self._printer.is_printing():
                 self._printer.pause_print()
 
-            # lets not let octoprint know if we have an "informational" error
-            # if error in (9, 15):
-            #     self._logger.debug("not forwarding grbl error [%d] to octoprint", error)
-            #     return "ok " + line
+            # inform _bgs in case it has something going on
+            _bgs.grbl_alarm_or_error_occurred(self)
 
-            # return 'Error: ' + desc
+            # don't tell octoprint because it will freak out
             return "ok " + desc
 
-        # forward any messages to the notification plugin_name
+        # forward any messages to the action notification plugin
         if "MSG:" in line.upper():
             ignoreList = ["[MSG:'$H'|'$X' to unlock]"]
 
@@ -916,6 +934,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # add a notification if we just z-probed
+        # _bgs will pick this up if zProbe is active
         if "PRB:" in line.upper():
             _bgs.addToNotifyQueue(self, [line])
             return
@@ -929,7 +948,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 settingsValue = match.groups(1)[1]
 
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
-                self._logger.debug("setting id={} value={} description={}".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
+                self._logger.debug("setting id=[{}] value=[{}] description=[{}]".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
                 if settingsId >= 132:
                     self._settings.set(["grblSettingsText"], _bgs.saveGrblSettings(self))
@@ -971,8 +990,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblX = float(match.groups(1)[1])
             self.grblY = float(match.groups(1)[2])
             self.grblZ = float(match.groups(1)[3])
-
-            self._logger.debug('status [%s]', response.strip())
 
             match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', line)
             if not match is None:
@@ -1029,6 +1046,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def pick_a_response(self, firstChoice):
+        self._logger.debug("__init__: pick_a_response firstChoice=[{}]".format(firstChoice.replace("\n", "<lf>").replace("\r", "<cr>")))
+
         # pop any queued notifications
         if len(self.notifyQueue) > 0:
             notification = self.notifyQueue[0]
@@ -1048,6 +1067,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def get_api_commands(self):
+        self._logger.debug("__init__: get_api_commands")
+
         return dict(
             frame=[],
             toggleWeak=[],
@@ -1063,11 +1084,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             restoreGrblSettings=[],
             feedRate=[],
             plungeRate=[],
-            powerRate=[]
+            powerRate=[],
+            cancelMultipointZProbe=[]
         )
 
 
     def on_api_command(self, command, data):
+        self._logger.debug("__init__: on_api_command command=[{}] data=[{}]".format(commmand, data))
+
+        if command == "cancelMultipointZProbe":
+            _bgs.grbl_alarm_or_error_occurred(self)
+            return
+
         if command == "sleep":
             self._printer.commands("$SLP")
             return
@@ -1085,7 +1113,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "updateGrblSetting":
-            self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
+            self._printer.commands("${}=[{}]".format(data.get("id").strip(), data.get("value").strip()))
             self.grblSettings.update({int(data.get("id")): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id")))]})
             self._printer.commands("$$")
             return
@@ -1105,7 +1133,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if len(setting.strip()) > 0:
                     set = setting.split("|")
                     # self._logger.info("restoreGrblSettings: {}".format(set))
-                    command = "${}={}".format(set[0], set[1])
+                    command = "${}=[{}]".format(set[0], set[1])
                     self._printer.commands(command)
 
             time.sleep(1)
@@ -1154,13 +1182,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # catch-all (should revisit state management) for validating printer State
-        if not self._printer.is_ready() or not self.grblState in ("Idle", "Jog"):
+        if not self._printer.is_ready() or not self.grblState in ("Idle", "Jog", "Check"):
             self._logger.debug("ignoring move related command - printer is not available")
             return
 
         if command == "frame":
             _bgs.do_framing(self, data)
-            self._logger.debug("frame submitted l={} w={} o={}".format(data.get("length"), data.get("width"), data.get("origin")))
+            self._logger.debug("frame submitted l=[{}] w=[{}] o=[{}]".format(data.get("length"), data.get("width"), data.get("origin")))
             return
 
         if command == "move":
@@ -1184,7 +1212,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             #     self._settings.set(["origin_axis"], axis)
             #     self._settings.save()
 
-            self._logger.debug("move direction={} distance={} axis={} xlimit={} ylimit={} zlimit={}".format(direction, distance, axis, self.xLimit, self.yLimit, self.zLimit))
+            self._logger.debug("move direction=[{}] distance=[{}] axis=[{}] xlimit=[{}] ylimit=[{}] zlimit=[{}]".format(direction, distance, axis, self.xLimit, self.yLimit, self.zLimit))
 
             if direction == "home":
                 self._printer.commands(["G54", "G90"])
@@ -1205,7 +1233,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             if direction == "probez":
-                _bgs.do_simple_zprobe(self)
+                # _bgs.do_simple_zprobe(self)
+                _bgs.do_multipoint_zprobe(self)
                 return
 
             # check distance against limits
@@ -1255,7 +1284,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             #     self._settings.set(["origin_axis"], axis)
             #     self._settings.save()
 
-            self._logger.debug("origin axis={}".format(axis))
+            self._logger.debug("origin axis=[{}]".format(axis))
 
             if axis == "X":
                 self._printer.commands(["G91 G10 P1 L20 X0"])
@@ -1277,6 +1306,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #~~ Softwareupdate hook
     def get_update_information(self):
+        self._logger.debug("__init__: get_update_information")
+
         # Define the configuration for your plugin to use with the Software Update
         # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
         # for details.
