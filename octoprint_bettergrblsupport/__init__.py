@@ -600,7 +600,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
-            return ("$I" if self.grblState in (None, "Idle") else "?", )
+            return ("$I" if self.grblState == "Idle") else "\x18" if self.grblState == "Sleep" else "?", )
 
         # suppress initialize SD - M21
         if cmd.upper().startswith('M21'):
