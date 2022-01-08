@@ -540,7 +540,7 @@ def addToNotifyQueue(_plugin, notifications):
 
 
 def isLaserMode(_plugin):
-    _plugin._logger.debug("_bgs: isLaserMode")
+    _plugin._logger.debug("_bgs: isLaserMode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
     return int(float(_plugin.grblSettings.get(32)[0])) != 0
 
 
