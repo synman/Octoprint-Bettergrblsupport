@@ -7,24 +7,21 @@
 $(function() {
     function BettergrblsupportViewModel(parameters) {
       var self = this;
-      var fs = false;
+
+      self.loginState = parameters[0];
+      self.settings = parameters[1];
+      self.access = parameters[2];
 
       var $body = $('body');
       var framingPanel = $('#framing_panel');
       var controlPanel = $('#control_panel');
       var overridesPanel = $('#overrides_panel');
-      var webcam_div = $('#webcam_div');
-      var webcam_image_framing = $('#webcam_image_framing');
 
-      var container;
-
-      if($(".webcam_fixed_ratio").length > 0) {
-        $container = $('.webcam_fixed_ratio');
-        // $fullscreenContainer = $("#webcam_rotator");
-      } else {
-        $container = $('#webcam_rotator_framing');
-        // $fullscreenContainer = $("#webcam_container");
-      }
+      self.webcamDisableTimeout = undefined;
+      self.webcamLoaded = ko.observable(false);
+      self.webcamMjpgEnabled = ko.observable(false);
+      self.webcamHlsEnabled = ko.observable(false);
+      self.webcamError = ko.observable(false);
 
       // assign the injected parameters, e.g.:
       self.settings = parameters[0];
@@ -39,6 +36,7 @@ $(function() {
 
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
+      self.isLoading = ko.observable(undefined);
 
       self.mode = ko.observable("N/A");
       self.state = ko.observable("N/A");
@@ -56,13 +54,141 @@ $(function() {
       tab = document.getElementById("tab_plugin_bettergrblsupport_link");
       tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
 
-      self.webcamFrameRatioClass = ko.pureComputed(function() {
+      self._disableWebcam = function () {
+          // only disable webcam stream if tab is out of focus for more than 5s, otherwise we might cause
+          // more load by the constant connection creation than by the actual webcam stream
+
+          // safari bug doesn't release the mjpeg stream, so we just disable this for safari.
+          if (OctoPrint.coreui.browser.safari) {
+              return;
+          }
+
+          var timeout = self.settings.webcam_streamTimeout() || 5;
+          self.webcamDisableTimeout = setTimeout(function () {
+              log.debug("Unloading webcam stream");
+              $("#webcam_image").attr("src", "");
+              self.webcamLoaded(false);
+          }, timeout * 1000);
+      };
+
+      self._enableWebcam = function () {
+          if (OctoPrint.coreui.selectedTab != undefined &&
+              (OctoPrint.coreui.selectedTab != "#tab_plugin_bettergrblsupport" ||
+              !OctoPrint.coreui.browserTabVisible)
+          ) {
+              return;
+          }
+
+          if (self.webcamDisableTimeout != undefined) {
+              clearTimeout(self.webcamDisableTimeout);
+          }
+
+          // IF disabled then we dont need to do anything
+          if (self.settings.webcam_webcamEnabled() == false) {
+              return;
+          }
+
+          // Determine stream type and switch to corresponding webcam.
+          var streamType = determineWebcamStreamType(self.settings.webcam_streamUrl());
+          if (streamType == "mjpg") {
+              self._switchToMjpgWebcam();
+          } else if (streamType == "hls") {
+              self._switchToHlsWebcam();
+          } else {
+              throw "Unknown stream type " + streamType;
+          }
+      };
+
+      self.onWebcamLoaded = function () {
+          if (self.webcamLoaded()) return;
+
+          log.debug("Webcam stream loaded");
+          self.webcamLoaded(true);
+          self.webcamError(false);
+      };
+
+      self.onWebcamErrored = function () {
+          log.debug("Webcam stream failed to load/disabled");
+          self.webcamLoaded(false);
+          self.webcamError(true);
+      };
+
+      self.onTabChange = function (current, previous) {
+          if (current == "#tab_plugin_bettergrblsupport") {
+              self._enableWebcam();
+          } else if (previous == "#tab_plugin_bettergrblsupport") {
+              self._disableWebcam();
+          }
+      };
+
+      self.onBrowserTabVisibilityChange = function (status) {
+          if (status) {
+              self._enableWebcam();
+          } else {
+              self._disableWebcam();
+          }
+      };
+
+      self.webcamRatioClass = ko.pureComputed(function () {
           if (self.settings.webcam_streamRatio() == "4:3") {
               return "ratio43";
           } else {
               return "ratio169";
           }
       });
+
+      self._switchToMjpgWebcam = function () {
+          var webcamImage = $("#webcam_image");
+          var currentSrc = webcamImage.attr("src");
+
+          // safari bug doesn't release the mjpeg stream, so we just set it up the once
+          if (OctoPrint.coreui.browser.safari && currentSrc != undefined) {
+              return;
+          }
+
+          var newSrc = self.settings.webcam_streamUrl();
+          if (currentSrc != newSrc) {
+              if (self.settings.webcam_cacheBuster()) {
+                  if (newSrc.lastIndexOf("?") > -1) {
+                      newSrc += "&";
+                  } else {
+                      newSrc += "?";
+                  }
+                  newSrc += new Date().getTime();
+              }
+
+              self.webcamLoaded(false);
+              self.webcamError(false);
+              webcamImage.attr("src", newSrc);
+
+              self.webcamHlsEnabled(false);
+              self.webcamMjpgEnabled(true);
+          }
+      };
+
+      self._switchToHlsWebcam = function () {
+          var video = document.getElementById("webcam_hls");
+
+          // Check for native playback options: https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/canPlayType
+          if (
+              video != null &&
+              typeof video.canPlayType != undefined &&
+              video.canPlayType("application/vnd.apple.mpegurl") == "probably"
+          ) {
+              video.src = self.settings.webcam_streamUrl();
+          } else if (Hls.isSupported()) {
+              var hls = new Hls();
+              hls.loadSource(self.settings.webcam_streamUrl());
+              hls.attachMedia(video);
+          }
+
+          self.webcamMjpgEnabled(false);
+          self.webcamHlsEnabled(true);
+      };
+
+      self.onAllBound = function (allViewModels) {
+          self._enableWebcam();
+      };
 
 
       self.toggleWeak = function() {
@@ -265,19 +391,19 @@ $(function() {
         self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
         self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
 
-        if (self.settings.settings.webcam.webcamEnabled()) {
-          document.getElementById("webcam_image_framing").src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
-        }
+        // if (self.settings.settings.webcam.webcamEnabled()) {
+        //   document.getElementById("webcam_image_framing").src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
+        // }
       };
 
       self.onTabChange = function (current, previous) {
-          if (self.settings.settings.webcam.webcamEnabled()) {
-            if (current == "#tab_plugin_bettergrblsupport") {
-                document.getElementById("webcam_image_framing").src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
-            } else if (previous == "#tab_plugin_bettergrblsupport") {
-                document.getElementById("webcam_image_framing").src = "about:blank";
-            }
-          }
+          // if (self.settings.settings.webcam.webcamEnabled()) {
+          //   if (current == "#tab_plugin_bettergrblsupport") {
+          //       document.getElementById("webcam_image_framing").src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
+          //   } else if (previous == "#tab_plugin_bettergrblsupport") {
+          //       document.getElementById("webcam_image_framing").src = "about:blank";
+          //   }
+          // }
       };
 
       self.fromCurrentData = function (data) {
@@ -291,6 +417,7 @@ $(function() {
       self._processStateData = function (data) {
           self.is_printing(data.flags.printing);
           self.is_operational(data.flags.operational);
+          self.isLoading(data.flags.loading);
       };
 
 
@@ -384,8 +511,6 @@ $(function() {
       };
 
       self.fsClick = function () {
-        // console.log("fsClick");
-
         $body.toggleClass('inlineFullscreen');
         $container.toggleClass("inline fullscreen");
         // streamImg.classList.toggle("fullscreen");
@@ -421,70 +546,67 @@ $(function() {
       }
 
       self.onWebcamFrameErrored = function() {
-        // alert("webcam frame error");
-         webcam_div.hide();
-         webcam_image_framing.src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
+         // webcam_div.hide();
+         // webcam_image_framing.src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
       }
       self.onWebcamFrameLoaded= function() {
-        // alert("webcam frame error");
-        webcam_div.show();
+        // webcam_div.show();
       }
+
+      self.feedRateResetter = ko.observable();
+      self.resetFeedRateDisplay = function () {
+          self.cancelFeedRateDisplayReset();
+          self.feedRateResetter(
+              setTimeout(function () {
+                  self.feedRate(undefined);
+                  self.feedRateResetter(undefined);
+              }, 5000)
+          );
+      };
+      self.cancelFeedRateDisplayReset = function () {
+          var resetter = self.feedRateResetter();
+          if (resetter) {
+              clearTimeout(resetter);
+              self.feedRateResetter(undefined);
+          }
+      };
+
+      self.plungeRateResetter = ko.observable();
+      self.resetPlungeRateDisplay = function () {
+          self.cancelPlungeRateDisplayReset();
+          self.plungeRateResetter(
+              setTimeout(function () {
+                  self.plungeRate(undefined);
+                  self.plungeRateResetter(undefined);
+              }, 5000)
+          );
+      };
+      self.cancelPlungeRateDisplayReset = function () {
+          var resetter = self.plungeRateResetter();
+          if (resetter) {
+              clearTimeout(resetter);
+              self.plungeRateResetter(undefined);
+          }
+      };
+
+      self.powerRateResetter = ko.observable();
+      self.resetPowerRateDisplay = function () {
+          self.cancelPowerRateDisplayReset();
+          self.powerRateResetter(
+              setTimeout(function () {
+                  self.powerRate(undefined);
+                  self.powerRateResetter(undefined);
+              }, 5000)
+          );
+      };
+      self.cancelPowerRateDisplayReset = function () {
+          var resetter = self.powerRateResetter();
+          if (resetter) {
+              clearTimeout(resetter);
+              self.powerRateResetter(undefined);
+          }
+      };
     }
-
-    self.feedRateResetter = ko.observable();
-    self.resetFeedRateDisplay = function () {
-        self.cancelFeedRateDisplayReset();
-        self.feedRateResetter(
-            setTimeout(function () {
-                self.feedRate(undefined);
-                self.feedRateResetter(undefined);
-            }, 5000)
-        );
-    };
-    self.cancelFeedRateDisplayReset = function () {
-        var resetter = self.feedRateResetter();
-        if (resetter) {
-            clearTimeout(resetter);
-            self.feedRateResetter(undefined);
-        }
-    };
-
-    self.plungeRateResetter = ko.observable();
-    self.resetPlungeRateDisplay = function () {
-        self.cancelPlungeRateDisplayReset();
-        self.plungeRateResetter(
-            setTimeout(function () {
-                self.plungeRate(undefined);
-                self.plungeRateResetter(undefined);
-            }, 5000)
-        );
-    };
-    self.cancelPlungeRateDisplayReset = function () {
-        var resetter = self.plungeRateResetter();
-        if (resetter) {
-            clearTimeout(resetter);
-            self.plungeRateResetter(undefined);
-        }
-    };
-
-    self.powerRateResetter = ko.observable();
-    self.resetPowerRateDisplay = function () {
-        self.cancelPowerRateDisplayReset();
-        self.powerRateResetter(
-            setTimeout(function () {
-                self.powerRate(undefined);
-                self.powerRateResetter(undefined);
-            }, 5000)
-        );
-    };
-    self.cancelPowerRateDisplayReset = function () {
-        var resetter = self.powerRateResetter();
-        if (resetter) {
-            clearTimeout(resetter);
-            self.powerRateResetter(undefined);
-        }
-    };
-
 
     // cute little hack for removing "Print" from the start button
     $('#job_print')[0].innerHTML = "<i class=\"fas\" data-bind=\"css: {'fa-print': !isPaused(), 'fa-undo': isPaused()}\"></i> <span data-bind=\"text: (isPaused() ? 'Restart' : 'Start')\">Start</span>"
@@ -498,7 +620,7 @@ $(function() {
 
     OCTOPRINT_VIEWMODELS.push([
       BettergrblsupportViewModel,
-        [ "settingsViewModel", "loginStateViewModel" ],
+        [ "settingsViewModel", "loginStateViewModel", "accessViewModel" ],
         [ "#tab_plugin_bettergrblsupport" ]
       ]);
 });

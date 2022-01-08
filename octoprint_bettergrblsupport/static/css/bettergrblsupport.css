@@ -78,11 +78,11 @@ _:-ms-lang(x), _:-webkit-full-screen, .fullscreen img {
 .inlineFullscreen {
 	overflow: hidden;
 }
-.inlineFullscreen #webcam_image_framing {
+.inlineFullscreen #webcam_image {
 	z-index: 9998;
 }
 
-.inlineFullscreen #webcam_container_framing {
+.inlineFullscreen #webcam_image {
 	position: fixed;
 	top: 0;
 	left: 0;
@@ -91,7 +91,7 @@ _:-ms-lang(x), _:-webkit-full-screen, .fullscreen img {
 .inlineFullscreen .webcam_fixed_ratio_inner {
 	height: 100vh !important;
 }
-.inlineFullscreen #webcam_rotator_framing {
+.inlineFullscreen #webcam_rotator {
 	width: 100vw;
 	height: 100vh !important;
 	padding: 0;
