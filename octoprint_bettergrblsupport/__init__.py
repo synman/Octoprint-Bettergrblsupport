@@ -396,7 +396,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_event(self, event, payload):
         subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
-                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED)
+                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED,
+                            Events.DISCONNECTING, Events.DISCONNECTED)
 
         if event not in subscribed_events:
             self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
@@ -420,8 +421,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # - CONNECTED
         if event == Events.CONNECTED:
             self._logger.debug('machine connected')
-            _bgs.queue_cmds_and_send(self, ["$G"])
-            # self._printer.commands("$G")
+            # _bgs.queue_cmds_and_send(self, ["$G"])
+            self._printer.commands(["$I", "$G"])
+
+        # Disconnecting & Disconnected
+        if event in (Events.DISCONNECTING, Events.DISCONNECTED):
+            self.grblState = None
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
@@ -595,7 +600,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
-            return ("$I" if self.grblState == "Idle" else "\x18" if self.grblState == "Sleep" else "?", )
+            return ("?", )
 
         # suppress initialize SD - M21
         if cmd.upper().startswith('M21'):
@@ -984,6 +989,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             z=self.grblZ,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel))
+
+            # odd edge case where a machine could be asleep while connecting
+            if not self._printer.is_operational() and self.grblState.upper() in "SLEEP":
+                self._printer.commands("M999", force=True)
 
             # pop any queued commands if state is IDLE or HOLD:0 or Check
             if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK"):
