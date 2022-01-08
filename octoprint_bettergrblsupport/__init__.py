@@ -421,7 +421,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # - CONNECTED
         if event == Events.CONNECTED:
             self._logger.debug('machine connected')
-            # _bgs.queue_cmds_and_send(self, ["$G"])
             self._printer.commands(["$I", "$G"])
 
         # Disconnecting & Disconnected
@@ -947,7 +946,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         self._settings.set(["distance"], self.distance)
 
                     self._settings.save()
-                    _bgs.addToNotifyQueue(self, ["Grbl Settings sent"])
 
                 return line
 
@@ -991,7 +989,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             power=self.grblPowerLevel))
 
             # odd edge case where a machine could be asleep while connecting
-            if not self._printer.is_operational() and self.grblState.upper() in "SLEEP":
+            if not self._printer.is_operational() and "SLEEP" in self.grblState.upper():
                 self._printer.commands("M999", force=True)
 
             # pop any queued commands if state is IDLE or HOLD:0 or Check
