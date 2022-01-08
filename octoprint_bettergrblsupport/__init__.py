@@ -1090,7 +1090,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def on_api_command(self, command, data):
-        self._logger.debug("__init__: on_api_command command=[{}] data=[{}]".format(commmand, data))
+        self._logger.debug("__init__: on_api_command data=[{}]".format(data))
 
         if command == "cancelMultipointZProbe":
             _bgs.grbl_alarm_or_error_occurred(self)
