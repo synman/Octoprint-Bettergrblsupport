@@ -347,8 +347,8 @@ def simple_zprobe_hook(_plugin, result, position):
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
                                                                              title=title,
                                                                               text=text,
-                                                                              hide=False,
-                                                                             delay=0,
+                                                                              hide=True,
+                                                                             delay=10000,
                                                                        notify_type=notify_type))
         addToNotifyQueue(_plugin, [text])
 

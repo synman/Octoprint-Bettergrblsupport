@@ -396,8 +396,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_event(self, event, payload):
         subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
-                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED,
-                            Events.DISCONNECTING, Events.DISCONNECTED)
+                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED)
 
         if event not in subscribed_events:
             self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
@@ -423,10 +422,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('machine connected')
             _bgs.queue_cmds_and_send(self, ["$G"])
             # self._printer.commands("$G")
-
-        # Disconnecting & Disconnected
-        if event in (Events.DISCONNECTING, Events.DISCONNECTED):
-            self.grblState = None
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
@@ -600,7 +595,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
-            return ("$I" if self.grblState == "Idle") else "\x18" if self.grblState == "Sleep" else "?", )
+            return ("$I" if self.grblState == "Idle" else "\x18" if self.grblState == "Sleep" else "?", )
 
         # suppress initialize SD - M21
         if cmd.upper().startswith('M21'):
