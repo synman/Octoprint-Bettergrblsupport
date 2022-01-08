@@ -351,7 +351,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def on_settings_save(self, data):
-        self._logger.debug("__init__: on_settings_save data=[{}] current=[{}]".format(data))
+        self._logger.debug("__init__: on_settings_save data=[{}]".format(data))
 
         self._logger.debug("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
