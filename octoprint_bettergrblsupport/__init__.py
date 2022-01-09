@@ -1046,7 +1046,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
     def pick_a_response(self, firstChoice):
-        self._logger.debug("__init__: pick_a_response firstChoice=[{}]".format(firstChoice.replace("\n", "<lf>").replace("\r", "<cr>")))
+        self._logger.debug("__init__: pick_a_response firstChoice=[{}]".format(firstChoice.replace("\n", "<lf>").replace("\r", "<cr>") if not firstChoice is None else "{None}"))
 
         # pop any queued notifications
         if len(self.notifyQueue) > 0:
