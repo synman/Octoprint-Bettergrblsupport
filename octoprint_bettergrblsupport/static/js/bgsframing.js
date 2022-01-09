@@ -86,9 +86,11 @@ $(function () {
             }),
             contentType: "application/json; charset=UTF-8",
             error: function (data, status) {
+              var error = JSON.parse(data.responseText).error;
+              if (error == undefined) error = data.responseText;
               new PNotify({
                 title: "Framing failed!",
-                text: data.responseText,
+                text: error,
                 hide: true,
                 buttons: {
                   sticker: false,

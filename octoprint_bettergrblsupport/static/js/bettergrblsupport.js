@@ -592,13 +592,6 @@ $(function() {
             $('#sidebar_plugin_action_command_notification_wrapper').toggle();
         }
 
-        self.onWebcamFrameErrored = function() {
-            // webcam_div.hide();
-            // webcam_image_framing.src = self.settings.settings.webcam.streamUrl() + "&nonce=" + Math.floor(Math.random() * 1000000);
-        }
-        self.onWebcamFrameLoaded = function() {
-            // webcam_div.show();
-        }
 
         self.feedRateResetter = ko.observable();
         self.resetFeedRateDisplay = function() {

@@ -168,35 +168,37 @@ def do_framing(_plugin, data):
     _plugin._logger.debug("_bgs: do_framing data=[{}]".format(data))
 
     origin = data.get("origin").strip()
+    length = float(data.get("length"))
+    width = float(data.get("width"))
 
     send_frame_init_gcode(_plugin)
 
     if (origin == "grblTopLeft"):
-        send_bounding_box_upper_left(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_upper_left(_plugin, length, width)
 
     if (origin == "grblTopCenter"):
-        send_bounding_box_upper_center(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_upper_center(_plugin, length, width)
 
     if (origin == "grblTopRight"):
-        send_bounding_box_upper_right(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_upper_right(_plugin, length, width)
 
     if (origin == "grblCenterLeft"):
-        send_bounding_box_center_left(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_center_left(_plugin, length, width)
 
     if (origin == "grblCenter"):
-        send_bounding_box_center(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_center(_plugin, length, width)
 
     if (origin == "grblCenterRight"):
-        send_bounding_box_center_right(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_center_right(_plugin, length, width)
 
     if (origin == "grblBottomLeft"):
-        send_bounding_box_lower_left(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_lower_left(_plugin, length, width)
 
     if (origin == "grblBottomCenter"):
-        send_bounding_box_lower_center(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_lower_center(_plugin, length, width)
 
     if (origin == "grblBottomRight"):
-        send_bounding_box_lower_right(_plugin, float(data.get("length")), float(data.get("width")))
+        send_bounding_box_lower_right(_plugin, length, width)
 
     send_frame_end_gcode(_plugin)
 

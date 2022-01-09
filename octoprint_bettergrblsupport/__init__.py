@@ -1189,6 +1189,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "frame":
+            length = float(data.get("length"))
+            width = float(data.get("width"))
+
+            # check distance against limits
+            if abs(length) > abs(self.yLimit):
+                return flask.abort(403, "Distance exceeds Y axis limit")
+            if abs(width) > abs(self.xLimit):
+                return flask.abort(400, "Distance exceeds X axis limit")
+
             _bgs.do_framing(self, data)
             self._logger.debug("frame submitted l=[{}] w=[{}] o=[{}]".format(data.get("length"), data.get("width"), data.get("origin")))
             return
