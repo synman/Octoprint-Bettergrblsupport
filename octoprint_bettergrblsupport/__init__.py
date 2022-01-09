@@ -1113,7 +1113,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "updateGrblSetting":
-            self._printer.commands("${}=[{}]".format(data.get("id").strip(), data.get("value").strip()))
+            self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
             self.grblSettings.update({int(data.get("id")): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id")))]})
             self._printer.commands("$$")
             return
@@ -1133,7 +1133,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if len(setting.strip()) > 0:
                     set = setting.split("|")
                     # self._logger.info("restoreGrblSettings: {}".format(set))
-                    command = "${}=[{}]".format(set[0], set[1])
+                    command = "${}={}".format(set[0], set[1])
                     self._printer.commands(command)
 
             time.sleep(1)
