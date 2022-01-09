@@ -323,7 +323,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_settings_version(self):
         self._logger.debug("__init__: get_settings_version")
-        return 3
+        return 4
 
 
     def on_settings_migrate(self, target, current):
@@ -345,6 +345,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.statusCommand = "?"
 
             self._settings.remove(["showZ"])
+            self._settings.remove(["distance"])
+
             self._settings.save()
 
             self._logger.info("Migrated to settings v%d from v%d", target, 1 if current == None else current)
@@ -961,7 +963,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     # assign our default distance if it is not already set to the lower of x,y limits
                     if self.distance == 0:
-                        self.distance = min([self.xLimit - 5, self.yLimit - 5])
+                        self.distance = min([self.xLimit, self.yLimit])
                         self._settings.set(["distance"], self.distance)
 
                     self._settings.save()
