@@ -43,7 +43,7 @@ class ZProbe:
 
 
     def simple_probe(self):
-        _plugin._logger.debug("ZProbe: simple_probe")
+        self._plugin._logger.debug("ZProbe: simple_probe")
 
         _bgs.addToNotifyQueue(self._plugin, ["Z-Probe Initiated"])
 
@@ -52,7 +52,7 @@ class ZProbe:
 
 
     def notify(self, notifications):
-        _plugin._logger.debug("ZProbe: simple_probe notifications=[{}]".format(notifications))
+        self._plugin._logger.debug("ZProbe: simple_probe notifications=[{}]".format(notifications))
 
         for notification in notifications:
             # [PRB:0.000,0.000,0.000:0]
@@ -68,7 +68,7 @@ class ZProbe:
 
 
     def teardown(self):
-        _plugin._logger.debug("ZProbe: teardown")
+        self._plugin._logger.debug("ZProbe: teardown")
 
         self._hook = None
         self._plugin = None
