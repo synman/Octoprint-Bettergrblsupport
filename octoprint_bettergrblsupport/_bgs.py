@@ -406,8 +406,8 @@ def do_multipoint_zprobe(_plugin, sessionId):
 
     if zProbe._step == 0:
         origin = _plugin._settings.get(["frame_origin"])
-        width = float(_plugin._settings.get(["frame_width"])) * .8
-        length = float(_plugin._settings.get(["frame_length"])) * .8
+        width = float(_plugin._settings.get(["frame_width"]))
+        length = float(_plugin._settings.get(["frame_length"]))
         preamble = "$J=" if isGrblOneDotOne(_plugin) else "G1 "
         zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
         zProbeEndPos = _plugin.zProbeEndPos

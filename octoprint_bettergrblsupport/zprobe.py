@@ -77,7 +77,7 @@ class ZProbe:
         return self._locations[self._step]
 
 
-    def resultByCalc(calculation):
+    def resultByCalc(self, calculation):
         self._plugin._logger.debug("ZProbe: resultByCalc calc=[{}] sessionId=[{}]".format(calculation, self._sessionId))
         ordered = sorted(self._results, key = lambda i: i["position"])
 
