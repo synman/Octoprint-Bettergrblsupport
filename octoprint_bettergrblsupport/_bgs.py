@@ -523,6 +523,10 @@ def multipoint_zprobe_hook(_plugin, result, position):
         notification = "Multipoint Z-Probe {} position result [{:.3f}]".format(location, position)
         add_to_notify_queue(_plugin, [notification])
 
+        _plugin._logger.debug("waiting for command queue to drain")
+        queue_cmds_and_send(_plugin, [";eat me"], wait=True)
+        _plugin._logger.debug("done waiting for command queue to drain")
+
         # max z feed rate -- we'll do 50% of it
         zf = round(float(_plugin.grblSettings.get(112)[0]) * .5)
 
@@ -531,8 +535,7 @@ def multipoint_zprobe_hook(_plugin, result, position):
         else:
             _plugin._printer.commands("G0 G91 G21 Z{} F{}".format(_plugin.zProbeEndPos, zf))
             _plugin._logger.debug("waiting for command queue to drain")
-            queue_cmds_and_send(_plugin, ["?"])
-            wait_for_empty_cmd_queue(_plugin)
+            queue_cmds_and_send(_plugin, [";eat me"], wait=True)
             _plugin._logger.debug("done waiting for command queue to drain")
 
     # setup the next step

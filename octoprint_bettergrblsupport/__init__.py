@@ -602,14 +602,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return None
 
-        # hack for unacknowledged grbl commmands
-        if "$H" in cmd.upper() or "G38.2" in cmd.upper():
-            threading.Thread(target=_bgs.do_fake_ack, args=(self._printer, self._logger)).start()
-            self._logger.debug("fake_ack submitted")
-
-            self.grblState = "Run"
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
-
         # suppress temperature if machine is printing
         if cmd.upper().startswith('M105'):
             if self.disablePolling and self._printer.is_printing():
@@ -629,6 +621,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     return (self.statusCommand, )
 
         self.autoSleepTimer = time.time()
+
+        # hack for unacknowledged grbl commmands
+        if "$H" in cmd.upper() or "G38.2" in cmd.upper():
+            threading.Thread(target=_bgs.do_fake_ack, args=(self._printer, self._logger)).start()
+            self._logger.debug("fake_ack submitted")
+
+            self.grblState = "Run"
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
         # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
         if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
