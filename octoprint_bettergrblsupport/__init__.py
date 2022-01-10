@@ -123,6 +123,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.plungeRate = float(0)
         self.powerRate = float(0)
 
+        self.autoSleep = False
+        self.autoSleepInterval = 20
+
+        self.autoSleepTimer = time.time()
+
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.loadGrblDescriptions(self)
 
@@ -173,7 +178,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             old_profile = "_default",
             useDevChannel = False,
             zprobeMethod = "SIMPLE",
-            zprobeCalc = "MIN"
+            zprobeCalc = "MIN",
+            autoSleep = False,
+            autoSleepInterval = 20,
+            zProbeConfirmMoves = True
         )
 
 
@@ -245,6 +253,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
         self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
+
+        self.autoSleep = self._settings.get_boolean(["autoSleep"])
+        self.autoSleepInterval = round(float(self._settings.get(["autoSleepInterval"])))
+
 
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
@@ -437,6 +449,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # - CONNECTED
         if event == Events.CONNECTED:
             self._logger.debug('machine connected')
+            self.autoSleepTimer = time.time()
             self._printer.commands(["$I", "$G"])
 
         # Disconnecting & Disconnected
@@ -588,6 +601,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return None
 
+        # suppress temperature if machine is printing
+        if cmd.upper().startswith('M105'):
+            if self.disablePolling and self._printer.is_printing():
+                self._logger.debug('Ignoring %s', cmd)
+                return (None, )
+            else:
+                if self.suppressM105:
+                    self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
+
+                    # go to sleep if autosleep and now - last > interval
+                    if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
+                        if self.grblState != "Sleep" and self._printer.is_operational():
+                            self._printer.commands("$SLP")
+                        else:
+                            self.autoSleepTimer = time.time()
+
+                    return (self.statusCommand, )
+
+        self.autoSleepTimer = time.time()
+
         # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
         if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
             _bgs.multipoint_zprobe_move(self)
@@ -629,16 +662,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith('M21'):
             self._logger.debug('Ignoring %s', cmd)
             return (None,)
-
-        # suppress temperature if machine is printing
-        if cmd.upper().startswith('M105'):
-            if self.disablePolling and self._printer.is_printing():
-                self._logger.debug('Ignoring %s', cmd)
-                return (None, )
-            else:
-                if self.suppressM105:
-                    self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
-                    return (self.statusCommand, )
 
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
@@ -780,6 +803,66 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return None
+
+        # hack to force status updates
+        if 'MPos' in line or 'WPos' in line:
+             # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
+             # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
+
+            # match = re.search(r'[WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
+            match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
+
+            if match is None:
+                self._logger.warning('Bad data %s', line.rstrip())
+                return
+
+             # OctoPrint records positions in some instances.
+             # It needs a different format. Put both on the same line so the GRBL info is not lost
+             # and is accessible for "controls" to read.
+            response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
+
+            self.grblMode = "MPos" if "MPos" in line else "WPos" if "WPos" in line else "N/A"
+            self.grblState = str(match.groups(1)[0])
+            self.grblX = float(match.groups(1)[1])
+            self.grblY = float(match.groups(1)[2])
+            self.grblZ = float(match.groups(1)[3])
+
+            match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', line)
+            if not match is None:
+                self.grblSpeed = round(float(match.groups(1)[0]))
+                self.grblPowerLevel = round(float(match.groups(1)[1]))
+
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                            mode=self.grblMode,
+                                                                            state=self.grblState,
+                                                                            x=self.grblX,
+                                                                            y=self.grblY,
+                                                                            z=self.grblZ,
+                                                                            speed=self.grblSpeed,
+                                                                            power=self.grblPowerLevel))
+
+            # odd edge case where a machine could be asleep while connecting
+            if not self._printer.is_operational() and "SLEEP" in self.grblState.upper():
+                self._printer.commands("M999", force=True)
+
+            # pop any queued commands if state is IDLE or HOLD:0 or Check
+            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK"):
+                self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
+                self._printer.commands(self.grblCmdQueue[0])
+                self.grblCmdQueue.pop(0)
+                return response
+
+            # add a notification if we just homed
+            if self.grblState.upper().strip() == "HOME":
+                _bgs.addToNotifyQueue(self, ["Machine has been homed"])
+
+            # parse the line to see if we have any other useful data
+            # for stat in line.replace("<", "").replace(">", "").split("|"):
+            #     # buffer stats and Pin stats
+            #     if stat.startswith("Bf:") or stat.startswith("Pn:"):
+            #         self.addToNotifyQueue(stat)
+
+            return self.pick_a_response(response)
 
         if line.startswith('Grbl'):
             # Hack to make Arduino based GRBL work.
@@ -971,66 +1054,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._settings.save()
 
                 return line
-
-        # hack to force status updates
-        if 'MPos' in line or 'WPos' in line:
-             # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
-             # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
-
-            # match = re.search(r'[WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
-            match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
-
-            if match is None:
-                self._logger.warning('Bad data %s', line.rstrip())
-                return
-
-             # OctoPrint records positions in some instances.
-             # It needs a different format. Put both on the same line so the GRBL info is not lost
-             # and is accessible for "controls" to read.
-            response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
-
-            self.grblMode = "MPos" if "MPos" in line else "WPos" if "WPos" in line else "N/A"
-            self.grblState = str(match.groups(1)[0])
-            self.grblX = float(match.groups(1)[1])
-            self.grblY = float(match.groups(1)[2])
-            self.grblZ = float(match.groups(1)[3])
-
-            match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', line)
-            if not match is None:
-                self.grblSpeed = round(float(match.groups(1)[0]))
-                self.grblPowerLevel = round(float(match.groups(1)[1]))
-
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
-                                                                            mode=self.grblMode,
-                                                                            state=self.grblState,
-                                                                            x=self.grblX,
-                                                                            y=self.grblY,
-                                                                            z=self.grblZ,
-                                                                            speed=self.grblSpeed,
-                                                                            power=self.grblPowerLevel))
-
-            # odd edge case where a machine could be asleep while connecting
-            if not self._printer.is_operational() and "SLEEP" in self.grblState.upper():
-                self._printer.commands("M999", force=True)
-
-            # pop any queued commands if state is IDLE or HOLD:0 or Check
-            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK"):
-                self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
-                self._printer.commands(self.grblCmdQueue[0])
-                self.grblCmdQueue.pop(0)
-                return response
-
-            # add a notification if we just homed
-            if self.grblState.upper().strip() == "HOME":
-                _bgs.addToNotifyQueue(self, ["Machine has been homed"])
-
-            # parse the line to see if we have any other useful data
-            # for stat in line.replace("<", "").replace(">", "").split("|"):
-            #     # buffer stats and Pin stats
-            #     if stat.startswith("Bf:") or stat.startswith("Pn:"):
-            #         self.addToNotifyQueue(stat)
-
-            return self.pick_a_response(response)
 
         if not line.rstrip().endswith('ok'):
             return

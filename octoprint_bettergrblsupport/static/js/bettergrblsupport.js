@@ -496,6 +496,13 @@ $(function() {
                 if (data.sessionId != undefined && data.sessionId == self.sessionId) {
                   var instruction = data.instruction;
                   var text = "";
+                  var confirmMoves = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmMoves();
+
+                  if (!confirmMoves && instruction.action == "move") {
+                    OctoPrint.control.sendGcode(instruction.gcode);
+                    OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
+                    return
+                  }
 
                   if (instruction.action == "probe") {
                       text = "Select PROCEED to initiate Z-Probe once the machine has reached the [" + instruction.location + "] location, and you are ready to continue.";

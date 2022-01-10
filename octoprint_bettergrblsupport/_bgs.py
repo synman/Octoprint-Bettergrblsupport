@@ -461,7 +461,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
                                     {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Center Left"},
                                     {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2, feedrate), "action": "move", "location": "Top Center"},
                                     {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Top Center"},
-                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2, length * -1, feedrate), "action": "move", "location": "Center Right"},
+                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2 * -1, feedrate), "action": "move", "location": "Center Right"},
                                     {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Center Right"},
                                     {"gcode": "{}G21 G91 X{:f} F{}".format(preamble, width / 2 * -1, feedrate), "action": "move", "location": "Center"},
                                     {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Center"},
@@ -477,12 +477,12 @@ def do_multipoint_zprobe(_plugin, sessionId):
             return
     else:
         if zProbe._step > len(zProbe._locations) - 1:
-            text = "Multipoint Z-Probe has completed.\r\n\r\nResults:\r\n\r\nVariance: {:.3f}\r\n\r\nHighest Point: {:.3f}\r\nLowest Point: {:.3f}\r\nMean Distance: {:.3f}\r\nComputed Average: {:.3f}".format(
-                zProbe.resultByCalc("GAP"),
-                zProbe.resultByCalc("MIN"),
-                zProbe.resultByCalc("MAX"),
-                zProbe.resultByCalc("MEAN"),
-                zProbe.resultByCalc("AVG")
+            text = "Multipoint Z-Probe has completed.\r\n\r\nResults:\r\n\r\nVariance: {:.3f}\r\n\r\nHighest Point: {:.3f} ({})\r\nLowest Point: {:.3f} ({})\r\nMean Point: {:.3f}\r\nComputed Average: {:.3f}".format(
+                zProbe.resultByCalc("GAP")[0],
+                zProbe.resultByCalc("MIN")[0], zProbe.resultByCalc("MIN")[1],
+                zProbe.resultByCalc("MAX")[0], zProbe.resultByCalc("MAX")[1],
+                zProbe.resultByCalc("MEAN")[0],
+                zProbe.resultByCalc("AVG")[0]
             )
             _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                              sessionId=zProbe._sessionId,

@@ -67,7 +67,7 @@ class ZProbe:
                 position = float(secondSplit[2])
 
                 if (result == 1):
-                    self._results.append({"position": position})
+                    self._results.append({"position": position, "location": self.getCurrentLocation()["location"]})
 
                 notifications.remove(notification)
                 self._hook(self._plugin, result, position)
@@ -82,18 +82,18 @@ class ZProbe:
         ordered = sorted(self._results, key = lambda i: i["position"])
 
         if calculation == "GAP":
-            return ordered[-1].get("position") - ordered[0].get("position")
+            return (ordered[-1].get("position") - ordered[0].get("position"), "N/A")
         elif calculation == "MIN":
-            return ordered[-1].get("position")
+            return (ordered[-1].get("position"), ordered[-1].get("location"))
         elif calculation == "MAX":
-            return ordered[0].get("position")
+            return (ordered[0].get("position"), ordered[0].get("location"))
         elif calculation == "MEAN":
-            return (ordered[-1].get("position") - ordered[0].get("position")) / 2
+            return ((ordered[-1].get("position") - ordered[0].get("position")) / 2 + ordered[0].get("position"), "N/A")
         elif calculation == "AVG":
             result = float(0)
             for item in ordered:
                 result+= item.get("position")
-            return result / len(ordered)
+            return (result / len(ordered), "N/A")
 
         return None
 

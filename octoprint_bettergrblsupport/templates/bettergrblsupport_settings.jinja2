@@ -36,6 +36,12 @@
 		<br>
 		<br>
 
+		<div class="controls">
+  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmMoves"> Confirm all Z-Probe moves
+		</div>
+		
+		<br>
+
 		<label class="control-label">Z-Probe Method</label>
     <div class="controls">
         <select data-bind="value: settings.plugins.bettergrblsupport.zprobeMethod">
@@ -78,7 +84,25 @@
 		<div class="controls">
 				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos">mm
 		</div>
+
 		<br>
+		<br>
+
+		<div class="controls">
+  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Sleep automatically
+		</div>
+		<br>
+
+		<!-- ko if: settings.plugins.bettergrblsupport.autoSleep -->
+
+		<label class="control-label">Inactivity Time</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval">min
+		</div>
+		<br>
+
+		<!-- /ko -->
+
 		<br>
 		<h4>Grbl Options</h4>
 		<hr>
