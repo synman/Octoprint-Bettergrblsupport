@@ -1113,6 +1113,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "reset":
+            self._printer.fake_ack()
             self._printer.commands("M999", force=True)
             return
 
@@ -1145,6 +1146,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "homing" and self._printer.is_ready() and self.grblState in "Idle,Alarm":
             self._printer.commands("$H")
+            self._printer.fake_ack()
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                             mode="MPos",
                                                                             state="Home",

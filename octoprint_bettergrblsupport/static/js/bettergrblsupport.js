@@ -518,7 +518,11 @@ $(function() {
                                   text: "PROCEED",
                                   click: function(notice) {
                                       OctoPrint.control.sendGcode(instruction.gcode);
-                                      if (instruction.action == "move") OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
+                                      if (instruction.action == "move") {
+                                        OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
+                                      } else {
+                                        OctoPrint.connection.fakeAck();
+                                      }
                                       notice.remove();
                                   }
                               },

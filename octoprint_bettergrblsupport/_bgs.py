@@ -467,7 +467,22 @@ def do_multipoint_zprobe(_plugin, sessionId):
             return
     else:
         if zProbe._step > len(zProbe._locations) - 1:
-            # we shouldn't be here
+            text = "Multipoint Z-Probe has completed.\r\n\r\nResults:\r\n\r\nVariance: {:.3f}\r\n\r\nHighest Point: {:.3f}\r\nLowest Point: {:.3f}\r\nMean Distance: {:.3f}\r\nComputed Average: {:.3f}".format(
+                zProbe.resultByCalc("GAP"),
+                zProbe.resultByCalc("MIN"),
+                zProbe.resultsByCalc("MAX"),
+                zProbe.resultsByCalc("MEAN"),
+                zProbe.resultsByCalc("AVG")
+            )
+            _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                             sessionId=zProbe._sessionId,
+                                                                                 title="Multipoint Z-Probe",
+                                                                                  text=text,
+                                                                                  hide=False,
+                                                                                 delay=0,
+                                                                           notify_type=notify_type))
+            addToNotifyQueue(_plugin, [text])
+
             zProbe.teardown()
             zProbe = None
             return
@@ -475,6 +490,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="multipoint_zprobe",
                                                                      sessionId=zProbe._sessionId,
                                                                    instruction=zProbe.getCurrentLocation()))
+
 
 def multipoint_zprobe_hook(_plugin, result, position):
     global zProbe
@@ -486,33 +502,15 @@ def multipoint_zprobe_hook(_plugin, result, position):
         zProbe = None
         return
     else:
-        if zProbe._step >= len(zProbe._locations) - 1:
-            text = "Multipoint Z-Probe has completed.\r\n\r\nResults:\r\n\r\nHighest: {:.3f}\r\nLowest: {:.3f}\r\nMean: {:.3f}\r\nAverage: {:.3f}".format(
-                zProbe.resultByCalc("MIN"),
-                zProbe.resultsByCalc("MAX"),
-                zProbe.resultsByCalc("MEAN"),
-                zProbe.resultsByCalc("AVG")
-            )
-            _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
-                                                                             sessionId=zProbe._sessionId,
-                                                                                 title="Multipoint Z-Probe",
-                                                                                  text=text,
-                                                                                  hide=True,
-                                                                                 delay=10000,
-                                                                           notify_type=notify_type))
-            addToNotifyQueue(_plugin, [text])
+        location = zProbe.getCurrentLocation()['location']
+        notification = "Multipoint Z-Probe {} position result [{:.3f}]".format(location, position)
+        addToNotifyQueue(_plugin, [notification])
 
-            zProbe.teardown()
-            zProbe = None
-        else:
-            location = zProbe.getCurrentLocation()['location']
-            notification = "Multipoint Z-Probe {} position result [{:.3f}]".format(location, position)
-            addToNotifyQueue(_plugin, [notification])
-
-            _plugin._printer.commands(["G91", "G21", "G0 Z{}".format(_plugin.zProbeEndPos)])
+        _plugin._printer.commands(["G91", "G21", "G0 Z{}".format(_plugin.zProbeEndPos)])
 
     # setup the next step
     do_multipoint_zprobe(_plugin, zProbe._sessionId)
+
 
 def multipoint_zprobe_move(_plugin):
     global zProbe

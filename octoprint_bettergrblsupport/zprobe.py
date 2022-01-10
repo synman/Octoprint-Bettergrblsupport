@@ -51,10 +51,11 @@ class ZProbe:
 
         self._plugin._plugin_manager.send_plugin_message(self._plugin._identifier, dict(type="grbl_state", state="Run"))
         self._plugin._printer.commands(["$G", "G91", "G21", "G38.2 Z-{} F100".format(self._plugin.zLimit if self._plugin.zProbeTravel == 0 else self._plugin.zProbeTravel)], force=True)
+        self._plugin._printer.fake_ack()
 
 
     def notify(self, notifications):
-        self._plugin._logger.debug("ZProbe: simple_probe notifications=[{}] sessionId=[{}]".format(notifications, self._sessionId))
+        self._plugin._logger.debug("ZProbe: notify notifications=[{}] sessionId=[{}]".format(notifications, self._sessionId))
 
         for notification in notifications:
             # [PRB:0.000,0.000,0.000:0]
@@ -72,19 +73,22 @@ class ZProbe:
                 self._hook(self._plugin, result, position)
 
     def getCurrentLocation(self):
+        self._plugin._logger.debug("ZProbe: getCurrentLocation step=[{}] location=[{}] sessionId=[{}]".format(self._step, self._locations[self._step], self._sessionId))
         return self._locations[self._step]
 
 
     def resultByCalc(calculation):
+        self._plugin._logger.debug("ZProbe: resultByCalc calc=[{}] sessionId=[{}]".format(calculation, self._sessionId))
         ordered = sorted(self._results, key = lambda i: i["position"])
 
-        if calculation == "MIN":
+        if calculation == "GAP":
+            return ordered[-1].get("position") - ordered[0].get("position")
+        elif calculation == "MIN":
             return ordered[-1].get("position")
         elif calculation == "MAX":
             return ordered[0].get("position")
         elif calculation == "MEAN":
-            gap = ordered[-1].get("position") - ordered[0].get("position")
-            return ordered[-1].get("position") - gap
+            return (ordered[-1].get("position") - ordered[0].get("position")) / 2
         elif calculation == "AVG":
             result = float(0)
             for item in ordered:
