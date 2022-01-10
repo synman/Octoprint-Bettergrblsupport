@@ -455,8 +455,18 @@ def do_multipoint_zprobe(_plugin, sessionId):
                                     {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Left"},
                                 ]
         elif origin == "grblBottomCenter":
-            zProbe.teardown()
-            zProbe = None
+            zProbe._locations = [
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Bottom Center"},
+                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Center Left"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Center Left"},
+                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2, feedrate), "action": "move", "location": "Top Center"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Top Center"},
+                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2, length * -1, feedrate), "action": "move", "location": "Center Right"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Center Right"},
+                                    {"gcode": "{}G21 G91 X{:f} F{}".format(preamble, width / 2 * -1, feedrate), "action": "move", "location": "Center"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Center"},
+                                    {"gcode": "{}G21 G91 Y{:f} F{}".format(preamble, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Center"},
+                                ]
         elif origin == "grblBottomRight":
             zProbe.teardown()
             zProbe = None
@@ -480,7 +490,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
                                                                                   text=text,
                                                                                   hide=False,
                                                                                  delay=0,
-                                                                           notify_type=notify_type))
+                                                                           notify_type="info"))
             addToNotifyQueue(_plugin, [text])
 
             zProbe.teardown()

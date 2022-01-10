@@ -444,7 +444,7 @@ $(function() {
                         sticker: true,
                         closer: true
                     },
-                    type: data.type,
+                    type: data.notify_type,
                 });
               }
               return
