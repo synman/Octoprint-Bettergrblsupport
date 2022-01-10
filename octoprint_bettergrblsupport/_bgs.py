@@ -523,7 +523,17 @@ def multipoint_zprobe_hook(_plugin, result, position):
         notification = "Multipoint Z-Probe {} position result [{:.3f}]".format(location, position)
         add_to_notify_queue(_plugin, [notification])
 
-        _plugin._printer.commands(["G91", "G21", "G0 Z{}".format(_plugin.zProbeEndPos)])
+        # max z feed rate -- we'll do 50% of it
+        zf = round(float(_plugin.grblSettings.get(112)[0]) * .5)
+
+        if is_grbl_one_dot_one(_plugin):
+            _plugin._printer.commands("$J=G21 G91 Z{} F{}".format(_plugin.zProbeEndPos, zf))
+        else:
+            _plugin._printer.commands("G0 G91 G21 Z{} F{}".format(_plugin.zProbeEndPos, zf))
+            _plugin._logger.debug("waiting for command queue to drain")
+            queue_cmds_and_send(_plugin, ["?"])
+            wait_for_empty_cmd_queue(_plugin)
+            _plugin._logger.debug("done waiting for command queue to drain")
 
     # setup the next step
     do_multipoint_zprobe(_plugin, zProbe._sessionId)
@@ -560,11 +570,13 @@ def queue_cmds_and_send(_plugin, cmds, wait=False):
 
     if wait:
         _plugin._logger.debug("waiting for command queue to drain")
-
-        while len(_plugin.grblCmdQueue) > 0:
-            time.sleep(.001)
-
+        wait_for_empty_cmd_queue(_plugin)
         _plugin._logger.debug("done waiting for command queue to drain")
+
+
+def wait_for_empty_cmd_queue(_plugin):
+    while len(_plugin.grblCmdQueue) > 0:
+        time.sleep(.001)
 
 
 def add_to_notify_queue(_plugin, notifications):
