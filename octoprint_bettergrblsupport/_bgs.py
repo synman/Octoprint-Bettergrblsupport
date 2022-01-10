@@ -35,7 +35,7 @@ from .zprobe import ZProbe
 
 zProbe = None
 
-def loadGrblDescriptions(_plugin):
+def load_grbl_descriptions(_plugin):
     path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
 
     f = open(path + "grbl_errors.txt", 'r')
@@ -63,8 +63,8 @@ def loadGrblDescriptions(_plugin):
             # _plugin._logger.debug("matching setting id: [%d] to description: [%s]", int(match.groups(1)[0]), match.groups(1)[1])
 
 
-def loadGrblSettings(_plugin):
-    _plugin._logger.debug("_bgs: loadGrblSettings")
+def load_grbl_settings(_plugin):
+    _plugin._logger.debug("_bgs: load_grbl_settings")
 
     _plugin.grblSettingsText = _plugin._settings.get(["grblSettingsText"])
 
@@ -72,7 +72,7 @@ def loadGrblSettings(_plugin):
         for setting in _plugin.grblSettingsText.split("||"):
             if len(setting.strip()) > 0:
 
-                _plugin._logger.debug("loadGrblSettings=[{}]".format(setting))
+                _plugin._logger.debug("load_grbl_settings=[{}]".format(setting))
 
                 set = setting.split("|")
                 if not set is None:
@@ -80,22 +80,22 @@ def loadGrblSettings(_plugin):
     return
 
 
-def saveGrblSettings(_plugin):
-    _plugin._logger.debug("_bgs: saveGrblSettings")
+def save_grbl_settings(_plugin):
+    _plugin._logger.debug("_bgs: save_grbl_settings")
 
     ret = ""
     for id, data in sorted(_plugin.grblSettings.items(), key=lambda x: int(x[0])):
         ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
 
-    _plugin._logger.debug("saveGrblSettings=[{}]".format(ret))
+    _plugin._logger.debug("save_grbl_settings=[{}]".format(ret))
 
     _plugin.grblSettingsText = ret
 
     return ret
 
 
-def cleanUpDueToUninstall(_plugin, remove_profile=True):
-    _plugin._logger.debug("_bgs: cleanUpDueToUninstall remove_profile=[{}]".format(remove_profile))
+def cleanup_due_to_uninstall(_plugin, remove_profile=True):
+    _plugin._logger.debug("_bgs: cleanup_due_to_uninstall remove_profile=[{}]".format(remove_profile))
 
     # re-enable model size detection, sd card support, and send checksum
     _plugin._settings.global_set_boolean(["feature", "modelSizeDetection"], True)
@@ -212,7 +212,7 @@ def send_frame_init_gcode(_plugin):
     _plugin._printer.commands("G1 F{} M5".format(f))
 
     # turn on laser in weak mode if laser mode enabled
-    if isLaserMode(_plugin):
+    if is_laser_mode(_plugin):
         _plugin._printer.commands("M3 S{}".format(_plugin.weakLaserValue))
 
     _plugin.grblState = "Jog"
@@ -228,10 +228,10 @@ def send_bounding_box_upper_left(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ",x, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ",x, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
 
 
 def send_bounding_box_upper_center(_plugin, y, x):
@@ -239,11 +239,11 @@ def send_bounding_box_upper_center(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2, f))
 
 
 def send_bounding_box_upper_right(_plugin, y, x):
@@ -251,10 +251,10 @@ def send_bounding_box_upper_right(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
 
 
 def send_bounding_box_center_left(_plugin, y, x):
@@ -262,11 +262,11 @@ def send_bounding_box_center_left(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y / 2, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y / 2, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2, f))
 
 
 def send_bounding_box_center(_plugin, y, x):
@@ -274,12 +274,12 @@ def send_bounding_box_center(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 X{:f} Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2 * -1, y / 2, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2, y / 2 * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2 * -1, y / 2, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2, y / 2 * -1, f))
 
 
 def send_bounding_box_center_right(_plugin, y, x):
@@ -287,11 +287,11 @@ def send_bounding_box_center_right(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y / 2 * -1, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y / 2 * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2 * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2 * -1, f))
 
 
 def send_bounding_box_lower_left(_plugin, y, x):
@@ -299,10 +299,10 @@ def send_bounding_box_lower_left(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
 
 
 def send_bounding_box_lower_center(_plugin, y, x):
@@ -310,11 +310,11 @@ def send_bounding_box_lower_center(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2 * -1, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x / 2 * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2 * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2 * -1, f))
 
 
 def send_bounding_box_lower_right(_plugin, y, x):
@@ -322,17 +322,17 @@ def send_bounding_box_lower_right(_plugin, y, x):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x * -1, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y, f))
-    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", x, f))
-    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if isGrblOneDotOne(_plugin) else "G1 ", y * -1, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
+    _plugin._printer.commands("{}G21 G91 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
+    _plugin._printer.commands("{}G21 G91 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
 
 
-def toggleWeak(_plugin):
-    _plugin._logger.debug("_bgs: toggleWeak")
+def toggle_weak(_plugin):
+    _plugin._logger.debug("_bgs: toggle_weak")
 
     # only execute if laser mode enabled
-    if not isLaserMode(_plugin):
+    if not is_laser_mode(_plugin):
         return
 
     f = int(float(_plugin.grblSettings.get(110)[0]))
@@ -340,11 +340,11 @@ def toggleWeak(_plugin):
     if _plugin.grblPowerLevel == 0:
         # turn on laser in weak mode
         _plugin._printer.commands("G1 F{} M3 S{}".format(f, _plugin.weakLaserValue))
-        addToNotifyQueue(_plugin, ["Weak laser enabled"])
+        add_to_notify_queue(_plugin, ["Weak laser enabled"])
         res = "Laser Off"
     else:
         _plugin._printer.commands(["M3 S0", "M5", "G0"])
-        addToNotifyQueue(_plugin, ["Weak laser disabled"])
+        add_to_notify_queue(_plugin, ["Weak laser disabled"])
         res = "Weak Laser"
 
     return res
@@ -360,7 +360,14 @@ def do_simple_zprobe(_plugin, sessionId):
         zProbe = None
 
     zProbe = ZProbe(_plugin, simple_zprobe_hook, sessionId)
-    zProbe.simple_probe()
+
+    zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
+    gcode = "G91 G21 G38.2 Z-{} F100".format(zTravel)
+
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_zprobe",
+                                                                     sessionId=zProbe._sessionId,
+                                                                         gcode=gcode))
+
 
 def simple_zprobe_hook(_plugin, result, position):
     global zProbe
@@ -379,7 +386,7 @@ def simple_zprobe_hook(_plugin, result, position):
         _plugin._printer.commands(["G91", "G21", "G92 Z{}".format(_plugin.zProbeOffset), "G0 Z{}".format(_plugin.zProbeEndPos)])
 
         type="simple_notify"
-        title="Z Probe Completed"
+        title="Single Point Z-Probe"
         text = "Z Axis Home has been calculated and (temporarily) set to machine location: [{:.3f}]".format(position - _plugin.zProbeOffset)
         notify_type="success"
 
@@ -390,7 +397,7 @@ def simple_zprobe_hook(_plugin, result, position):
                                                                               hide=True,
                                                                              delay=10000,
                                                                        notify_type=notify_type))
-        addToNotifyQueue(_plugin, [text])
+        add_to_notify_queue(_plugin, [text])
 
     _plugin._logger.debug("zprobe hook position: [%f] result: [%d]", position, result)
 
@@ -408,7 +415,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
         origin = _plugin._settings.get(["frame_origin"])
         width = float(_plugin._settings.get(["frame_width"]))
         length = float(_plugin._settings.get(["frame_length"]))
-        preamble = "$J=" if isGrblOneDotOne(_plugin) else "G1 "
+        preamble = "$J=" if is_grbl_one_dot_one(_plugin) else "G1 "
         zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
         zProbeEndPos = _plugin.zProbeEndPos
         feedrate = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
@@ -491,7 +498,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
                                                                                   hide=False,
                                                                                  delay=0,
                                                                            notify_type="info"))
-            addToNotifyQueue(_plugin, [text])
+            add_to_notify_queue(_plugin, [text])
 
             zProbe.teardown()
             zProbe = None
@@ -514,7 +521,7 @@ def multipoint_zprobe_hook(_plugin, result, position):
     else:
         location = zProbe.getCurrentLocation()['location']
         notification = "Multipoint Z-Probe {} position result [{:.3f}]".format(location, position)
-        addToNotifyQueue(_plugin, [notification])
+        add_to_notify_queue(_plugin, [notification])
 
         _plugin._printer.commands(["G91", "G21", "G0 Z{}".format(_plugin.zProbeEndPos)])
 
@@ -528,6 +535,11 @@ def multipoint_zprobe_move(_plugin):
 
     # setup the next step
     do_multipoint_zprobe(_plugin, zProbe._sessionId)
+
+
+def is_zprobe_active():
+    global zProbe
+    return zProbe != None
 
 
 def grbl_alarm_or_error_occurred(_plugin):
@@ -555,8 +567,8 @@ def queue_cmds_and_send(_plugin, cmds, wait=False):
         _plugin._logger.debug("done waiting for command queue to drain")
 
 
-def addToNotifyQueue(_plugin, notifications):
-    _plugin._logger.debug("_bgs: addToNotifyQueue notifications=[{}]".format(notifications))
+def add_to_notify_queue(_plugin, notifications):
+    _plugin._logger.debug("_bgs: add_to_notify_queue notifications=[{}]".format(notifications))
 
     if not zProbe is None:
         zProbe.notify(notifications)
@@ -566,11 +578,17 @@ def addToNotifyQueue(_plugin, notifications):
         _plugin.notifyQueue.append(notification)
 
 
-def isLaserMode(_plugin):
-    _plugin._logger.debug("_bgs: isLaserMode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
+def is_laser_mode(_plugin):
+    _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
     return int(float(_plugin.grblSettings.get(32)[0])) != 0
 
 
-def isGrblOneDotOne(_plugin):
-    _plugin._logger.debug("_bgs: isGrblOneDotOne")
+def is_grbl_one_dot_one(_plugin):
+    _plugin._logger.debug("_bgs: is_grbl_one_dot_one")
     return "1.1" in _plugin.grblVersion
+
+
+def do_fake_ack(printer, logger):
+    time.sleep(1)
+    printer.fake_ack()
+    logger.debug("fake_ack executed")

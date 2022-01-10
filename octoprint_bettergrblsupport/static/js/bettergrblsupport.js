@@ -492,13 +492,77 @@ $(function() {
                 });
             }
 
+            if (plugin == 'bettergrblsupport' && data.type == 'simple_zprobe') {
+                if (data.sessionId != undefined && data.sessionId == self.sessionId) {
+                  var text = "";
+                  var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
+
+                  if (!confirmActions) {
+                    OctoPrint.control.sendGcode(data.gcode);
+                    return
+                  }
+
+                  text = "Select PROCEED to initiate Single Point Z-Probe once the machine is at the desired location, and you are ready to continue.";
+
+                  new PNotify({
+                      title: "Single Point Z-Probe",
+                      text: text,
+                      type: "notice",
+                      hide: false,
+                      animation: "fade",
+                      animateSpeed: "slow",
+                      sticker: false,
+                      closer: true,
+                      confirm: {
+                          confirm: true,
+                          buttons: [{
+                                  text: "PROCEED",
+                                  click: function(notice) {
+                                    OctoPrint.control.sendGcode(data.gcode);
+                                    notice.remove();
+                                  }
+                              },
+                              {
+                                  text: "CANCEL",
+                                  click: function(notice) {
+                                      // we need to inform the plugin we bailed
+                                      $.ajax({
+                                          url: API_BASEURL + "plugin/bettergrblsupport",
+                                          type: "POST",
+                                          dataType: "json",
+                                          data: JSON.stringify({
+                                              command: "cancelZProbe"
+                                          }),
+                                          contentType: "application/json; charset=UTF-8",
+                                          error: function(data, status) {
+                                              new PNotify({
+                                                  title: "Unable to cancel Multipoint Z-Probe",
+                                                  text: data.responseText,
+                                                  hide: true,
+                                                  buttons: {
+                                                      sticker: false,
+                                                      closer: true
+                                                  },
+                                                  type: "error"
+                                              });
+                                          }
+                                      });
+                                      notice.remove();
+                                  }
+                              },
+                          ]
+                      },
+                  });
+                }
+            }
+
             if (plugin == 'bettergrblsupport' && data.type == 'multipoint_zprobe') {
                 if (data.sessionId != undefined && data.sessionId == self.sessionId) {
                   var instruction = data.instruction;
                   var text = "";
-                  var confirmMoves = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmMoves();
+                  var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
 
-                  if (!confirmMoves && instruction.action == "move") {
+                  if (!confirmActions && instruction.action == "move") {
                     OctoPrint.control.sendGcode(instruction.gcode);
                     OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
                     return
@@ -524,11 +588,9 @@ $(function() {
                           buttons: [{
                                   text: "PROCEED",
                                   click: function(notice) {
-                                      OctoPrint.control.sendGcode(instruction.gcode);
+                                    OctoPrint.control.sendGcode(instruction.gcode);
                                       if (instruction.action == "move") {
                                         OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
-                                      } else {
-                                        OctoPrint.connection.fakeAck();
                                       }
                                       notice.remove();
                                   }
@@ -542,7 +604,7 @@ $(function() {
                                           type: "POST",
                                           dataType: "json",
                                           data: JSON.stringify({
-                                              command: "cancelMultipointZProbe"
+                                              command: "cancelZProbe"
                                           }),
                                           contentType: "application/json; charset=UTF-8",
                                           error: function(data, status) {
