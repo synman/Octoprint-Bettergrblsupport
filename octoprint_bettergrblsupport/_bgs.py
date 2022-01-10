@@ -470,9 +470,9 @@ def do_multipoint_zprobe(_plugin, sessionId):
             text = "Multipoint Z-Probe has completed.\r\n\r\nResults:\r\n\r\nVariance: {:.3f}\r\n\r\nHighest Point: {:.3f}\r\nLowest Point: {:.3f}\r\nMean Distance: {:.3f}\r\nComputed Average: {:.3f}".format(
                 zProbe.resultByCalc("GAP"),
                 zProbe.resultByCalc("MIN"),
-                zProbe.resultsByCalc("MAX"),
-                zProbe.resultsByCalc("MEAN"),
-                zProbe.resultsByCalc("AVG")
+                zProbe.resultByCalc("MAX"),
+                zProbe.resultByCalc("MEAN"),
+                zProbe.resultByCalc("AVG")
             )
             _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                              sessionId=zProbe._sessionId,
