@@ -10,14 +10,17 @@ $(function() {
       // var $body = $('body');
 
       // assign the injected parameters, e.g.:
-      self.settings = parameters[0];
+      self.settingsViewModel = parameters[0];
       self.loginState = parameters[1];
+
+      self.settings = undefined;
 
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
 
-      self.grblSettings = ko.observableArray([]);
+      self.isMultiPoint = ko.observable(false);
 
+      self.grblSettings = ko.observableArray([]);
       self.updateSetting = function(id, value, oldvalue) {
         if (self.is_printing()) {
           for (var i in self.grblSettings()) {
@@ -161,10 +164,21 @@ $(function() {
 
       self.onBeforeBinding = function() {
         // initialize stuff here
-        var settingsText = self.settings.settings.plugins.bettergrblsupport.grblSettingsText();
+        self.settings = self.settingsViewModel.settings;
+
+        var settingsText = self.settings.plugins.bettergrblsupport.grblSettingsText();
         if (settingsText != null) {
           self.pushGrblSettings(settingsText);
         }
+
+        self.isMultiPoint(self.settings.plugins.bettergrblsupport.zprobeMethod() == "MULTI");
+        self.settings.plugins.bettergrblsupport.zprobeMethod.subscribe(function(newValue) {
+          if (newValue == "MULTI") {
+            self.isMultiPoint(true);
+          } else {
+            self.isMultiPoint(false);
+          }
+        });
       };
 
       self.pushGrblSettings = function(grblSettingsText) {
@@ -183,7 +197,7 @@ $(function() {
               description: setting[2]
           });
         }
-      }
+      };
 
       self.fromCurrentData = function (data) {
           self._processStateData(data.state);

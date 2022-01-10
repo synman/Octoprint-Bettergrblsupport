@@ -171,7 +171,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             grblVersion = "unknown",
             laserMode = False,
             old_profile = "_default",
-            useDevChannel = False
+            useDevChannel = False,
+            zprobeMethod = "SIMPLE",
+            zprobeCalc = "MIN"
         )
 
 
@@ -1203,6 +1205,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "move":
+            sessionId = data.get("sessionId")
+
             # do move stuff
             direction = data.get("direction")
             distance = float(data.get("distance"))
@@ -1244,8 +1248,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             if direction == "probez":
-                # _bgs.do_simple_zprobe(self)
-                _bgs.do_multipoint_zprobe(self)
+                method = self._settings.get(["zprobeMethod"])
+                if method == "SIMPLE":
+                    _bgs.do_simple_zprobe(self, sessionId)
+                else:
+                    _bgs.do_multipoint_zprobe(self, sessionId)
                 return
 
             # check distance against limits

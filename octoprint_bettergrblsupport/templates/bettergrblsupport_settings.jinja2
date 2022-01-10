@@ -1,33 +1,93 @@
 <form class="form-horizontal">
-	<h4>UI Options</h4>
+	<h4>Plugin Options</h4>
 	<hr>
 		<div class="control-group">
 				<div class="controls">
-							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
+							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
 						<br>
-							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
+							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
 						<br>
-							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
+							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
 						<br>
-							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
-						<!-- ko ifnot: settings.settings.plugins.bettergrblsupport.hideControlTab -->
+							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
+						<!-- ko ifnot: settings.plugins.bettergrblsupport.hideControlTab -->
 								<br>
-								<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
+								&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
 						<!-- /ko -->
 						<br>
 						<br>
-							<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
+							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
+						<br>
 				</div>
 		</div>
+		<br>
+		<label class="control-label">Framing Feed Rate</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed">% of max
+		</div>
 
+		<br>
+
+		<label class="control-label">Weak Laser Intensity</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue">
+		</div>
+
+		<br>
+		<br>
+
+		<label class="control-label">Z-Probe Method</label>
+    <div class="controls">
+        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeMethod">
+            <option value="SIMPLE">Single point Z-Probe</option>
+            <option value="MULTI">Multi point Z-Probe</option>
+        </select>
+    </div>
+
+		<br>
+
+<!-- ko if: isMultiPoint() -->
+		<label class="control-label">Multipoint Calculation</label>
+    <div class="controls">
+        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeCalc">
+						<option value="MIN">Highest</option>
+						<option value="MAX">Lowest</option>
+						<option value="MEAN">Mean distance</option>
+						<option value="AVG">Average distance</option>
+        </select>
+    </div>
+
+		<br>
+<!-- /ko -->
+
+		<label class="control-label">Touchplate Height</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset">mm
+		</div>
+
+		<br>
+
+		<label class="control-label">Z-Probe Travel Distance</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel">mm (0 - use machine Z limit)
+		</div>
+
+		<br>
+
+		<label class="control-label">Z-Probe End Position</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos">mm
+		</div>
+		<br>
+		<br>
 		<h4>Grbl Options</h4>
 		<hr>
 		<label class="control-label">Hello Command</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.hello">
+				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.hello">
 				<br>
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
 				</label>
 		</div>
 
@@ -36,20 +96,20 @@
 		<div class="control-group">
 			<label class="control-label">Status Command</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.statusCommand">
+					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.statusCommand">
 					<br>
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
 					<br>
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.disablePolling"> Disable status polling while printing
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePolling"> Disable status polling while printing
 			</div>
 		</div>
 
 		<label class="control-label">Position Command</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.positionCommand">
+				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.positionCommand">
 				<br>
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM114"> Replace M114 requests with above
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM114"> Replace M114 requests with above
 				</label>
 		</div>
 
@@ -57,82 +117,45 @@
 
 		<label class="control-label">Dwell Command</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.settings.plugins.bettergrblsupport.dwellCommand">
+				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.dwellCommand">
 				<br>
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
 				</label>
 				<br>
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.doSmoothie"> Smoothieware Support (EXPERIMENTAL)
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.doSmoothie"> Smoothieware Support (EXPERIMENTAL)
 					<br>
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
 					<br>
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model Size Detection *
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model Size Detection *
 					<br>
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.neverSendChecksum"> Never Send Checksums *
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.neverSendChecksum"> Never Send Checksums *
 					<br>
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
 					<br>
 					<br>
-					<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.ignoreErrors"> Ignore Firmware Errors (NOT RECOMMENDED)
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.ignoreErrors"> Ignore Firmware Errors (NOT RECOMMENDED)
 		</div>
 
-		<br>
-
-		<label class="control-label">Framing Feed Rate</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed">% of max
-		</div>
-
-		<br>
-
-		<label class="control-label">Weak Laser Intensity</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.weakLaserValue">
-		</div>
-
-		<br>
-		<br>
-
-		<label class="control-label" style="transform: translate(0px, -10px);">Z-Probe Touchplate Height</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.zProbeOffset">mm
-		</div>
-
-		<br>
-
-		<label class="control-label">Z-Probe Travel Distance</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.zProbeTravel">mm (0 - use machine Z limit)
-		</div>
-
-		<br>
-
-		<label class="control-label">Z-Probe End Position</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.settings.plugins.bettergrblsupport.zProbeEndPos">mm
-		</div>
-
-		<br>
 		<br>
 
     <label class="control-label">Air Assist Overrides</label>
 		<br>
 		<div class="controls">
 			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.overrideM8"> Suppress M8 Command
+				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.overrideM8"> Suppress M8 Command
 			</label>
-			<!-- ko if: settings.settings.plugins.bettergrblsupport.overrideM8 -->
+			<!-- ko if: settings.plugins.bettergrblsupport.overrideM8 -->
 					<label>And Execute:</label>
-	        <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.bettergrblsupport.m8Command">
+	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.bettergrblsupport.m8Command">
 					<br><br>
 			<!-- /ko -->
 			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.settings.plugins.bettergrblsupport.overrideM9"> Suppress M9 Command
+				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.overrideM9"> Suppress M9 Command
 			</label>
-			<!-- ko if: settings.settings.plugins.bettergrblsupport.overrideM9 -->
+			<!-- ko if: settings.plugins.bettergrblsupport.overrideM9 -->
 					<label>And Execute:</label>
-	        <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.bettergrblsupport.m9Command">
+	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.bettergrblsupport.m9Command">
 					<br><br>
 			<!-- /ko -->
 		</div>
@@ -142,7 +165,7 @@
 		<p>* Server restart is required for this setting change to take effect</p>
 		<br>
 		<h4>Grbl Settings</h4>
-		Signature: <span data-bind="text: settings.settings.plugins.bettergrblsupport.grblVersion"></span>
+		Signature: <span data-bind="text: settings.plugins.bettergrblsupport.grblVersion"></span>
 		<hr>
 		<center>
 			<table width=90% border=0 cellpadding=3>
@@ -168,7 +191,7 @@
 						<button class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { backupSettings() }">Backup Settings</button>
 					</td>
 					<td align="right">
-						<button class="btn" data-bind="enable: is_operational() && !is_printing() && settings.settings.plugins.bettergrblsupport.grblSettingsBackup().length > 0, click: function() { restoreSettings() }">Restore Settings</button>
+						<button class="btn" data-bind="enable: is_operational() && !is_printing() && settings.plugins.bettergrblsupport.grblSettingsBackup().length > 0, click: function() { restoreSettings() }">Restore Settings</button>
 					</td>
 				</tr>
 			</table>

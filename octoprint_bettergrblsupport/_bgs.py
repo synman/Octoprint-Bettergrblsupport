@@ -350,8 +350,8 @@ def toggleWeak(_plugin):
     return res
 
 
-def do_simple_zprobe(_plugin):
-    _plugin._logger.debug("_bgs: do_simple_zprobe")
+def do_simple_zprobe(_plugin, sessionId):
+    _plugin._logger.debug("_bgs: do_simple_zprobe sessionId=[{}]".format(sessionId))
 
     global zProbe
 
@@ -359,13 +359,14 @@ def do_simple_zprobe(_plugin):
         zProbe.teardown()
         zProbe = None
 
-    zProbe = ZProbe(_plugin, simple_zprobe_hook)
+    zProbe = ZProbe(_plugin, simple_zprobe_hook, sessionId)
     zProbe.simple_probe()
 
 def simple_zprobe_hook(_plugin, result, position):
-    _plugin._logger.debug("_bgs: simple_zprobe_hook result=[{}] position=[{}]".format(result, position))
-
     global zProbe
+    _plugin._logger.debug("_bgs: simple_zprobe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, zProbe._sessionId))
+
+    sessionId = zProbe._sessionId
     zProbe.teardown()
     zProbe = None
 
@@ -383,6 +384,7 @@ def simple_zprobe_hook(_plugin, result, position):
         notify_type="success"
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
+                                                                         sessionId=sessionId,
                                                                              title=title,
                                                                               text=text,
                                                                               hide=True,
@@ -393,14 +395,12 @@ def simple_zprobe_hook(_plugin, result, position):
     _plugin._logger.debug("zprobe hook position: [%f] result: [%d]", position, result)
 
 
-def do_multipoint_zprobe(_plugin):
-    _plugin._logger.debug("_bgs: do_multipoint_zprobe")
-
+def do_multipoint_zprobe(_plugin, sessionId):
     global zProbe
-    _plugin._logger.debug("do_multipoint_zprobe step=%d", zProbe._step + 1 if zProbe != None else 0)
+    _plugin._logger.debug("_bgs: do_multipoint_zprobe step=[{}] sessionId=[{}]".format(zProbe._step + 1 if zProbe != None else 0, sessionId))
 
     if zProbe == None:
-        zProbe = ZProbe(_plugin, multipoint_zprobe_hook)
+        zProbe = ZProbe(_plugin, multipoint_zprobe_hook, sessionId)
 
     zProbe._step+=1
 
@@ -442,8 +442,18 @@ def do_multipoint_zprobe(_plugin):
             zProbe.teardown()
             zProbe = None
         elif origin == "grblBottomLeft":
-            zProbe.teardown()
-            zProbe = None
+            zProbe._locations = [
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Bottom Left"},
+                                    {"gcode": "{}G21 G91 Y{:f} F{}".format(preamble, length, feedrate), "action": "move", "location": "Top Left"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Top Left"},
+                                    {"gcode": "{}G21 G91 X{:f} F{}".format(preamble, width, feedrate), "action": "move", "location": "Top Right"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Top Right"},
+                                    {"gcode": "{}G21 G91 Y{:f} F{}".format(preamble, length * -1, feedrate), "action": "move", "location": "Bottom Right"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Bottom Right"},
+                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Center"},
+                                    {"gcode": "G91 G21 G38.2 Z-{} F100".format(zTravel),  "action": "probe", "location": "Center"},
+                                    {"gcode": "{}G21 G91 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Left"},
+                                ]
         elif origin == "grblBottomCenter":
             zProbe.teardown()
             zProbe = None
@@ -456,20 +466,19 @@ def do_multipoint_zprobe(_plugin):
             zProbe = None
             return
     else:
-        # we shouldn't be here
-        if zProbe._step > 9:
+        if zProbe._step > len(zProbe._locations) - 1:
+            # we shouldn't be here
             zProbe.teardown()
             zProbe = None
             return
 
-    _plugin._plugin_manager.send_plugin_message(_plugin._identifier,
-                                                dict(type="multipoint_zprobe",
-                                                     instruction=zProbe._locations[zProbe._step]))
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="multipoint_zprobe",
+                                                                     sessionId=zProbe._sessionId,
+                                                                   instruction=zProbe.getCurrentLocation()))
 
 def multipoint_zprobe_hook(_plugin, result, position):
-    _plugin._logger.debug("_bgs: multipoint_zprobe_hook result=[{}] position=[{}]".format(result, position))
-
     global zProbe
+    _plugin._logger.debug("_bgs: multipoint_zprobe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, zProbe._sessionId))
 
     # did we have a problem?
     if result == 0:
@@ -477,9 +486,15 @@ def multipoint_zprobe_hook(_plugin, result, position):
         zProbe = None
         return
     else:
-        if zProbe._step >=9:
-            text = "Multipoint Z-Probe has completed."
+        if zProbe._step >= len(zProbe._locations) - 1:
+            text = "Multipoint Z-Probe has completed.\r\n\r\nResults:\r\n\r\nHighest: {:.3f}\r\nLowest: {:.3f}\r\nMean: {:.3f}\r\nAverage: {:.3f}".format(
+                zProbe.resultByCalc("MIN"),
+                zProbe.resultsByCalc("MAX"),
+                zProbe.resultsByCalc("MEAN"),
+                zProbe.resultsByCalc("AVG")
+            )
             _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                             sessionId=zProbe._sessionId,
                                                                                  title="Multipoint Z-Probe",
                                                                                   text=text,
                                                                                   hide=True,
@@ -490,24 +505,26 @@ def multipoint_zprobe_hook(_plugin, result, position):
             zProbe.teardown()
             zProbe = None
         else:
-            location = zProbe._locations[zProbe._step]['location']
+            location = zProbe.getCurrentLocation()['location']
             notification = "Multipoint Z-Probe {} position result [{:.3f}]".format(location, position)
             addToNotifyQueue(_plugin, [notification])
 
             _plugin._printer.commands(["G91", "G21", "G0 Z{}".format(_plugin.zProbeEndPos)])
 
     # setup the next step
-    do_multipoint_zprobe(_plugin)
+    do_multipoint_zprobe(_plugin, zProbe._sessionId)
 
 def multipoint_zprobe_move(_plugin):
-    _plugin._logger.debug("_bgs: multipoint_zprobe_move")
+    global zProbe
+    _plugin._logger.debug("_bgs: multipoint_zprobe_move sessionId=[{}]".format(zProbe._sessionId))
+
     # setup the next step
-    do_multipoint_zprobe(_plugin)
+    do_multipoint_zprobe(_plugin, zProbe._sessionId)
 
 
 def grbl_alarm_or_error_occurred(_plugin):
-    _plugin._logger.debug("_bgs: grbl_alarm_or_error_occurred")
     global zProbe
+    _plugin._logger.debug("_bgs: grbl_alarm_or_error_occurred sessionId=[{}]".format(zProbe._sessionId if zProbe != None else "{None}"))
 
     if zProbe != None:
         zProbe.teardown()

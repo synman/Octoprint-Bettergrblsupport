@@ -31,19 +31,21 @@ from . import _bgs
 class ZProbe:
     _plugin = None
     _hook = None
+    _sessionId = None
     _step = -1
     _locations=[]
+    _results=[]
 
 
-    def __init__(self, _plugin, _hook):
-        _plugin._logger.debug("ZProbe: __init__")
+    def __init__(self, _plugin, _hook, _sessionId):
+        _plugin._logger.debug("ZProbe: __init__ sessionId=[{}]".format(_sessionId))
 
         self._plugin = _plugin
         self._hook = _hook
-
+        self._sessionId = _sessionId
 
     def simple_probe(self):
-        self._plugin._logger.debug("ZProbe: simple_probe")
+        self._plugin._logger.debug("ZProbe: simple_probe sessionId=[{}]".format(self._sessionId))
 
         _bgs.addToNotifyQueue(self._plugin, ["Z-Probe Initiated"])
 
@@ -52,7 +54,7 @@ class ZProbe:
 
 
     def notify(self, notifications):
-        self._plugin._logger.debug("ZProbe: simple_probe notifications=[{}]".format(notifications))
+        self._plugin._logger.debug("ZProbe: simple_probe notifications=[{}] sessionId=[{}]".format(notifications, self._sessionId))
 
         for notification in notifications:
             # [PRB:0.000,0.000,0.000:0]
@@ -63,12 +65,41 @@ class ZProbe:
                 result = int(float(firstSplit[2]))
                 position = float(secondSplit[2])
 
+                if (result == 1):
+                    self._results.append({"position": position})
+
                 notifications.remove(notification)
                 self._hook(self._plugin, result, position)
 
+    def getCurrentLocation(self):
+        return self._locations[self._step]
+
+
+    def resultByCalc(calculation):
+        ordered = sorted(self._results, key = lambda i: i["position"])
+
+        if calculation == "MIN":
+            return ordered[-1].get("position")
+        elif calculation == "MAX":
+            return ordered[0].get("position")
+        elif calculation == "MEAN":
+            gap = ordered[-1].get("position") - ordered[0].get("position")
+            return ordered[-1].get("position") - gap
+        elif calculation == "AVG":
+            result = float(0)
+            for item in ordered:
+                result+= item.get("position")
+            return result / len(ordered)
+
+        return None
+
 
     def teardown(self):
-        self._plugin._logger.debug("ZProbe: teardown")
+        self._plugin._logger.debug("ZProbe: teardown sessionId=[{}]".format(self._sessionId))
 
         self._hook = None
         self._plugin = None
+        self._sessionId = None
+        self._step = -1
+        self._locations.clear()
+        self._results.clear()

@@ -8,6 +8,8 @@ $(function() {
     function BettergrblsupportViewModel(parameters) {
         var self = this;
 
+        self.sessionId = guid();
+
         self.loginState = parameters[0];
         self.settings = parameters[1];
         self.access = parameters[2];
@@ -253,19 +255,13 @@ $(function() {
         };
 
         self.moveHead = function(direction) {
-            // if (direction == "probez") {
-            //   OctoPrint.control.sendGcode("G91 G21 G38.2 F100 Z-50 ?");
-            //   OctoPrint.control.sendGcode("G92 Z" + self.settings.settings.plugins.bettergrblsupport.zProbeOffset() + " G0 Z5");
-            //
-            //   return
-            // }
-
             $.ajax({
                 url: API_BASEURL + "plugin/bettergrblsupport",
                 type: "POST",
                 dataType: "json",
                 data: JSON.stringify({
                     command: "move",
+                    sessionId: self.sessionId,
                     direction: direction,
                     distance: self.distance(),
                     axis: self.origin_axis()
@@ -435,6 +431,7 @@ $(function() {
             }
 
             if (plugin == 'bettergrblsupport' && data.type == 'simple_notify') {
+              if (data.sessionId == undefined || data.sessionId == self.sessionId) {
                 new PNotify({
                     title: data.title,
                     text: data.text,
@@ -449,7 +446,8 @@ $(function() {
                     },
                     type: data.type,
                 });
-                return
+              }
+              return
             }
 
             if (plugin == 'bettergrblsupport' && data.type == 'restart_required') {
@@ -495,66 +493,79 @@ $(function() {
             }
 
             if (plugin == 'bettergrblsupport' && data.type == 'multipoint_zprobe') {
-                var instruction = data.instruction;
-                var text = "";
+                if (data.sessionId != undefined && data.sessionId == self.sessionId) {
+                  var instruction = data.instruction;
+                  var text = "";
 
-                if (instruction.action == "probe") {
-                    text = "Select PROCEED to initiate Z-Probe once the machine has reached the [" + instruction.location + "] location, and you are ready to continue.";
-                } else {
-                    text = "Your machine is ready to move to the [" + instruction.location + "] location.  Select PROCEED when you are ready to continue.";
+                  if (instruction.action == "probe") {
+                      text = "Select PROCEED to initiate Z-Probe once the machine has reached the [" + instruction.location + "] location, and you are ready to continue.";
+                  } else {
+                      text = "Your machine is ready to move to the [" + instruction.location + "] location.  Select PROCEED when you are ready to continue.";
+                  }
+
+                  new PNotify({
+                      title: "Multipoint Z-Probe",
+                      text: text,
+                      type: "notice",
+                      hide: false,
+                      animation: "fade",
+                      animateSpeed: "slow",
+                      sticker: false,
+                      closer: true,
+                      confirm: {
+                          confirm: true,
+                          buttons: [{
+                                  text: "PROCEED",
+                                  click: function(notice) {
+                                      OctoPrint.control.sendGcode(instruction.gcode);
+                                      if (instruction.action == "move") OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
+                                      notice.remove();
+                                  }
+                              },
+                              {
+                                  text: "CANCEL",
+                                  click: function(notice) {
+                                      // we need to inform the plugin we bailed
+                                      $.ajax({
+                                          url: API_BASEURL + "plugin/bettergrblsupport",
+                                          type: "POST",
+                                          dataType: "json",
+                                          data: JSON.stringify({
+                                              command: "cancelMultipointZProbe"
+                                          }),
+                                          contentType: "application/json; charset=UTF-8",
+                                          error: function(data, status) {
+                                              new PNotify({
+                                                  title: "Unable to cancel Multipoint Z-Probe",
+                                                  text: data.responseText,
+                                                  hide: true,
+                                                  buttons: {
+                                                      sticker: false,
+                                                      closer: true
+                                                  },
+                                                  type: "error"
+                                              });
+                                          }
+                                      });
+                                      notice.remove();
+                                  }
+                              },
+                          ]
+                      },
+                  });
                 }
-
-                new PNotify({
-                    title: "Multipoint Z-Probe",
-                    text: text,
-                    type: "notice",
-                    hide: false,
-                    animation: "fade",
-                    animateSpeed: "slow",
-                    sticker: false,
-                    closer: true,
-                    confirm: {
-                        confirm: true,
-                        buttons: [{
-                                text: "PROCEED",
-                                click: function(notice) {
-                                    OctoPrint.control.sendGcode(instruction.gcode);
-                                    if (instruction.action == "move") OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
-                                    notice.remove();
-                                }
-                            },
-                            {
-                                text: "CANCEL",
-                                click: function(notice) {
-                                    // we need to inform the plugin we bailed
-                                    $.ajax({
-                                        url: API_BASEURL + "plugin/bettergrblsupport",
-                                        type: "POST",
-                                        dataType: "json",
-                                        data: JSON.stringify({
-                                            command: "cancelMultipointZProbe"
-                                        }),
-                                        contentType: "application/json; charset=UTF-8",
-                                        error: function(data, status) {
-                                            new PNotify({
-                                                title: "Unable to cancel Multipoint Z-Probe",
-                                                text: data.responseText,
-                                                hide: true,
-                                                buttons: {
-                                                    sticker: false,
-                                                    closer: true
-                                                },
-                                                type: "error"
-                                            });
-                                        }
-                                    });
-                                    notice.remove();
-                                }
-                            },
-                        ]
-                    },
-                });
             }
+        }
+
+        self.modeClick = function() {
+          if (self.is_operational() && !self.is_printing()) {
+            if (self.mode() == "WPos") {
+              OctoPrint.control.sendGcode("$10=1");
+            } else {
+              OctoPrint.control.sendGcode("$10=0");
+            }
+            OctoPrint.control.sendGcode("?");
+          }
         }
 
         self.fsClick = function() {
@@ -657,6 +668,13 @@ $(function() {
         x.firstElementChild.outerHTML = x.firstElementChild.outerHTML.replace("Printer", "");
     }
 
+    function guid() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0,
+                v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
     OCTOPRINT_VIEWMODELS.push([
         BettergrblsupportViewModel,

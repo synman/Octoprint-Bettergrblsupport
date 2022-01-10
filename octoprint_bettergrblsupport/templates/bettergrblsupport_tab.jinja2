@@ -30,7 +30,7 @@
 <div id="control_panel" style="text-align: center; overflow: hidden; margin: 20px 10px 10px 10px;" valign="top" align="center">
    <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 20px 20px 20px; vertical-align: middle;">
       <table align="center" style="margin: 0 auto; margin: 0px 5px 5px 5px;">
-        <tr>
+        <tr style="cursor: pointer;" data-bind="click: function() { modeClick(); }">
            <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
            <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="60px"><strong data-bind="text: mode()"></strong></td>
         </tr>
