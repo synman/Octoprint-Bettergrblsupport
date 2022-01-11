@@ -332,6 +332,43 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
         self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
+        # add pretty much all of grbl to long running commands list
+        longCmds = self._settings.global_get(["serial", "longRunningCommands"])
+        if longCmds == None:
+            longCmds = []
+
+        if not "$H" in longCmds: longCmds.append("$H")
+        if not "G92" in longCmds: longCmds.append("G92")
+        if not "G30" in longCmds: longCmds.append("G30")
+        if not "G54" in longCmds: longCmds.append("G54")
+
+        if not "G20" in longCmds: longCmds.append("G20")
+        if not "G21" in longCmds: longCmds.append("G21")
+
+        if not "G90" in longCmds: longCmds.append("G90")
+        if not "G91" in longCmds: longCmds.append("G91")
+
+        if not "G38.1" in longCmds: longCmds.append("G38.1")
+        if not "G38.2" in longCmds: longCmds.append("G38.2")
+        if not "G38.3" in longCmds: longCmds.append("G38.3")
+        if not "G38.4" in longCmds: longCmds.append("G38.4")
+        if not "G38.5" in longCmds: longCmds.append("G38.5")
+
+        if not "G0" in longCmds: longCmds.append("G0")
+        if not "G1" in longCmds: longCmds.append("G1")
+        if not "G2" in longCmds: longCmds.append("G2")
+        if not "G3" in longCmds: longCmds.append("G3")
+        if not "G4" in longCmds: longCmds.append("G4")
+        if not "M3" in longCmds: longCmds.append("M3")
+        if not "M4" in longCmds: longCmds.append("M4")
+        if not "M5" in longCmds: longCmds.append("M5")
+        if not "M7" in longCmds: longCmds.append("M7")
+        if not "M8" in longCmds: longCmds.append("M8")
+        if not "M9" in longCmds: longCmds.append("M9")
+        if not "M30" in longCmds: longCmds.append("M30")
+
+        self._settings.global_set(["serial", "longRunningCommands"], longCmds)
+
         self._settings.save()
         _bgs.load_grbl_settings(self)
 

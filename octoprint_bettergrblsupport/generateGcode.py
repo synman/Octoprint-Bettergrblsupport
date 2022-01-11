@@ -33,6 +33,15 @@
 xsign = 1
 ysign = 1
 
+yinc = 2.5
+zinc = .1
+
+plunge = 100
+feed = 2000
+
+length = 380
+width = 400
+
 print "M3 S10000"
 print "G21"
 print "G1 G90 Z0 F100"
@@ -41,13 +50,15 @@ print "G1 Z.1 F100"
 
 for z in range(0, 7):
     print ""
-    print "%%% Z DEPTH = {} %%%".format(z * .1)
+    print "%%% Z DEPTH = {} %%%".format(z * zinc)
     print ""
-    print "G1 Z-.1 F100"
+    print "G1 Z-{} F{}".format(zinc, plunge)
 
-    for y in range(1, 380 / 5):
-        print "G1 X{} F800".format(400 * xsign)
-        print "G1 Y{} F800".format(5 * ysign)
+    for y in range(0, int(round(length / yinc))):
+        print "% y={}".format(y * yinc)
+        print "G1 X{} F{}".format(width / 2 * xsign, feed)
+        print "G1 X{} F{}".format(width / 2 * xsign, feed)
+        print "G1 Y{} F{}".format(yinc * ysign, feed)
         xsign = xsign * -1
 
     ysign = ysign * -1

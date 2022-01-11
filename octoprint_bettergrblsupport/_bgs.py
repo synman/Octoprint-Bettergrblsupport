@@ -162,6 +162,44 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
     _plugin._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
+    # add pretty much all of grbl to long running commands list
+    longCmds = self._settings.global_get(["serial", "longRunningCommands"])
+    if longCmds == None:
+        longCmds = []
+
+    if "$H" in longCmds: longCmds.remove("$H")
+    if "G92" in longCmds: longCmds.remove("G92")
+    if "G30" in longCmds: longCmds.remove("G30")
+    if "G54" in longCmds: longCmds.remove("G54")
+
+    if "G20" in longCmds: longCmds.remove("G20")
+    if "G21" in longCmds: longCmds.remove("G21")
+
+    if "G90" in longCmds: longCmds.remove("G90")
+    if "G91" in longCmds: longCmds.remove("G91")
+
+    if "G38.1" in longCmds: longCmds.remove("G38.1")
+    if "G38.2" in longCmds: longCmds.remove("G38.2")
+    if "G38.3" in longCmds: longCmds.remove("G38.3")
+    if "G38.4" in longCmds: longCmds.remove("G38.4")
+    if "G38.5" in longCmds: longCmds.remove("G38.5")
+
+    if "G0" in longCmds: longCmds.remove("G0")
+    if "G1" in longCmds: longCmds.remove("G1")
+    if "G2" in longCmds: longCmds.remove("G2")
+    if "G3" in longCmds: longCmds.remove("G3")
+    if "G4" in longCmds: longCmds.remove("G4")
+
+    if "M3" in longCmds: longCmds.remove("M3")
+    if "M4" in longCmds: longCmds.remove("M4")
+    if "M5" in longCmds: longCmds.remove("M5")
+    if "M7" in longCmds: longCmds.remove("M7")
+    if "M8" in longCmds: longCmds.remove("M8")
+    if "M9" in longCmds: longCmds.remove("M9")
+    if "M30" in longCmds: longCmds.remove("M30")
+
+    self._settings.global_set(["serial", "longRunningCommands"], longCmds)
+
     _plugin._settings.save()
 
 
@@ -557,7 +595,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
             position = positionTuple[0] - _plugin.zProbeOffset
             location = positionTuple[1]
 
-            _plugin._printer.commands("G10 P1 L2 Z{:f}".format(position))
+            queue_cmds_and_send(_plugin, ["G10 P1 L2 Z{:f}".format(position)])
 
             text = "Z Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>] ({})\r\n\r\n Result Details:\r\n\r\nVariance: {:.3f}mm\r\n\r\nHighest Point: {:.3f} ({})\r\nLowest Point: {:.3f} ({})\r\nMean Point: {:.3f}\r\nComputed Average: {:.3f}".format(
                 position,
