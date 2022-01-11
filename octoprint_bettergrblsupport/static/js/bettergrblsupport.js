@@ -502,7 +502,7 @@ $(function() {
                     return
                   }
 
-                  text = "Select PROCEED to initiate Single Point Z-Probe once the machine is at the desired location, and you are ready to continue.";
+                  text = "Select <B>PROCEED</B> to initiate Single Point Z-Probe once the machine is at the desired location, and you are ready to continue.";
 
                   new PNotify({
                       title: "Single Point Z-Probe",
@@ -569,9 +569,9 @@ $(function() {
                   }
 
                   if (instruction.action == "probe") {
-                      text = "Select PROCEED to initiate Z-Probe once the machine has reached the [" + instruction.location + "] location, and you are ready to continue.";
+                      text = "Select <B>PROCEED</B> to initiate Z-Probe once the machine has reached the [<B>" + instruction.location + "</B>] location, and you are ready to continue.";
                   } else {
-                      text = "Your machine is ready to move to the [" + instruction.location + "] location.  Select PROCEED when you are ready to continue.";
+                      text = "Your machine is ready to move to the [<B>" + instruction.location + "</B>] location.  Select <B>PROCEED</B> when you are ready to continue.";
                   }
 
                   new PNotify({
