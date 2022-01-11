@@ -170,6 +170,7 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if "$H" in longCmds: longCmds.remove("$H")
     if "G92" in longCmds: longCmds.remove("G92")
     if "G30" in longCmds: longCmds.remove("G30")
+    if "G53" in longCmds: longCmds.append("G53")
     if "G54" in longCmds: longCmds.remove("G54")
 
     if "G20" in longCmds: longCmds.remove("G20")

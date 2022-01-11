@@ -340,6 +340,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not "$H" in longCmds: longCmds.append("$H")
         if not "G92" in longCmds: longCmds.append("G92")
         if not "G30" in longCmds: longCmds.append("G30")
+        if not "G53" in longCmds: longCmds.append("G53")
         if not "G54" in longCmds: longCmds.append("G54")
 
         if not "G20" in longCmds: longCmds.append("G20")
@@ -359,6 +360,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not "G2" in longCmds: longCmds.append("G2")
         if not "G3" in longCmds: longCmds.append("G3")
         if not "G4" in longCmds: longCmds.append("G4")
+        
         if not "M3" in longCmds: longCmds.append("M3")
         if not "M4" in longCmds: longCmds.append("M4")
         if not "M5" in longCmds: longCmds.append("M5")
@@ -507,12 +509,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.powerRate = 0
 
             _bgs.add_to_notify_queue(self, ["Pgm Begin"])
-            self._printer.commands("?", force=True)
+
+            self.grblState = "Run"
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
+
             return
 
         # Print ended (finished / failed / cancelled)
         if event == Events.PRINT_CANCELLED or event == Events.PRINT_DONE or event == Events.PRINT_FAILED:
             self.grblState = "Idle"
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Idle"))
             return
 
         # Print Cancelling
@@ -530,7 +536,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if event == Events.PRINT_RESUMED:
             self._logger.debug("resuming job")
             self._printer.commands(["~", "?"], force=True)
+
             _bgs.queue_cmds_and_send(self, ["?"])
+
+            self.grblState = "Run"
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
         # File uploaded
         if event == Events.UPLOAD:
