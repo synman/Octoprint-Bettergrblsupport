@@ -200,6 +200,7 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if "M30" in longCmds: longCmds.remove("M30")
 
     self._settings.global_set(["serial", "longRunningCommands"], longCmds)
+    self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 5)
 
     _plugin._settings.save()
 

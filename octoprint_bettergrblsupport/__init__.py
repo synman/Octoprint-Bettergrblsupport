@@ -360,7 +360,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not "G2" in longCmds: longCmds.append("G2")
         if not "G3" in longCmds: longCmds.append("G3")
         if not "G4" in longCmds: longCmds.append("G4")
-        
+
         if not "M3" in longCmds: longCmds.append("M3")
         if not "M4" in longCmds: longCmds.append("M4")
         if not "M5" in longCmds: longCmds.append("M5")
@@ -370,6 +370,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not "M30" in longCmds: longCmds.append("M30")
 
         self._settings.global_set(["serial", "longRunningCommands"], longCmds)
+        self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
 
         self._settings.save()
         _bgs.load_grbl_settings(self)

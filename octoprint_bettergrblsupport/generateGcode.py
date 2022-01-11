@@ -76,12 +76,12 @@ def UpAndDown():
 
 
 def box():
-    depth = .5
-    layer = .1
+    depth = 1
+    layer = .2
 
     for a in range(0, int(round(depth / layer))):
         print ";% z={}".format((a+1) * layer)
-        print "G1 Z-.1 F{}".format(plunge)
+        print "G1 Z-{} F{}".format(layer, plunge)
         print "G1 Y{} F{}".format(length, feed)
         print "G1 X{} F{}".format(width, feed)
         print "G1 Y{} F{}".format(length * -1, feed)
