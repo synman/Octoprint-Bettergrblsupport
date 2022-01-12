@@ -742,9 +742,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # M104 (set extruder temperature)
         # M140 (set bed temperature)
         # M106 (fan on/off)
-        if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106")):
+        if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106", "N")):
             self._logger.debug("ignoring [%s]", cmd)
             return (None, )
+
+        # emergency stop
+        if cmd.upper().startswith("M112"):
+            self._logger.debug('EMERGENCY STOP')
+            _bgs.add_to_notify_queue(self, ["EMERGENCY STOP"])
+            self._printer.commands(["M999", "$SLP"], force=True)
+            return ("!",)
 
         # we need to track absolute position mode for "RUN" position updates
         if "G90" in cmd.upper():
