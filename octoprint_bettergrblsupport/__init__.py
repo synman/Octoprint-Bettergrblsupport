@@ -588,12 +588,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if "G90" in command.upper():
                     # absolute positioning
                     positioning = 0
-                    continue
 
                 if "G91" in command.upper():
                     # relative positioning
                     positioning = 1
-                    continue
 
                 # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
                 match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
