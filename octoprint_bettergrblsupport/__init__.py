@@ -53,6 +53,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.TemplatePlugin,
                               octoprint.plugin.StartupPlugin,
                               octoprint.plugin.EventHandlerPlugin,
+                              octoprint.plugin.WizardPlugin,
                               octoprint.plugin.RestartNeedingPlugin):
 
     def __init__(self):
@@ -434,7 +435,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgsframing.js'],
+        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgsframing.js', 'js/bettergrblsupport_wizard.js'],
                     css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css', 'css/bgsframing.css'],
                     less=['less/bettergrblsupport.less', "less/bettergrblsupport.less", "less/bgsframing.less"])
 
@@ -454,6 +455,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     "name": "Material Framing",
                     "icon": "th",
                     "template": "bgsframing_sidebar.jinja2",
+                    "custom_bindings": True
+            },
+            {
+                    "type": "wizard",
+                    "name": "Better Grbl Support",
+                    "template": "bettergrblsupport_wizard.jinja2",
                     "custom_bindings": True
             }
         ]
@@ -588,12 +595,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if "G90" in command.upper():
                     # absolute positioning
                     positioning = 0
-                    # continue
 
                 if "G91" in command.upper():
                     # relative positioning
                     positioning = 1
-                    # continue
 
                 # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
                 match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
@@ -675,7 +680,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             threading.Thread(target=_bgs.do_fake_ack, args=(self._printer, self._logger)).start()
             self._logger.debug("fake_ack submitted")
 
-            self.grblState = "Run"
+            self.grblState = "Home" if "$H" in cmd.upper() else "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
         # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
@@ -814,9 +819,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 # check if plunge rate is overridden
                 if self.plungeRate != 0:
                     if foundZ:
-                        grblSpeed = roud(grblSpeed * self.plungeRate)
-                        command = command.replace("F" + match.groups(1)[0], "F{:.5f}".format(grblSpeed))
-                        command = command.replace("F " + match.groups(1)[0], "F {:.5f}".format(grblSpeed))
+                        grblSpeed = round(grblSpeed * self.plungeRate)
+                        command = command.replace("F" + match.groups(1)[0], "F{}".format(grblSpeed))
+                        command = command.replace("F " + match.groups(1)[0], "F {}".format(grblSpeed))
                         # self._logger.debug("plunge rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
 
             # make sure we post all speed on / off events
@@ -1233,7 +1238,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             time.sleep(1)
             return flask.jsonify({'res' : settings})
 
-        if command == "homing" and self._printer.is_ready() and self.grblState in "Idle,Alarm":
+        if command == "homing" and self._printer.is_ready() and self.grblState in ("Idle", "Alarm"):
             self._printer.commands("$H")
             return
 
@@ -1402,6 +1407,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "toggleWeak":
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
+
+
+    def on_wizard_finish(self, handled):
+        self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
+        if handled:
+            self._settings.set(["wizard_version"], 1)
+            self._settings.save();
+
+    def is_wizard_required(self):
+        requiredVersion = 1
+        currentVersion = self._settings.get(["wizard_version"])
+        self._logger.debug("__init__: is_wizard_required=[{}]".format(currentVersion is None or currentVersion != requiredVersion))
+        return currentVersion is None or currentVersion != requiredVersion
+
+    def get_wizard_version(self):
+        self._logger.debug("__init__: get_wizard_version")
+        version = self._settings.get(["wizard_version"])
+        return 1 if version is None else version
+
+    def get_wizard_details(self):
+        self._logger.debug("__init__: get_wizard_details")
+        return None
 
 
     # #~~ Softwareupdate hook

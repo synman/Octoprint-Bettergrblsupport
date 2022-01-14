@@ -62,19 +62,19 @@ def SideToSideAndOutAndBack():
 
     depth = .5
 
-    # print "%"
-    # print "% Side To Side"
-    # print "%"
-    # print "%%% Z DEPTH = {} %%%".format(depth)
-    # print ""
-    # print "G1 Z-{} F{}".format(depth, plunge)
-    #
-    # for a in range(0, int(round(length / axis2inc))):
-    #     print ";% y={}".format(a * axis2inc)
-    #     print "G1 X{} F{}".format(width / 2 * axis1sign, feed)
-    #     print "G1 X{} F{}".format(width / 2 * axis1sign, feed)
-    #     print "G1 Y{} F{}".format(axis2inc, feed)
-    #     axis1sign = axis1sign * -1
+    print "%"
+    print "% Side To Side"
+    print "%"
+    print "%%% Z DEPTH = {} %%%".format(depth)
+    print ""
+    print "G1 Z-{} F{}".format(depth, plunge)
+
+    for a in range(0, int(round(length / axis2inc))):
+        print ";% y={}".format(a * axis2inc)
+        print "G1 X{} F{}".format(width / 2 * axis1sign, feed)
+        print "G1 X{} F{}".format(width / 2 * axis1sign, feed)
+        print "G1 Y{} F{}".format(axis2inc, feed)
+        axis1sign = axis1sign * -1
 
     axis1sign = 1
 

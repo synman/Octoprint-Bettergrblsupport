@@ -594,7 +594,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
         if zProbe._step > len(zProbe._locations) - 1:
             positionTuple = zProbe.resultByCalc(_plugin._settings.get(["zprobeCalc"]))
 
-            position = positionTuple[0] - _plugin.zProbeOffset
+            position = positionTuple[0]
             location = positionTuple[1]
 
             queue_cmds_and_send(_plugin, ["G10 P1 L2 Z{:f}".format(position)])
@@ -650,7 +650,7 @@ def multipoint_zprobe_hook(_plugin, result, position):
 
 
 def defer_do_multipoint_zprobe(_plugin, sessionId):
-    _plugin._logger.debug("defer_do_multipoint_zprobe sessionId=[{}]".format(sessionId))
+    _plugin._logger.debug("_bgs: defer_do_multipoint_zprobe sessionId=[{}]".format(sessionId))
     # time.sleep(1)
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     wait_for_empty_cmd_queue(_plugin)
@@ -692,7 +692,7 @@ def queue_cmds_and_send(_plugin, cmds, wait=False):
 
 
 def wait_for_empty_cmd_queue(_plugin):
-    _plugin._logger.debug("waiting for command queue to drain")
+    _plugin._logger.debug("_bgs: wait_for_empty_cmd_queue")
     while len(_plugin.grblCmdQueue) > 0:
         time.sleep(.001)
     _plugin._logger.debug("done waiting for command queue to drain")
@@ -722,4 +722,4 @@ def is_grbl_one_dot_one(_plugin):
 def do_fake_ack(printer, logger):
     time.sleep(1)
     printer.fake_ack()
-    logger.debug("fake_ack executed")
+    logger.debug("_bgs: do_fake_ack")
