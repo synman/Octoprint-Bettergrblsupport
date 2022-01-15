@@ -1246,6 +1246,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             feedRate = float(data.get("feed_rate"))
             if not feedRate in (0, 100):
                 self.feedRate = feedRate * .01
+                # sending our current feedrate ensures grbl uses the new feedrate
+                # now rather than wait for it to be sent -- it could be a while for
+                # one to come in
+                if self._printer.is_printing():
+                    self._printer.commands("F{}".format(self.grblSpeed), force=True)
             else:
                 self.feedRate = float(0)
 
