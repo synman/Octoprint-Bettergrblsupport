@@ -1271,6 +1271,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             powerRate = float(data.get("power_rate"))
             if not powerRate in (0, 100):
                 self.powerRate = powerRate * .01
+                # sending our current powerRate ensures grbl uses the new powerRate
+                # now rather than wait for it to be sent -- it could be a while for
+                # one to come in
+                if self._printer.is_printing():
+                    self._printer.commands("S{}".format(self.grblPowerLevel), force=True)
+
             else:
                 self.powerRate = float(0)
 
