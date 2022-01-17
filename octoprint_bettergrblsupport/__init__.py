@@ -203,7 +203,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         dest = self._settings.global_get_basefolder("printerProfiles") + os.path.sep + "_bgs.profile"
 
         if not os.path.exists(dest):
-            src = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep + "__bgs.profile"
+            src = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep + "_bgs.profile"
             copyfile(src, dest)
             self._settings.set(["old_profile"], self._printer_profile_manager.get_current_or_default()["id"])
             self._printer_profile_manager.select("_bgs")
@@ -1434,18 +1434,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
         if handled:
-            self._settings.set(["wizard_version"], 2)
+            self._settings.set(["wizard_version"], 3)
             self._settings.save();
 
     def is_wizard_required(self):
-        requiredVersion = 2
+        requiredVersion = 3
         currentVersion = self._settings.get(["wizard_version"])
         self._logger.debug("__init__: is_wizard_required=[{}]".format(currentVersion is None or currentVersion != requiredVersion))
         return currentVersion is None or currentVersion != requiredVersion
 
     def get_wizard_version(self):
         self._logger.debug("__init__: get_wizard_version")
-        return 2
+        return 3
 
     def get_wizard_details(self):
         self._logger.debug("__init__: get_wizard_details")
