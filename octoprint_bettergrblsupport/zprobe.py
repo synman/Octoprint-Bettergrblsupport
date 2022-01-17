@@ -72,19 +72,21 @@ class ZProbe:
         self._plugin._logger.debug("ZProbe: resultByCalc calc=[{}] sessionId=[{}]".format(calculation, self._sessionId))
         ordered = sorted(self._results, key = lambda i: i["position"])
 
+        zProbeOffset = self._plugin.zProbeOffset * self._plugin.invertZ * -1
+
         if calculation == "GAP":
             return (ordered[-1].get("position") - ordered[0].get("position"), "N/A")
         elif calculation == "MIN":
-            return (ordered[-1].get("position") - self._plugin.zProbeOffset, ordered[-1].get("location"))
+            return (ordered[-1].get("position") + zProbeOffset, ordered[-1].get("location"))
         elif calculation == "MAX":
-            return (ordered[0].get("position") - self._plugin.zProbeOffset, ordered[0].get("location"))
+            return (ordered[0].get("position") + zProbeOffset, ordered[0].get("location"))
         elif calculation == "MEAN":
-            return ((ordered[-1].get("position") - ordered[0].get("position")) / 2 + ordered[0].get("position") - self._plugin.zProbeOffset, "N/A")
+            return ((ordered[-1].get("position") - ordered[0].get("position")) / 2 + ordered[0].get("position") + zProbeOffset, "N/A")
         elif calculation == "AVG":
             result = float(0)
             for item in ordered:
                 result+= item.get("position")
-            return (result / len(ordered) - self._plugin.zProbeOffset, "N/A")
+            return (result / len(ordered) + zProbeOffset, "N/A")
 
         return None
 

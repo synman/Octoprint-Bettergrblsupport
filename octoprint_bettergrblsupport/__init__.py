@@ -130,6 +130,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.autoSleepTimer = time.time()
 
+        self.invertX = 1
+        self.invertY = 1
+        self.invertZ = 1
+
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
 
@@ -1124,6 +1128,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     self._settings.save()
 
+                    # direction mask -- need to account for it when Jogging
+                    self.invertX = -1 if 1 & int(float(self.grblSettings.get(3)[0])) > 0 else 1
+                    self.invertY = -1 if 2 & int(float(self.grblSettings.get(3)[0])) > 1 else 1
+                    self.invertZ = -1 if int(float(self.grblSettings.get(3)[0])) > 3 else 1
+                    self._logger.debug("axis invert mask x=[%d] y=[%d] z=[%d]", self.invertX, self.invertY, self.invertZ)
+
                 return line
 
         if not line.rstrip().endswith('ok'):
@@ -1363,34 +1373,34 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return flask.jsonify({'res' : "Distance exceeds Z axis limit"})
 
             if direction == "northwest":
-                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1, distance, xf if xf < yf else yf))
+                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertX, distance * self.invertY, xf if xf < yf else yf))
 
             if direction == "north":
-                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance, yf))
+                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * self.invertY, yf))
 
             if direction == "northeast":
-                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * 1, distance, xf if xf < yf else yf))
+                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * self.invertX, distance * self.invertY, xf if xf < yf else yf))
 
             if direction == "west":
-                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1, xf))
+                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertX, xf))
 
             if direction == "east":
-                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance, xf))
+                self._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * self.invertX, xf))
 
             if direction == "southwest":
-                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1, distance * -1, xf if xf < yf else yf))
+                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertX, distance * -1 * self.invertY, xf if xf < yf else yf))
 
             if direction == "south":
-                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1, yf))
+                self._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertY, yf))
 
             if direction == "southeast":
-                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance, distance * -1, xf if xf < yf else yf))
+                self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * self.invertX, distance * -1 * self.invertY, xf if xf < yf else yf))
 
             if direction == "up":
-                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance, zf))
+                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * self.invertZ, zf))
 
             if direction == "down":
-                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1, zf))
+                self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertZ, zf))
 
             return
 
