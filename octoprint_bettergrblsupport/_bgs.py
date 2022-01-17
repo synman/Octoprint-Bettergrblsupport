@@ -209,8 +209,8 @@ def do_framing(_plugin, data):
     _plugin._logger.debug("_bgs: do_framing data=[{}]".format(data))
 
     origin = data.get("origin").strip()
-    length = float(data.get("length"))
-    width = float(data.get("width"))
+    length = float(data.get("length")) * _plugin.invertY
+    width = float(data.get("width")) * _plugin.invertX
 
     send_frame_init_gcode(_plugin)
 
