@@ -404,6 +404,7 @@ def do_simple_zprobe(_plugin, sessionId):
 
     zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
     gcode = "G91 G21 G38.2 Z-{} F100".format(zTravel)
+    zProbe._locations = [{"gcode": gcode,  "action": "simple_zprobe", "location": "Current"}]
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_zprobe",
                                                                      sessionId=zProbe._sessionId,
