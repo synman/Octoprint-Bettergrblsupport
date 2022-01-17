@@ -183,7 +183,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             zprobeCalc = "MIN",
             autoSleep = False,
             autoSleepInterval = 20,
-            zProbeConfirmActions = True
+            zProbeConfirmActions = True,
+            wizard_version = 1
         )
 
 
@@ -1423,19 +1424,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
         if handled:
-            self._settings.set(["wizard_version"], 1)
+            self._settings.set(["wizard_version"], 2)
             self._settings.save();
 
     def is_wizard_required(self):
-        requiredVersion = 1
+        requiredVersion = 2
         currentVersion = self._settings.get(["wizard_version"])
         self._logger.debug("__init__: is_wizard_required=[{}]".format(currentVersion is None or currentVersion != requiredVersion))
         return currentVersion is None or currentVersion != requiredVersion
 
     def get_wizard_version(self):
         self._logger.debug("__init__: get_wizard_version")
-        version = self._settings.get(["wizard_version"])
-        return 1 if version is None else version
+        return 2
 
     def get_wizard_details(self):
         self._logger.debug("__init__: get_wizard_details")
