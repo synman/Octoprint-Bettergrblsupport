@@ -92,7 +92,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSpeed = 0
         self.grblPowerLevel = 0
         self.positioning = 0
-        self.distance = float(0)
 
         self.timeRef = 0
 
@@ -248,8 +247,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblSettingsText = self._settings.get(["grblSettingsText"])
         self.grblVersion = self._settings.get(["grblVersion"])
-
-        self.distance = float(self._settings.get(["distance"]))
 
         self.zProbeOffset = self._settings.get(["zProbeOffset"])
         self.zProbeTravel = self._settings.get(["zProbeTravel"])
@@ -1114,10 +1111,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self.zLimit = float(self.grblSettings.get(132)[0])
 
                     # assign our default distance if it is not already set to the lower of x,y limits
-                    if self.distance == 0:
-                        self.distance = float(min([self.xLimit, self.yLimit]))
-
-                    self._settings.set(["control_distance"], self.distance)
+                    distance = self._settings.get(["distance"])
+                    if distance == 0:
+                        distance = float(min([self.xLimit, self.yLimit]))
+                    self._settings.set(["control_distance"], distance)
 
                     # direction mask -- need to account for it when Jogging
                     self.invertX = -1 if 1 & int(float(self.grblSettings.get(3)[0])) > 0 else 1
