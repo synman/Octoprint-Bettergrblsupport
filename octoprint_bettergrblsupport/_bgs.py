@@ -244,7 +244,7 @@ def send_frame_init_gcode(_plugin):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
-    # cancel jog if grbl 1.1+
+    # cancel jog if grbl 1.1+is_grbl_one_dot_one
     if is_grbl_one_dot_one(_plugin):
         _plugin._printer.commands("\x85", force=True)
 
@@ -720,7 +720,7 @@ def is_laser_mode(_plugin):
 
 
 def is_grbl_one_dot_one(_plugin):
-    _plugin._logger.debug("_bgs: is_grbl_one_dot_one")
+    _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format("1.1" in _plugin.grblVersion))
     return "1.1" in _plugin.grblVersion
 
 
