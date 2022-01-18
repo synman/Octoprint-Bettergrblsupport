@@ -1349,6 +1349,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     _bgs.do_multipoint_zprobe(self, sessionId)
                 return
 
+            # cancel jog if grbl 1.1+
+            if _bgs.is_grbl_one_dot_one(self):
+                _plugin._printer.command("\x85", force=True)
+
             # check distance against limits
             if ("west" in direction or "east" in direction) and abs(distance) > abs(self.xLimit):
                 return flask.jsonify({'res' : "Distance exceeds X axis limit"})

@@ -244,6 +244,10 @@ def send_frame_init_gcode(_plugin):
 
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
+    # cancel jog if grbl 1.1+
+    if is_grbl_one_dot_one(_plugin):
+        _plugin._printer.command("\x85", force=True)
+
     # Linear mode, feedrate f% of max, spindle off
     _plugin._printer.commands("G1 F{} M5".format(f))
 
