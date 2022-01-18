@@ -401,10 +401,10 @@ def do_simple_zprobe(_plugin, sessionId):
 
     zProbe = ZProbe(_plugin, simple_zprobe_hook, sessionId)
 
-    zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
+    zTravel = float(_plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel)
     zTravel = zTravel * -1 * _plugin.invertZ
     _plugin._logger.debug("zTravel={}".format(zTravel))
-    
+
     gcode = "G91 G21 G38.2 Z{} F100".format(zTravel)
     zProbe._locations = [{"gcode": gcode,  "action": "simple_zprobe", "location": "Current"}]
 
