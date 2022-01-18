@@ -401,7 +401,7 @@ def do_simple_zprobe(_plugin, sessionId):
 
     zProbe = ZProbe(_plugin, simple_zprobe_hook, sessionId)
 
-    zTravel = float(_plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel)
+    zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
     zTravel = zTravel * -1 * _plugin.invertZ
     _plugin._logger.debug("zTravel={}".format(zTravel))
 

@@ -248,9 +248,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSettingsText = self._settings.get(["grblSettingsText"])
         self.grblVersion = self._settings.get(["grblVersion"])
 
-        self.zProbeOffset = self._settings.get(["zProbeOffset"])
-        self.zProbeTravel = self._settings.get(["zProbeTravel"])
-        self.zProbeEndPos = self._settings.get(["zProbeEndPos"])
+        self.zProbeOffset = float(self._settings.get(["zProbeOffset"]))
+        self.zProbeTravel = float(self._settings.get(["zProbeTravel"]))
+        self.zProbeEndPos = float(self._settings.get(["zProbeEndPos"]))
 
         # hardcoded global settings -- should revisit how I manage these
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
