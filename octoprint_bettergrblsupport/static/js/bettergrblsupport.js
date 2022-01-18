@@ -382,10 +382,13 @@ $(function() {
         };
 
         self.onBeforeBinding = function() {
-            self.distance(self.settings.settings.plugins.bettergrblsupport.distance());
-
             self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
             self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
+
+            self.distance(self.settings.settings.plugins.bettergrblsupport.control_distance());
+            self.settings.settings.plugins.bettergrblsupport.control_distance.subscribe(function(newValue) {
+              self.distance(newValue);
+            });
         };
 
         self.onAllBound = function (allViewModels) {

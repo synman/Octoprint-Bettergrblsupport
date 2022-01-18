@@ -21,6 +21,12 @@
 				</div>
 		</div>
 		<br>
+		<label class="control-label">Initial Jog Distance</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.distance">mm (0 = min of x/y limit)
+		</div>
+
+		<br>
 		<label class="control-label">Framing Feed Rate</label>
 		<div class="controls">
 				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed">% of max
@@ -75,7 +81,7 @@
 
 		<label class="control-label">Z-Probe Travel Distance</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel">mm (0 - use machine Z limit)
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel">mm (0 = use machine Z limit)
 		</div>
 
 		<br>

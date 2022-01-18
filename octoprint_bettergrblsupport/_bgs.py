@@ -135,11 +135,6 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if "control" in disabledTabs:
         disabledTabs.remove("control")
 
-    # delete my custom controls if the built-in control tab is active
-    controls = _plugin._settings.global_get(["controls"])
-    if _plugin.customControls and controls:
-        _plugin._settings.global_set(["controls"], [])
-
     # remove me from ordered tabs if i'm in there
     if "plugin_bettergrblsupport" in orderedTabs:
         orderedTabs.remove("plugin_bettergrblsupport")
