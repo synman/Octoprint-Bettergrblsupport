@@ -700,7 +700,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             subprocess.call(self.m9Command, shell=True)
             return (None,)
 
-        # cancel jog
+        # cancel jog -- doesn't appear to work
         if cmd.upper().strip() == "SYN1":
             self._logger.debug("Cancelling Jog")
             return ("\x85",)
