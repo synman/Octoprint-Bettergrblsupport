@@ -52,6 +52,7 @@ $(function() {
         self.plungeRate = ko.observable(undefined);
         self.powerRate = ko.observable(undefined);
 
+        self.controls = ko.observableArray([]);
 
         tab = document.getElementById("tab_plugin_bettergrblsupport_link");
         tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
@@ -385,6 +386,12 @@ $(function() {
 
             self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
             self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
+        };
+
+        self.onAllBound = function (allViewModels) {
+          OctoPrint.control.getCustomControls().done(function (response) {
+            self.controls(self._processControls(response.controls));
+          });
         };
 
         self.fromCurrentData = function(data) {
@@ -729,6 +736,231 @@ $(function() {
                 clearTimeout(resetter);
                 self.powerRateResetter(undefined);
             }
+        };
+
+
+
+        self._processControls = function (controls) {
+            for (var i = 0; i < controls.length; i++) {
+                controls[i] = self._processControl(controls[i]);
+            }
+            return controls;
+        };
+
+        self._processControl = function (control) {
+            if (control.hasOwnProperty("processed") && control.processed) {
+                return control;
+            }
+
+            if (
+                control.hasOwnProperty("template") &&
+                control.hasOwnProperty("key") &&
+                control.hasOwnProperty("template_key") &&
+                !control.hasOwnProperty("output")
+            ) {
+                control.output = ko.observable(control.default || "");
+                if (!self.feedbackControlLookup.hasOwnProperty(control.key)) {
+                    self.feedbackControlLookup[control.key] = {};
+                }
+                self.feedbackControlLookup[control.key][control.template_key] =
+                    control.output;
+            }
+
+            if (control.hasOwnProperty("children")) {
+                control.children = ko.observableArray(
+                    self._processControls(control.children)
+                );
+                if (
+                    !control.hasOwnProperty("layout") ||
+                    !(
+                        control.layout == "vertical" ||
+                        control.layout == "horizontal" ||
+                        control.layout == "horizontal_grid"
+                    )
+                ) {
+                    control.layout = "vertical";
+                }
+
+                if (!control.hasOwnProperty("collapsed")) {
+                    control.collapsed = false;
+                }
+            }
+
+            if (control.hasOwnProperty("input")) {
+                var attributeToInt = function (obj, key, def) {
+                    if (obj.hasOwnProperty(key)) {
+                        var val = obj[key];
+                        if (_.isNumber(val)) {
+                            return val;
+                        }
+
+                        var parsedVal = parseInt(val);
+                        if (!isNaN(parsedVal)) {
+                            return parsedVal;
+                        }
+                    }
+                    return def;
+                };
+
+                _.each(control.input, function (element) {
+                    if (element.hasOwnProperty("slider") && _.isObject(element.slider)) {
+                        element.slider["min"] = attributeToInt(element.slider, "min", 0);
+                        element.slider["max"] = attributeToInt(
+                            element.slider,
+                            "max",
+                            255
+                        );
+
+                        // try defaultValue, default to min
+                        var defaultValue = attributeToInt(
+                            element,
+                            "default",
+                            element.slider.min
+                        );
+
+                        // if default value is not within range of min and max, correct that
+                        if (
+                            !_.inRange(
+                                defaultValue,
+                                element.slider.min,
+                                element.slider.max
+                            )
+                        ) {
+                            // use bound closer to configured default value
+                            defaultValue =
+                                defaultValue < element.slider.min
+                                    ? element.slider.min
+                                    : element.slider.max;
+                        }
+
+                        element.value = ko.observable(defaultValue);
+                    } else {
+                        element.slider = false;
+                        element.value = ko.observable(
+                            element.hasOwnProperty("default")
+                                ? element["default"]
+                                : undefined
+                        );
+                    }
+                });
+            }
+
+            if (control.hasOwnProperty("javascript")) {
+                var js = control.javascript;
+
+                // if js is a function everything's fine already, but if it's a string we need to eval that first
+                if (!_.isFunction(js)) {
+                    control.javascript = function (data) {
+                        eval(js);
+                    };
+                }
+            }
+
+            if (control.hasOwnProperty("enabled")) {
+                var enabled = control.enabled;
+
+                // if js is a function everything's fine already, but if it's a string we need to eval that first
+                if (!_.isFunction(enabled)) {
+                    control.enabled = function (data) {
+                        return eval(enabled);
+                    };
+                }
+            }
+
+            if (!control.hasOwnProperty("additionalClasses")) {
+                control.additionalClasses = "";
+            }
+
+            control.processed = true;
+            return control;
+        };
+
+
+        self.isCustomEnabled = function (data) {
+            if (data.hasOwnProperty("enabled")) {
+                return data.enabled(data);
+            } else {
+                return (
+                    self.loginState.hasPermission(self.access.permissions.CONTROL) &&
+                    self.is_operational()
+                );
+            }
+        };
+
+        self.clickCustom = function (data) {
+            var callback;
+            if (data.hasOwnProperty("javascript")) {
+                callback = data.javascript;
+            } else {
+                callback = self.sendCustomCommand;
+            }
+
+            if (data.confirm) {
+                showConfirmationDialog({
+                    message: data.confirm,
+                    onproceed: function (e) {
+                        callback(data);
+                    }
+                });
+            } else {
+                callback(data);
+            }
+        };
+
+        self.sendCustomCommand = function (command) {
+            if (!command) return;
+
+            var parameters = {};
+            if (command.hasOwnProperty("input")) {
+                _.each(command.input, function (input) {
+                    if (
+                        !input.hasOwnProperty("parameter") ||
+                        !input.hasOwnProperty("value")
+                    ) {
+                        return;
+                    }
+
+                    parameters[input.parameter] = input.value();
+                });
+            }
+
+            if (command.hasOwnProperty("command") || command.hasOwnProperty("commands")) {
+                var commands = command.commands || [command.command];
+                OctoPrint.control.sendGcodeWithParameters(commands, parameters);
+            } else if (command.hasOwnProperty("script")) {
+                var script = command.script;
+                var context = command.context || {};
+                OctoPrint.control.sendGcodeScriptWithParameters(
+                    script,
+                    context,
+                    parameters
+                );
+            }
+        };
+
+
+        self.displayMode = function (customControl) {
+            if (customControl.hasOwnProperty("children")) {
+                if (customControl.name) {
+                    return "customControls_containerTemplate_collapsable";
+                } else {
+                    return "customControls_containerTemplate_nameless";
+                }
+            } else {
+                return "customControls_controlTemplate";
+            }
+        };
+
+        self.rowCss = function (customControl) {
+            var span = "span2";
+            var offset = "";
+            if (customControl.hasOwnProperty("width")) {
+                span = "span" + customControl.width;
+            }
+            if (customControl.hasOwnProperty("offset")) {
+                offset = "offset" + customControl.offset;
+            }
+            return span + " " + offset;
         };
     }
 
