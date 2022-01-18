@@ -1348,7 +1348,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # cancel jog if grbl 1.1+
             if _bgs.is_grbl_one_dot_one(self):
-                _plugin._printer.command("\x85", force=True)
+                self_printer.command("\x85", force=True)
 
             # check distance against limits
             if ("west" in direction or "east" in direction) and abs(distance) > abs(self.xLimit):
