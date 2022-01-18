@@ -663,7 +663,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     # go to sleep if autosleep and now - last > interval
                     if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
-                        if self.grblState != "Sleep" and self._printer.ational():
+                        if self.grblState != "Sleep" and self._printer.is_operational():
                             self._printer.commands("$SLP")
                         else:
                             self.autoSleepTimer = time.time()
