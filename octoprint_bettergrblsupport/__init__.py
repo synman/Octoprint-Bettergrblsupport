@@ -700,6 +700,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             subprocess.call(self.m9Command, shell=True)
             return (None,)
 
+        # cancel jog
+        if cmd.upper().strip() == "SYN1":
+            self._logger.debug("Cancelling Jog")
+            return ("\x85",)
+
         # rewrite M115 firmware as $$ (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
@@ -1348,7 +1353,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # cancel jog if grbl 1.1+
             if _bgs.is_grbl_one_dot_one(self):
-                self._printer.commands("\x85", force=True)
+                self._printer.commands("SYN1", force=True)
 
             # check distance against limits
             if ("west" in direction or "east" in direction) and abs(distance) > abs(self.xLimit):
