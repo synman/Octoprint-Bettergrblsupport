@@ -481,7 +481,7 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
     # set home for our current axis and travel back to where we started
     _plugin._printer.commands([
             "G10 P1 L2 {}{:f}".format(axis, position),
-            "G0 {}{} Z{} F{}".format(axis, 5 * -1 * invert, 15 * _plugin.invertZ, zf),
+            "G0 {}{} Z{} F{}".format(axis, 10 * -1 * invert, 15 * _plugin.invertZ, zf),
             "G0 G54 G90 {}{} F{}".format(axis, 10 * invert, xyf),
             "G91"
         ])
