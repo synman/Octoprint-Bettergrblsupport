@@ -131,7 +131,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.invertZ = 1
 
         self.settingsVersion = 5
-        self.wizardVersion = 4
+        self.wizardVersion = 5
 
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
