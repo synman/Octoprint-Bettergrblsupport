@@ -431,7 +431,8 @@ def do_xy_probe(_plugin, sessionId):
 
         add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
-        _plugin._printer.commands(["G0 G54 G90 X0 Y0", "G91"])
+        xyf = float(_plugin.grblSettings.get(110)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+        _plugin._printer.commands(["G0 G54 G90 X0 Y0 F{}".format(xyf), "G91"])
 
         xyProbe.teardown()
         xyProbe = None
