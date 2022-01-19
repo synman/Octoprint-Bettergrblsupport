@@ -486,9 +486,9 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
             "G91"
         ])
 
-    _plugin.grblCmdQueue.append("%%% eat me %%%")
-    wait_for_empty_cmd_queue(_plugin)
-    if xyProbe == None: return
+    # _plugin.grblCmdQueue.append("%%% eat me %%%")
+    # wait_for_empty_cmd_queue(_plugin)
+    # if xyProbe == None: return
 
     do_xy_probe(_plugin, sessionId)
 
