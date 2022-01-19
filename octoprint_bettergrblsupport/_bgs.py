@@ -532,7 +532,8 @@ def simple_zprobe_hook(_plugin, result, position):
                                                                               hide=True,
                                                                              delay=10000,
                                                                        notify_type=notify_type))
-        add_to_notify_queue(_plugin, [text])
+
+        add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
     _plugin._logger.debug("zprobe hook position: [%f] result: [%d]", position, result)
 
@@ -800,6 +801,8 @@ def add_to_notify_queue(_plugin, notifications):
 
     if not zProbe is None:
         zProbe.notify(notifications)
+    if not xyProbe is None:
+        xyProbe.notify(notifications)
 
     for notification in notifications:
         _plugin._logger.debug("queuing notification [%s]", notification)
