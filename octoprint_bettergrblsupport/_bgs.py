@@ -404,7 +404,7 @@ def do_xy_probe(_plugin, sessionId):
 
     gcode = [
                 "G91 G21",
-                "G0 X{} F{}".format(xyProbeTravel * .75 * _plugin.invertX * -1, xyf),
+                "G0 X{} F{}".format(xyProbeTravel * _plugin.invertX * -1, xyf),
                 "G0 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
                 "G38.2 X{} F100".format(xyProbeTravel * _plugin.invertX)
             ]
@@ -413,7 +413,7 @@ def do_xy_probe(_plugin, sessionId):
     if xyProbe._step == 0:
         gcode = [
                     "G91 G21",
-                    "G0 Y{} F{}".format(xyProbeTravel * .75 * _plugin.invertY * -1, xyf),
+                    "G0 Y{} F{}".format(xyProbeTravel * _plugin.invertY * -1, xyf),
                     "G0 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
                     "G38.2 Y{} F100".format(xyProbeTravel * _plugin.invertY)
                 ]
@@ -422,7 +422,7 @@ def do_xy_probe(_plugin, sessionId):
         text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
-                                                                         sessionId=zProbe._sessionId,
+                                                                         sessionId=xyProbe._sessionId,
                                                                              title="X/Y Probe",
                                                                               text=text,
                                                                               hide=False,
@@ -462,14 +462,15 @@ def xy_probe_hook(_plugin, result, position, axis):
 
         xyf = float(_plugin.grblSettings.get(110 + xyProbe._step)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
         zf = float(_plugin.grblSettings.get(112)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+        invert = _plugin.invertX if axis == "X" else _plugin.invertY
 
         # set home for our current axis and travel back to where we started
         queue_cmds_and_send(_plugin, [
                 "G10 P1 L2 {}{:f}".format(axis, position),
-                "G0 {}{} F{}".format(axis, 5 * -1 * _plugin.invertX if axis == "X" else _plugin.invertY, xyf),
+                "G0 {}{} F{}".format(axis, 5 * -1 * invert, xyf),
                 "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
                 "G54", "G90",
-                "G0 {}{} F{}".format(axis, 10 * _plugin.invertX if axis == "X" else _plugin.invertY, xyf),
+                "G0 {}{} F{}".format(axis, 10 * invert, xyf),
                 "G91"
             ])
 
