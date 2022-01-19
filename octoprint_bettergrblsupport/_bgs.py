@@ -545,14 +545,14 @@ def simple_zprobe_hook(_plugin, result, position):
         type="simple_notify"
         title="Single Point Z-Probe"
         text = "Z Axis Home has been calculated and (temporarily) set to machine position: [<B>{:.3f}</B>]".format(position - (_plugin.zProbeOffset * _plugin.invertZ))
-        notify_type="success"
+        notify_type="info"
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
                                                                          sessionId=sessionId,
                                                                              title=title,
                                                                               text=text,
-                                                                              hide=True,
-                                                                             delay=10000,
+                                                                              hide=False,
+                                                                             delay=0,
                                                                        notify_type=notify_type))
 
         add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
