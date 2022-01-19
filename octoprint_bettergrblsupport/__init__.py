@@ -1094,7 +1094,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # add a notification if we just z-probed
         # _bgs will pick this up if zProbe is active
-        if "PRB:" in line.upper() and _bgs.is_zprobe_active():
+        if "PRB:" in line.upper():
             _bgs.add_to_notify_queue(self, [line])
             return
 
