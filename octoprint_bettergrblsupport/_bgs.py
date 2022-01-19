@@ -444,8 +444,8 @@ def do_xy_probe(_plugin, sessionId):
     #                                                                       axis=axis,
     #                                                                      gcode=gcode))
 
-    # _plugin._printer.commands(gcode))
-    queue_cmds_and_send(_plugin, gcode)
+    _plugin._printer.commands(gcode))
+    # queue_cmds_and_send(_plugin, gcode)
 
 def xy_probe_hook(_plugin, result, position, axis):
     global xyProbe
@@ -465,7 +465,7 @@ def xy_probe_hook(_plugin, result, position, axis):
         invert = _plugin.invertX if axis == "X" else _plugin.invertY
 
         # set home for our current axis and travel back to where we started
-        queue_cmds_and_send(_plugin, [
+        _plugin._printer.commands([
                 "G10 P1 L2 {}{:f}".format(axis, position),
                 "G0 {}{} F{}".format(axis, 5 * -1 * invert, xyf),
                 "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
@@ -473,6 +473,14 @@ def xy_probe_hook(_plugin, result, position, axis):
                 "G0 {}{} F{}".format(axis, 10 * invert, xyf),
                 "G91"
             ])
+        # queue_cmds_and_send(_plugin, [
+        #         "G10 P1 L2 {}{:f}".format(axis, position),
+        #         "G0 {}{} F{}".format(axis, 5 * -1 * invert, xyf),
+        #         "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
+        #         "G54", "G90",
+        #         "G0 {}{} F{}".format(axis, 10 * invert, xyf),
+        #         "G91"
+        #     ])
 
     # defer setup of the next step
     threading.Thread(target=defer_do_xy_probe, args=(_plugin, xyProbe._sessionId)).start()
