@@ -431,7 +431,7 @@ def do_xy_probe(_plugin, sessionId):
 
         add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
-        _plugin._printer.commands(["?", "G54", "G90","G0 X0 Y0", "G91"]
+        _plugin._printer.commands(["?", "G54", "G90","G0 X0 Y0", "G91"])
 
         xyProbe.teardown()
         xyProbe = None
