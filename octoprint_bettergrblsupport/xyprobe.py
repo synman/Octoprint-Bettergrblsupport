@@ -52,14 +52,15 @@ class XyProbe:
             if notification.startswith("[PRB:"):
                 self._step+=1
 
-                xProbeOffset = float(self._plugin._settings.get(["xProbeOffset"])) * self._plugin.invertX * -1
-                yProbeOffset = float(self._plugin._settings.get(["yProbeOffset"])) * self._plugin.invertY * -1
+                xProbeOffset = float(self._plugin._settings.get(["xProbeOffset"])) * self._plugin.invertX
+                yProbeOffset = float(self._plugin._settings.get(["yProbeOffset"])) * self._plugin.invertY
+                offset = xProbeOffset if self._step == 0 else yProbeOffset
 
                 firstSplit = notification.replace("[", "").replace("]", "").split(":")
                 secondSplit = firstSplit[1].split(",")
 
                 result = int(float(firstSplit[2]))
-                position = float(secondSplit[self._step]) + xProbeOffset if self._step == 0 else yProbeOffset
+                position = float(secondSplit[self._step]) + offset
 
                 if (result == 1):
                     self._results.append(position)
