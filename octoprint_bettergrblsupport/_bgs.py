@@ -463,7 +463,7 @@ def xy_probe_hook(_plugin, result, position, axis):
         # set home for our current axis and travel back to where we started
         queue_cmds_and_send(_plugin, [
                 "G10 P1 L2 {}{:f}".format("X" if xyProbe._step == 0 else "Y", position),
-                "G0 {}{} F{}".format("X" if xyProbe._step == 0 else "Y", 5 * -1 * _plugin.invertX if xyProbe._step == 0 else _plugin.invertY),
+                "G0 {}{} F{}".format("X" if xyProbe._step == 0 else "Y", 5 * -1 * _plugin.invertX if xyProbe._step == 0 else _plugin.invertY, xyf),
                 "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
                 "G54", "G90",
                 "G0 {}{} F{}".format("X" if xyProbe._step == 0 else "Y", 5 * _plugin.invertX if xyProbe._step == 0 else _plugin.invertY),
