@@ -391,6 +391,24 @@ def toggle_weak(_plugin):
 
     return res
 
+
+def do_xyz_probe(_plugin, sessionId):
+    # we need something in the background to track this
+    threading.Thread(target=defer_do_xyz_probe, args=(_plugin, xyProbe._sessionId)).start()
+
+def defer_do_xyz_probe(_plugin, sessionId):
+    global zProbe
+    global xyProbe
+
+    do_simple_zprobe(_plugin, sessionId)
+
+    # wait for the z probe to run out of scope
+    while zProbe != None:
+        time.sleep(1)
+
+    do_xy_probe(_plugin, sessionId)
+
+
 def do_xy_probe(_plugin, sessionId):
     global xyProbe
     _plugin._logger.debug("_bgs: do_xy_probe step=[{}] sessionId=[{}]".format(xyProbe._step if xyProbe != None else "N/A", sessionId))
@@ -447,9 +465,6 @@ def do_xy_probe(_plugin, sessionId):
                                                                           axis=axis,
                                                                          gcode=gcode))
 
-    # _plugin._printer.commands(gcode)
-    # queue_cmds_and_send(_plugin, gcode)
-
 def xy_probe_hook(_plugin, result, position, axis):
     global xyProbe
     _plugin._logger.debug("_bgs: xy_probe_hook result=[{}] position=[{}] axis=[{}] sessionId=[{}]".format(result, position, axis, xyProbe._sessionId))
@@ -465,7 +480,6 @@ def xy_probe_hook(_plugin, result, position, axis):
 
     # defer commands and setup of the next step
     threading.Thread(target=defer_do_xy_probe, args=(_plugin, position, axis, xyProbe._sessionId)).start()
-
 
 def defer_do_xy_probe(_plugin, position, axis, sessionId):
     global xyProbe
@@ -486,10 +500,6 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
             "G0 G54 G90 {}{} F{}".format(axis, 10 * invert, xyf),
             "G91"
         ])
-
-    # _plugin.grblCmdQueue.append("%%% eat me %%%")
-    # wait_for_empty_cmd_queue(_plugin)
-    # if xyProbe == None: return
 
     do_xy_probe(_plugin, sessionId)
 
@@ -765,8 +775,6 @@ def defer_do_multipoint_zprobe(_plugin, sessionId):
 
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     wait_for_empty_cmd_queue(_plugin)
-
-    time.sleep(1)
 
     if zProbe != None:
         do_multipoint_zprobe(_plugin, sessionId)
