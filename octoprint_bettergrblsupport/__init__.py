@@ -1191,14 +1191,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             feedRate=[],
             plungeRate=[],
             powerRate=[],
-            cancelZProbe=[]
+            cancelProbe=[]
         )
 
 
     def on_api_command(self, command, data):
         self._logger.debug("__init__: on_api_command data=[{}]".format(data))
 
-        if command == "cancelZProbe":
+        if command == "cancelProbe":
             _bgs.grbl_alarm_or_error_occurred(self)
             return
 

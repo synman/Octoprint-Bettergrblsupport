@@ -403,19 +403,19 @@ def do_xy_probe(_plugin, sessionId):
     zf = float(_plugin.grblSettings.get(112)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
 
     gcode = [
-                "G91 G21",
-                "G0 X{} F{}".format(xyProbeTravel * _plugin.invertX * -1, xyf),
-                "G0 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
+                "G21",
+                "G0 G91 X{} F{}".format(xyProbeTravel * _plugin.invertX * -1, xyf),
+                "G0 G91 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
                 "G38.2 X{} F100".format(xyProbeTravel * _plugin.invertX)
             ]
     axis = "X"
 
     if xyProbe._step == 0:
         gcode = [
-                    "G91 G21",
-                    "G0 Y{} F{}".format(xyProbeTravel * _plugin.invertY * -1, xyf),
-                    "G0 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
-                    "G38.2 Y{} F100".format(xyProbeTravel * _plugin.invertY)
+                    "G21",
+                    "G0 G91 Y{} F{}".format(xyProbeTravel * _plugin.invertY * -1, xyf),
+                    "G0 G91 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
+                    "G38.2 Y{} F200".format(xyProbeTravel * _plugin.invertY)
                 ]
         axis = "Y"
     elif len(xyProbe._results) > 1:
@@ -431,7 +431,7 @@ def do_xy_probe(_plugin, sessionId):
 
         add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
-        _plugin._printer.commands(["G54", "G90","G0 X0 Y0", "G91"])
+        _plugin._printer.commands(["G0 G54 G90 X0 Y0", "G91"])
 
         xyProbe.teardown()
         xyProbe = None
@@ -441,12 +441,12 @@ def do_xy_probe(_plugin, sessionId):
         xyProbe = None
         return
 
-    # _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="xy_probe",
-    #                                                                  sessionId=xyProbe._sessionId,
-    #                                                                       axis=axis,
-    #                                                                      gcode=gcode))
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="xy_probe",
+                                                                     sessionId=xyProbe._sessionId,
+                                                                          axis=axis,
+                                                                         gcode=gcode))
 
-    _plugin._printer.commands(gcode)
+    # _plugin._printer.commands(gcode)
     # queue_cmds_and_send(_plugin, gcode)
 
 def xy_probe_hook(_plugin, result, position, axis):
@@ -471,8 +471,7 @@ def xy_probe_hook(_plugin, result, position, axis):
                 "G10 P1 L2 {}{:f}".format(axis, position),
                 "G0 {}{} F{}".format(axis, 5 * -1 * invert, xyf),
                 "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
-                "G54", "G90",
-                "G0 {}{} F{}".format(axis, 10 * invert, xyf),
+                "G0 G54 G90 {}{} F{}".format(axis, 10 * invert, xyf),
                 "G91"
             ])
         # queue_cmds_and_send(_plugin, [
@@ -785,11 +784,17 @@ def is_zprobe_active():
 
 def grbl_alarm_or_error_occurred(_plugin):
     global zProbe
-    _plugin._logger.debug("_bgs: grbl_alarm_or_error_occurred sessionId=[{}]".format(zProbe._sessionId if zProbe != None else "{None}"))
+    global xyProbe
+
+    _plugin._logger.debug("_bgs: grbl_alarm_or_error_occurred")
 
     if zProbe != None:
         zProbe.teardown()
         zProbe = None
+
+    if xyProbe != None:
+        xyProbe.teardown()
+        xyProbe = None
 
 
 def queue_cmds_and_send(_plugin, cmds, wait=False):

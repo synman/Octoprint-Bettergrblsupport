@@ -502,6 +502,70 @@ $(function() {
                 });
             }
 
+            if (plugin == 'bettergrblsupport' && data.type == 'xy_probe') {
+                if (data.sessionId != undefined && data.sessionId == self.sessionId) {
+                  var text = "";
+                  var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
+
+                  if (!confirmActions) {
+                    OctoPrint.control.sendGcode(data.gcode);
+                    return
+                  }
+
+                  text = "Select <B>PROCEED</B> to initiate an X/Y Probe for the [" + data.axis + "] axis.  Please ensure the probe is positioned properly before proceeding.";
+
+                  new PNotify({
+                      title: "X/Y Probe",
+                      text: text,
+                      type: "notice",
+                      hide: false,
+                      animation: "fade",
+                      animateSpeed: "slow",
+                      sticker: false,
+                      closer: true,
+                      confirm: {
+                          confirm: true,
+                          buttons: [{
+                                  text: "PROCEED",
+                                  click: function(notice) {
+                                    OctoPrint.control.sendGcode(data.gcode);
+                                    notice.remove();
+                                  }
+                              },
+                              {
+                                  text: "CANCEL",
+                                  click: function(notice) {
+                                      // we need to inform the plugin we bailed
+                                      $.ajax({
+                                          url: API_BASEURL + "plugin/bettergrblsupport",
+                                          type: "POST",
+                                          dataType: "json",
+                                          data: JSON.stringify({
+                                              command: "cancelProbe"
+                                          }),
+                                          contentType: "application/json; charset=UTF-8",
+                                          error: function(data, status) {
+                                              new PNotify({
+                                                  title: "Unable to cancel Multipoint Z-Probe",
+                                                  text: data.responseText,
+                                                  hide: true,
+                                                  buttons: {
+                                                      sticker: false,
+                                                      closer: true
+                                                  },
+                                                  type: "error"
+                                              });
+                                          }
+                                      });
+                                      notice.remove();
+                                  }
+                              },
+                          ]
+                      },
+                  });
+                }
+            }
+
             if (plugin == 'bettergrblsupport' && data.type == 'simple_zprobe') {
                 if (data.sessionId != undefined && data.sessionId == self.sessionId) {
                   var text = "";
@@ -541,7 +605,7 @@ $(function() {
                                           type: "POST",
                                           dataType: "json",
                                           data: JSON.stringify({
-                                              command: "cancelZProbe"
+                                              command: "cancelProbe"
                                           }),
                                           contentType: "application/json; charset=UTF-8",
                                           error: function(data, status) {
@@ -614,7 +678,7 @@ $(function() {
                                           type: "POST",
                                           dataType: "json",
                                           data: JSON.stringify({
-                                              command: "cancelZProbe"
+                                              command: "cancelProbe"
                                           }),
                                           contentType: "application/json; charset=UTF-8",
                                           error: function(data, status) {
