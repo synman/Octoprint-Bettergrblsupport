@@ -463,10 +463,10 @@ def xy_probe_hook(_plugin, result, position, axis):
     add_to_notify_queue(_plugin, [notification])
 
     # defer commands and setup of the next step
-    threading.Thread(target=defer_do_xy_probe, args=(_plugin, axis, xyProbe._sessionId)).start()
+    threading.Thread(target=defer_do_xy_probe, args=(_plugin, position, axis, xyProbe._sessionId)).start()
 
 
-def defer_do_xy_probe(_plugin, axis, sessionId):
+def defer_do_xy_probe(_plugin, position, axis, sessionId):
     global xyProbe
 
     _plugin._logger.debug("_bgs: defer_do_xy_probe sessionId=[{}]".format(sessionId))
