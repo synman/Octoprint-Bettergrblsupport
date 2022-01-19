@@ -65,7 +65,7 @@ class XyProbe:
                     self._results.append(position)
 
                 notifications.remove(notification)
-                self._hook(self._plugin, result, position)
+                self._hook(self._plugin, result, position, "X" if self._step == 0 else "Y")
 
     def teardown(self):
         self._plugin._logger.debug("XyProbe: teardown sessionId=[{}]".format(self._sessionId))

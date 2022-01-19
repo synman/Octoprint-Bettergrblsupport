@@ -444,7 +444,7 @@ def do_xy_probe(_plugin, sessionId):
     # _plugin._printer.commands(gcode))
     queue_cmds_and_send(_plugin, gcode)
 
-def xy_probe_hook(_plugin, result, position):
+def xy_probe_hook(_plugin, result, position, axis):
     global xyProbe
     _plugin._logger.debug("_bgs: xy_probe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, xyProbe._sessionId))
 
@@ -454,7 +454,7 @@ def xy_probe_hook(_plugin, result, position):
         xyProbe = None
         return
     else:
-        notification = "X/Y Probe [{}] axis result [{:.3f}]".format(location, position)
+        notification = "X/Y Probe: [{}] axis result [{:.3f}]".format(axis, position)
         add_to_notify_queue(_plugin, [notification])
 
         xyf = float(_plugin.grblSettings.get(110 + xyProbe._step)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
