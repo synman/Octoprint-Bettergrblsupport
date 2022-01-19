@@ -45,7 +45,7 @@ class XyProbe:
 
 
     def notify(self, notifications):
-        self._plugin._logger.debug("XyProbe: notify notifications=[{}] sessionId=[{}]".format(notifications, self._sessionId))
+        self._plugin._logger.debug("XyProbe: notify notifications=[{}] step=[{}] sessionId=[{}]".format(notifications, self._step, self._sessionId))
         self._step+=1
 
         xProbeOffset = float(self._plugin._settings.get(["xProbeOffset"])) * self._plugin.invertX * -1

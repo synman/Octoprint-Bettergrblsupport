@@ -393,7 +393,7 @@ def toggle_weak(_plugin):
 
 def do_xy_probe(_plugin, sessionId):
     global xyProbe
-    _plugin._logger.debug("_bgs: do_xy_probe step=[{}] sessionId=[{}]".format(xyProbe._step + 1 if xyProbe != None else 0, sessionId))
+    _plugin._logger.debug("_bgs: do_xy_probe step=[{}] sessionId=[{}]".format(xyProbe._step if xyProbe != None else "N/A", sessionId))
 
     if xyProbe == None:
         xyProbe = XyProbe(_plugin, xy_probe_hook, sessionId)
@@ -418,7 +418,7 @@ def do_xy_probe(_plugin, sessionId):
                     "G38.2 Y{} F100".format(xyProbeTravel * _plugin.invertY)
                 ]
         axis = "Y"
-    elif xyProbe._step != -1:
+    elif len(xyProbe._results) > 1:
         text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
@@ -431,10 +431,13 @@ def do_xy_probe(_plugin, sessionId):
 
         add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
-        zProbe.teardown()
-        zProbe = None
+        xyProbe.teardown()
+        xyProbe = None
         return
-
+    elif xyProbe._step != -1:
+        xyProbe.teardown()
+        xyProbe = None
+        return
 
     # _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="xy_probe",
     #                                                                  sessionId=xyProbe._sessionId,
@@ -446,7 +449,7 @@ def do_xy_probe(_plugin, sessionId):
 
 def xy_probe_hook(_plugin, result, position, axis):
     global xyProbe
-    _plugin._logger.debug("_bgs: xy_probe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, xyProbe._sessionId))
+    _plugin._logger.debug("_bgs: xy_probe_hook result=[{}] position=[{}] axis=[{}] sessionId=[{}]".format(result, position, axis, xyProbe._sessionId))
 
     # did we have a problem?
     if result == 0:
@@ -462,11 +465,11 @@ def xy_probe_hook(_plugin, result, position, axis):
 
         # set home for our current axis and travel back to where we started
         queue_cmds_and_send(_plugin, [
-                "G10 P1 L2 {}{:f}".format("X" if xyProbe._step == 0 else "Y", position),
-                "G0 {}{} F{}".format("X" if xyProbe._step == 0 else "Y", 5 * -1 * _plugin.invertX if xyProbe._step == 0 else _plugin.invertY, xyf),
+                "G10 P1 L2 {}{:f}".format(axis, position),
+                "G0 {}{} F{}".format(axis, 5 * -1 * _plugin.invertX if axis == "X" else _plugin.invertY, xyf),
                 "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
                 "G54", "G90",
-                "G0 {}{} F{}".format("X" if xyProbe._step == 0 else "Y", 5 * _plugin.invertX if xyProbe._step == 0 else _plugin.invertY, xyf),
+                "G0 {}{} F{}".format(axis, 5 * _plugin.invertX if axis == "X" else _plugin.invertY, xyf),
                 "G91"
             ])
 
