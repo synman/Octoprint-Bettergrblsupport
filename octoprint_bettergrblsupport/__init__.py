@@ -75,7 +75,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.reOrderTabs = True
         self.disablePrinterSafety = True
         self.weakLaserValue = 1
-        self.framingPercentOfMaxSpeed = 25
+        self.framingPercentOfMaxSpeed = float(25)
 
         self.lastGCommand = ""
 
@@ -168,10 +168,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             grblSettingsText = None,
             grblSettingsBackup = "",
             zProbeOffset = float(15.00),
+            xProbeOffset = float(3),
+            yProbeOffset = float(3),
             zProbeTravel = float(0.00),
+            xyProbeTravel = float(30),
             zProbeEndPos = float(5.00),
             weakLaserValue = 1,
-            framingPercentOfMaxSpeed = 25,
+            framingPercentOfMaxSpeed = float(25),
             overrideM8 = False,
             overrideM9 = False,
             m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
@@ -243,7 +246,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.doSmoothie = self._settings.get(["doSmoothie"])
 
         self.weakLaserValue = self._settings.get(["weakLaserValue"])
-        self.framingPercentOfMaxSpeed = self._settings.get(["framingPercentOfMaxSpeed"])
+        self.framingPercentOfMaxSpeed = float(self._settings.get(["framingPercentOfMaxSpeed"]))
 
         self.grblSettingsText = self._settings.get(["grblSettingsText"])
         self.grblVersion = self._settings.get(["grblVersion"])
@@ -1343,12 +1346,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 _bgs.add_to_notify_queue(self, ["Moved to work home for {}".format(axis)])
                 return
 
-            if direction == "probez":
-                method = self._settings.get(["zprobeMethod"])
-                if method == "SIMPLE":
-                    _bgs.do_simple_zprobe(self, sessionId)
-                else:
-                    _bgs.do_multipoint_zprobe(self, sessionId)
+            if direction == "probe":
+                if axis == "XY":
+                    _bgs.do_xy_probe(self, sessionId)
+                elif axis == "Z":
+                    method = self._settings.get(["zprobeMethod"])
+                    if method == "SIMPLE":
+                        _bgs.do_simple_zprobe(self, sessionId)
+                    else:
+                        _bgs.do_multipoint_zprobe(self, sessionId)
                 return
 
             # cancel jog if grbl 1.1+

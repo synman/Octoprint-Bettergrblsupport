@@ -14,36 +14,13 @@
 								<br>
 								&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
 						<!-- /ko -->
-						<br>
-						<br>
-							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
-						<br>
 				</div>
 		</div>
-		<br>
-		<label class="control-label">Initial Jog Distance</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.distance">mm (0 = min of x/y limit)
-		</div>
 
-		<br>
-		<label class="control-label">Framing Feed Rate</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed">% of max
-		</div>
-
-		<br>
-
-		<label class="control-label">Weak Laser Intensity</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue">
-		</div>
-
-		<br>
-		<br>
+		<h5><b>Probing</b></h5>
 
 		<div class="controls">
-  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions"> Confirm all Z-Probe actions
+				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions"> Confirm all Probe actions
 		</div>
 
 		<br>
@@ -72,26 +49,68 @@
 		<br>
 <!-- /ko -->
 
-		<label class="control-label">Touchplate Height</label>
+		<label class="control-label">Touchplate Height (Z)</label>
 		<div class="controls">
 				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset">mm
 		</div>
 
 		<br>
-
-		<label class="control-label">Z-Probe Travel Distance</label>
+		
+		<label class="control-label">Z Travel Distance</label>
 		<div class="controls">
 				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel">mm (0 = use machine Z limit)
 		</div>
 
 		<br>
 
-		<label class="control-label">Z-Probe End Position</label>
+		<label class="control-label">Z Probe End Position</label>
 		<div class="controls">
 				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos">mm
 		</div>
 
 		<br>
+
+		<label class="control-label">Touchplate Width (X)</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xProbeOffset">mm
+		</div>
+
+		<br>
+
+		<label class="control-label">Touchplate Length (Y)</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.yProbeOffset">mm
+		</div>
+
+		<br>
+
+		<label class="control-label">X/Y Travel Distance</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xyProbeTravel">mm
+		</div>
+
+		<br>
+
+		<h5><b>Miscellaneous</b></h5>
+
+		<label class="control-label">Initial Jog Distance</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.distance">mm (0 = min of x/y limit)
+		</div>
+
+		<br>
+		<label class="control-label">Framing Feed Rate</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed">% of max
+		</div>
+
+		<br>
+
+		<label class="control-label">Weak Laser Intensity</label>
+		<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue">
+		</div>
+
 		<br>
 
 		<div class="controls">
@@ -109,66 +128,13 @@
 
 		<!-- /ko -->
 
+		<div class="controls">
+			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
+		</div>
+
 		<br>
 		<h4>Grbl Options</h4>
 		<hr>
-		<label class="control-label">Hello Command</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.hello">
-				<br>
-				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
-				</label>
-		</div>
-
-		<br>
-
-		<div class="control-group">
-			<label class="control-label">Status Command</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.statusCommand">
-					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
-					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePolling"> Disable status polling while printing
-			</div>
-		</div>
-
-		<label class="control-label">Position Command</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.positionCommand">
-				<br>
-				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM114"> Replace M114 requests with above
-				</label>
-		</div>
-
-		<br>
-
-		<label class="control-label">Dwell Command</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.dwellCommand">
-				<br>
-				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
-				</label>
-				<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.doSmoothie"> Smoothieware Support (EXPERIMENTAL)
-					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
-					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model Size Detection *
-					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.neverSendChecksum"> Never Send Checksums *
-					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
-					<br>
-					<br>
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.ignoreErrors"> Ignore Firmware Errors (NOT RECOMMENDED)
-		</div>
-
-		<br>
-
     <label class="control-label">Air Assist Overrides</label>
 		<br>
 		<div class="controls">
@@ -189,8 +155,65 @@
 					<br><br>
 			<!-- /ko -->
 		</div>
+		<div><small><a href="#" class="muted" data-bind="toggleContent: { class: 'fa-caret-right fa-caret-down' }, click: function() { toggleAdvanced() }"><i class="fas fa-caret-right"></i>Advanced options</a> (change at your own risk)</small></div>
 
-		<br>
+		<div id="settings_grbl_options" style="display: none">
+			<br>
+			<label class="control-label">Hello Command</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.hello">
+					<br>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
+					</label>
+			</div>
+
+			<br>
+
+			<div class="control-group">
+				<label class="control-label">Status Command</label>
+				<div class="controls">
+						<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.statusCommand">
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePolling"> Disable status polling while printing
+				</div>
+			</div>
+
+			<label class="control-label">Position Command</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.positionCommand">
+					<br>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM114"> Replace M114 requests with above
+					</label>
+			</div>
+
+			<br>
+
+			<label class="control-label">Dwell Command</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.dwellCommand">
+					<br>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
+					</label>
+					<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.doSmoothie"> Smoothieware Support (EXPERIMENTAL)
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model Size Detection *
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.neverSendChecksum"> Never Send Checksums *
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
+						<br>
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.ignoreErrors"> Ignore Firmware Errors (NOT RECOMMENDED)
+			</div>
+		</div>
 		<br>
 		<p>* Server restart is required for this setting change to take effect</p>
 		<br>

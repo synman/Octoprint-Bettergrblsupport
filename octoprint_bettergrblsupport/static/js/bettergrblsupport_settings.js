@@ -162,6 +162,11 @@ $(function() {
         });
       };
 
+      self.toggleAdvanced = function() {
+        var advanced = document.getElementById("settings_grbl_options")
+        advanced.style.display = advanced.style.display == "none" ? "" : "none";
+      };
+
       self.onBeforeBinding = function() {
         // initialize stuff here
         self.settings = self.settingsViewModel.settings;

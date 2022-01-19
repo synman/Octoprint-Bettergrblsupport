@@ -33,8 +33,10 @@ import requests
 import threading
 
 from .zprobe import ZProbe
+from .xyprobe import XyProbe
 
 zProbe = None
+xyProbe = None
 
 def load_grbl_descriptions(_plugin):
     path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
@@ -389,6 +391,96 @@ def toggle_weak(_plugin):
 
     return res
 
+def do_xy_probe(_plugin, sessionId):
+    global xyProbe
+    _plugin._logger.debug("_bgs: do_xy_probe step=[{}] sessionId=[{}]".format(xyProbe._step + 1 if xyProbe != None else 0, sessionId))
+
+    if xyProbe == None:
+        xyProbe = XyProbe(_plugin, xy_probe_hook, sessionId)
+
+    xyProbeTravel = float(_plugin._settings.get(["xyProbeTravel"]))
+    xyf = float(_plugin.grblSettings.get(110 + xyProbe._step + 1)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+    zf = float(_plugin.grblSettings.get(112)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+
+    gcode = [
+                "G91 G21",
+                "G0 X{} F{}".format(xyProbeTravel * .75 * _plugin.invertX * -1, xyf),
+                "G0 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
+                "G38.2 X{} F100".format(xyProbeTravel * _plugin.invertX)
+            ]
+    axis = "X"
+
+    if xyProbe._step == 0:
+        gcode = [
+                    "G91 G21",
+                    "G0 Y{} F{}".format(xyProbeTravel * .75 * _plugin.invertY * -1, xyf),
+                    "G0 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
+                    "G38.2 Y{} F100".format(xyProbeTravel * _plugin.invertY)
+                ]
+        axis = "Y"
+    elif xyProbe._step != -1:
+        text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
+
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                         sessionId=zProbe._sessionId,
+                                                                             title="X/Y Probe",
+                                                                              text=text,
+                                                                              hide=False,
+                                                                             delay=0,
+                                                                       notify_type="info"))
+
+        add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
+
+        zProbe.teardown()
+        zProbe = None
+        return
+
+
+    # _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="xy_probe",
+    #                                                                  sessionId=xyProbe._sessionId,
+    #                                                                       axis=axis,
+    #                                                                      gcode=gcode))
+
+    # _plugin._printer.commands(gcode))
+    queue_cmds_and_send(_plugin, gcode)
+
+def xy_probe_hook(_plugin, result, position):
+    global xyProbe
+    _plugin._logger.debug("_bgs: xy_probe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, xyProbe._sessionId))
+
+    # did we have a problem?
+    if result == 0:
+        xyProbe.teardown()
+        xyProbe = None
+        return
+    else:
+        notification = "X/Y Probe [{}] axis result [{:.3f}]".format(location, position)
+        add_to_notify_queue(_plugin, [notification])
+
+        xyf = float(_plugin.grblSettings.get(110 + xyProbe._step)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+        zf = float(_plugin.grblSettings.get(112)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+
+        # set home for our current axis and travel back to where we started
+        queue_cmds_and_send(_plugin, [
+                "G10 P1 L2 {}{:f}".format("X" if xyProbe._step == 0 else "Y", position),
+                "G0 {}{} F{}".format("X" if xyProbe._step == 0 else "Y", 5 * -1 * _plugin.invertX if xyProbe._step == 0 else _plugin.invertY),
+                "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
+                "G54", "G90",
+                "G0 {}{} F{}".format("X" if xyProbe._step == 0 else "Y", 5 * _plugin.invertX if xyProbe._step == 0 else _plugin.invertY),
+                "G91"
+            ])
+
+    # defer setup of the next step
+    threading.Thread(target=defer_do_xy_probe, args=(_plugin, xyProbe._sessionId)).start()
+
+
+def defer_do_xy_probe(_plugin, sessionId):
+    _plugin._logger.debug("_bgs: defer_do_xy_probe sessionId=[{}]".format(sessionId))
+    _plugin.grblCmdQueue.append("%%% eat me %%%")
+    wait_for_empty_cmd_queue(_plugin)
+
+    do_xy_probe(_plugin, sessionId)
+
 
 def do_simple_zprobe(_plugin, sessionId):
     _plugin._logger.debug("_bgs: do_simple_zprobe sessionId=[{}]".format(sessionId))
@@ -403,7 +495,6 @@ def do_simple_zprobe(_plugin, sessionId):
 
     zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
     zTravel = zTravel * -1 * _plugin.invertZ
-    _plugin._logger.debug("zTravel={}".format(zTravel))
 
     gcode = "G91 G21 G38.2 Z{} F100".format(zTravel)
     zProbe._locations = [{"gcode": gcode,  "action": "simple_zprobe", "location": "Current"}]
@@ -464,7 +555,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
         zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
         zTravel = zTravel * -1 * _plugin.invertZ
 
-        feedrate = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+        feedrate = float(_plugin.grblSettings.get(110)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
 
         if origin == "grblTopLeft":
             zProbe._locations = [
