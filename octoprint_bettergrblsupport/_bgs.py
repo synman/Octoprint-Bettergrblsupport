@@ -394,7 +394,7 @@ def toggle_weak(_plugin):
 
 def do_xyz_probe(_plugin, sessionId):
     # we need something in the background to track this
-    threading.Thread(target=defer_do_xyz_probe, args=(_plugin, xyProbe._sessionId)).start()
+    threading.Thread(target=defer_do_xyz_probe, args=(_plugin, sessionId)).start()
 
 def defer_do_xyz_probe(_plugin, sessionId):
     global zProbe
