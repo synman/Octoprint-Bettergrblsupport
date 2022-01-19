@@ -485,6 +485,8 @@ def defer_do_xy_probe(_plugin, sessionId):
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     wait_for_empty_cmd_queue(_plugin)
 
+    time.sleep(1)
+
     if xyProbe != None:
         do_xy_probe(_plugin, sessionId)
 
@@ -757,9 +759,11 @@ def multipoint_zprobe_hook(_plugin, result, position):
 def defer_do_multipoint_zprobe(_plugin, sessionId):
     global zProbe
     _plugin._logger.debug("_bgs: defer_do_multipoint_zprobe sessionId=[{}]".format(sessionId))
-    # time.sleep(1)
+
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     wait_for_empty_cmd_queue(_plugin)
+
+    time.sleep(1)
 
     if zProbe != None:
         do_multipoint_zprobe(_plugin, sessionId)
