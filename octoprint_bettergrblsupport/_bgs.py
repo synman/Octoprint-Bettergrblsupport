@@ -431,7 +431,7 @@ def do_xy_probe(_plugin, sessionId):
 
         add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
-        _plugin._printer.commands(["?", "G54", "G90","G0 X0 Y0", "G91"])
+        _plugin._printer.commands(["G54", "G90","G0 X0 Y0", "G91"])
 
         xyProbe.teardown()
         xyProbe = None
@@ -467,7 +467,7 @@ def xy_probe_hook(_plugin, result, position, axis):
         invert = _plugin.invertX if axis == "X" else _plugin.invertY
 
         # set home for our current axis and travel back to where we started
-        _plugin._printer.commands([ "?",
+        _plugin._printer.commands([
                 "G10 P1 L2 {}{:f}".format(axis, position),
                 "G0 {}{} F{}".format(axis, 5 * -1 * invert, xyf),
                 "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
