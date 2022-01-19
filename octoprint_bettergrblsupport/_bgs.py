@@ -446,7 +446,7 @@ def do_xy_probe(_plugin, sessionId):
     #                                                                       axis=axis,
     #                                                                      gcode=gcode))
 
-    _plugin._printer.commands(gcode))
+    _plugin._printer.commands(gcode)
     # queue_cmds_and_send(_plugin, gcode)
 
 def xy_probe_hook(_plugin, result, position, axis):
