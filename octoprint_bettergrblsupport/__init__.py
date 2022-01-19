@@ -1355,7 +1355,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         _bgs.do_simple_zprobe(self, sessionId)
                     else:
                         _bgs.do_multipoint_zprobe(self, sessionId)
-                elif axis == "XYZ":
+                elif axis == "ALL":
                     _bgs.do_xyz_probe(self, sessionId)
                 return
 
