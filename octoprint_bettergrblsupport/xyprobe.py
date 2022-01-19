@@ -46,16 +46,15 @@ class XyProbe:
 
     def notify(self, notifications):
         self._plugin._logger.debug("XyProbe: notify notifications=[{}] step=[{}] sessionId=[{}]".format(notifications, self._step, self._sessionId))
-        self._step+=1
-        self._plugin._logger.debug("XyProbe: notify notifications=[{}] step=[{}] sessionId=[{}]".format(notifications, self._step, self._sessionId))
-
-        xProbeOffset = float(self._plugin._settings.get(["xProbeOffset"])) * self._plugin.invertX * -1
-        yProbeOffset = float(self._plugin._settings.get(["yProbeOffset"])) * self._plugin.invertY * -1
-
 
         for notification in notifications:
             # [PRB:0.000,0.000,0.000:0]
             if notification.startswith("[PRB:"):
+                self._step+=1
+
+                xProbeOffset = float(self._plugin._settings.get(["xProbeOffset"])) * self._plugin.invertX * -1
+                yProbeOffset = float(self._plugin._settings.get(["yProbeOffset"])) * self._plugin.invertY * -1
+
                 firstSplit = notification.replace("[", "").replace("]", "").split(":")
                 secondSplit = firstSplit[1].split(",")
 
@@ -67,6 +66,7 @@ class XyProbe:
 
                 notifications.remove(notification)
                 self._hook(self._plugin, result, position, "X" if self._step == 0 else "Y")
+
 
     def teardown(self):
         self._plugin._logger.debug("XyProbe: teardown sessionId=[{}]".format(self._sessionId))

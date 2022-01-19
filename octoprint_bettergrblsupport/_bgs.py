@@ -469,7 +469,7 @@ def xy_probe_hook(_plugin, result, position, axis):
                 "G0 {}{} F{}".format(axis, 5 * -1 * _plugin.invertX if axis == "X" else _plugin.invertY, xyf),
                 "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
                 "G54", "G90",
-                "G0 {}{} F{}".format(axis, 5 * _plugin.invertX if axis == "X" else _plugin.invertY, xyf),
+                "G0 {}{} F{}".format(axis, 10 * _plugin.invertX if axis == "X" else _plugin.invertY, xyf),
                 "G91"
             ])
 
