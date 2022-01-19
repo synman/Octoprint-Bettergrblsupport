@@ -406,7 +406,7 @@ def do_xy_probe(_plugin, sessionId):
                 "G21",
                 "G0 G91 X{} F{}".format(xyProbeTravel * _plugin.invertX * -1, xyf),
                 "G0 G91 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
-                "G38.2 X{} F100".format(xyProbeTravel * _plugin.invertX)
+                "G38.2 X{} F200".format(xyProbeTravel * _plugin.invertX)
             ]
     axis = "X"
 
@@ -469,30 +469,24 @@ def xy_probe_hook(_plugin, result, position, axis):
         # set home for our current axis and travel back to where we started
         _plugin._printer.commands([
                 "G10 P1 L2 {}{:f}".format(axis, position),
-                "G0 {}{} F{}".format(axis, 5 * -1 * invert, xyf),
-                "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
+                "G0 {}{} Z{} F{}".format(axis, 5 * -1 * invert, 15 * _plugin.invertZ, zf),
                 "G0 G54 G90 {}{} F{}".format(axis, 10 * invert, xyf),
                 "G91"
             ])
-        # queue_cmds_and_send(_plugin, [
-        #         "G10 P1 L2 {}{:f}".format(axis, position),
-        #         "G0 {}{} F{}".format(axis, 5 * -1 * invert, xyf),
-        #         "G0 Z{} F{}".format(15 * _plugin.invertZ, zf),
-        #         "G54", "G90",
-        #         "G0 {}{} F{}".format(axis, 10 * invert, xyf),
-        #         "G91"
-        #     ])
 
     # defer setup of the next step
     threading.Thread(target=defer_do_xy_probe, args=(_plugin, xyProbe._sessionId)).start()
 
 
 def defer_do_xy_probe(_plugin, sessionId):
+    global xyProbe
+
     _plugin._logger.debug("_bgs: defer_do_xy_probe sessionId=[{}]".format(sessionId))
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     wait_for_empty_cmd_queue(_plugin)
 
-    do_xy_probe(_plugin, sessionId)
+    if xyProbe != None:
+        do_xy_probe(_plugin, sessionId)
 
 
 def do_simple_zprobe(_plugin, sessionId):
@@ -761,12 +755,14 @@ def multipoint_zprobe_hook(_plugin, result, position):
 
 
 def defer_do_multipoint_zprobe(_plugin, sessionId):
+    global zProbe
     _plugin._logger.debug("_bgs: defer_do_multipoint_zprobe sessionId=[{}]".format(sessionId))
     # time.sleep(1)
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     wait_for_empty_cmd_queue(_plugin)
 
-    do_multipoint_zprobe(_plugin, sessionId)
+    if zProbe != None:
+        do_multipoint_zprobe(_plugin, sessionId)
 
 
 def multipoint_zprobe_move(_plugin):

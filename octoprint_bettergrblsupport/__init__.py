@@ -1013,6 +1013,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self._logger.warning("alarm received: %d: %s", error, self.grblAlarms.get(error))
 
+            # inform _bgs in case it has something going on
+            _bgs.grbl_alarm_or_error_occurred(self)
+
             # clear out any pending queued Commands
             if len(self.grblCmdQueue) > 0:
                 self._logger.debug("clearing %d commands from the command queue", len(self.grblCmdQueue))
@@ -1025,9 +1028,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # we need to pause if we are printing
             if self._printer.is_printing():
                 self._printer.pause_print()
-
-            # inform _bgs in case it has something going on
-            _bgs.grbl_alarm_or_error_occurred(self)
 
             # return 'Error: ' + desc
             return "ok " + desc
@@ -1051,6 +1051,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             notify_type="error"))
             self._logger.warning("error received: %d: %s", error, desc)
 
+            # inform _bgs in case it has something going on
+            _bgs.grbl_alarm_or_error_occurred(self)
+
             # clear out any pending queued Commands
             if len(self.grblCmdQueue) > 0:
                 self._logger.debug("clearing %d commands from the command queue", len(self.grblCmdQueue))
@@ -1063,9 +1066,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # we need to pause if we are printing
             if self._printer.is_printing():
                 self._printer.pause_print()
-
-            # inform _bgs in case it has something going on
-            _bgs.grbl_alarm_or_error_occurred(self)
 
             # don't tell octoprint because it will freak out
             return "ok " + desc
