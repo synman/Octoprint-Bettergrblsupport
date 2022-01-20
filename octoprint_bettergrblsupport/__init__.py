@@ -131,7 +131,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.invertZ = 1
 
         self.settingsVersion = 5
-        self.wizardVersion = 5
+        self.wizardVersion = 6
 
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
@@ -190,7 +190,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             autoSleep = False,
             autoSleepInterval = 20,
             zProbeConfirmActions = True,
-            wizard_version = 1
+            wizard_version = 1,
+            invertX = False,
+            invertY = False,
+            invertZ = False
         )
 
 
@@ -263,6 +266,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.autoSleep = self._settings.get_boolean(["autoSleep"])
         self.autoSleepInterval = round(float(self._settings.get(["autoSleepInterval"])))
 
+        self.invertX = -1 if self._settings.get_boolean(["invertX"]) else 1
+        self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
+        self.invertZ = -1 if self._settings.get_boolean(["invertZ"]) else 1
+
+        self._logger.debug("axis inversion X=[{}] Y=[{}] Z=[{}]".format(self.invertX, self.invertY, self.invertZ))
 
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
@@ -1123,12 +1131,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     if distance == 0:
                         distance = float(min([self.xLimit, self.yLimit]))
                     self._settings.set(["control_distance"], distance)
-
-                    # direction mask -- need to account for it when Jogging
-                    self.invertX = -1 if 1 & int(float(self.grblSettings.get(3)[0])) > 0 else 1
-                    self.invertY = -1 if 2 & int(float(self.grblSettings.get(3)[0])) > 1 else 1
-                    self.invertZ = -1 if int(float(self.grblSettings.get(3)[0])) > 3 else 1
-                    self._logger.debug("axis invert mask x=[%d] y=[%d] z=[%d]", self.invertX, self.invertY, self.invertZ)
 
                     self._settings.save()
 
