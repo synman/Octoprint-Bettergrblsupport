@@ -62,7 +62,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.hideGCodeTab = True
         self.helloCommand = "$$"
         self.statusCommand = "?"
-        self.dwellCommand = "G4 P0"
+        self.dwellCommand = "G4 P0.01"
         self.positionCommand = "?"
         self.suppressM114 = True
         self.suppressM400 = True
@@ -146,7 +146,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             hideGCodeTab = True,
             hello = "$$",
             statusCommand = "?",
-            dwellCommand = "G4 P0",
+            dwellCommand = "G4 P0.01",
             positionCommand = "?",
             suppressM114 = True,
             suppressM400 = True,
@@ -474,7 +474,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
                             Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED,
-                            Events.DISCONNECTING, Events.DISCONNECTED, Events.SHUTDOWN)
+                            Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
 
         if event not in subscribed_events:
             # self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
@@ -564,8 +564,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._file_manager.move_file(payload["target"], payload["path"], renamed_file)
                 # os.rename(uploaded_file, renamed_file)
 
+        # starting up
+        if event == Events.STARTUP:
+            self._logger.info("starting up")
+
         # shutting down
         if event == Events.SHUTDOWN:
+            self._logger.info("shutting down")
             self._settings.save();
 
         # 'FileSelected'
@@ -944,7 +949,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             return self.pick_a_response(response)
 
-        if line.startswith('Grbl'):
+        if line.startswith('Grbl') or len(line.strip()) == 0:
+            self._logger.debug("heartbeat received: [{}]".format(line))
             # Hack to make Arduino based GRBL work.
             # When the serial port is opened, it resets and the "hello" command
             # is not processed.
@@ -1132,7 +1138,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         distance = float(min([self.xLimit, self.yLimit]))
                     self._settings.set(["control_distance"], distance)
 
-                    self._settings.save()
+                    self._settings.save(trigger_event=True)
 
                 return line
 
@@ -1349,8 +1355,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             if direction == "probe":
-                if axis == "XY":
-                    _bgs.do_xy_probe(self, sessionId)
+                if axis in ("XY", "X", "Y"):
+                    _bgs.do_xy_probe(self, axis, sessionId)
                 elif axis == "Z":
                     method = self._settings.get(["zprobeMethod"])
                     if method == "SIMPLE":

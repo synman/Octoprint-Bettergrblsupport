@@ -176,6 +176,12 @@ $(function() {
           self.pushGrblSettings(settingsText);
         }
 
+        self.settings.plugins.bettergrblsupport.grblSettingsText.subscribe(function(newValue) {
+          if (settingsText != null) {
+            self.pushGrblSettings(newValue);
+          }
+        });
+
         self.isMultiPoint(self.settings.plugins.bettergrblsupport.zprobeMethod() == "MULTI");
         self.settings.plugins.bettergrblsupport.zprobeMethod.subscribe(function(newValue) {
           if (newValue == "MULTI") {
@@ -215,10 +221,6 @@ $(function() {
       self._processStateData = function (data) {
           self.is_printing(data.flags.printing);
           self.is_operational(data.flags.operational);
-      };
-
-      self.onDataUpdaterPluginMessage = function(plugin, data) {
-        return;
       };
 
       ko.bindingHandlers.numeric = {

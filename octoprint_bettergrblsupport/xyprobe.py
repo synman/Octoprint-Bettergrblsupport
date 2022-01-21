@@ -31,16 +31,18 @@ from . import _bgs
 class XyProbe:
     _plugin = None
     _hook = None
+    _axes = None
     _sessionId = None
     _step = -1
     _results=[]
 
 
-    def __init__(self, _plugin, _hook, _sessionId):
+    def __init__(self, _plugin, _hook, _axes, _sessionId):
         _plugin._logger.debug("XyProbe: __init__ sessionId=[{}]".format(_sessionId))
 
         self._plugin = _plugin
         self._hook = _hook
+        self._axes = _axes
         self._sessionId = _sessionId
 
 
@@ -73,7 +75,8 @@ class XyProbe:
         self._plugin._logger.debug("XyProbe: teardown sessionId=[{}]".format(self._sessionId))
 
         self._hook = None
+        self._results.clear()
+        self._step = -1
+        self._axes = None
         self._plugin = None
         self._sessionId = None
-        self._step = -1
-        self._results.clear()

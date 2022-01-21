@@ -406,15 +406,16 @@ def defer_do_xyz_probe(_plugin, sessionId):
     while zProbe != None:
         time.sleep(1)
 
-    do_xy_probe(_plugin, sessionId)
+    do_xy_probe(_plugin, "XY", sessionId)
 
 
-def do_xy_probe(_plugin, sessionId):
+def do_xy_probe(_plugin, axes, sessionId):
     global xyProbe
-    _plugin._logger.debug("_bgs: do_xy_probe step=[{}] sessionId=[{}]".format(xyProbe._step if xyProbe != None else "N/A", sessionId))
+    _plugin._logger.debug("_bgs: do_xy_probe step=[{}] axes=[{}] sessionId=[{}]".format(xyProbe._step if xyProbe != None else "N/A", axes, sessionId))
 
     if xyProbe == None:
-        xyProbe = XyProbe(_plugin, xy_probe_hook, sessionId)
+        xyProbe = XyProbe(_plugin, xy_probe_hook, axes, sessionId)
+        if axes == "Y": xyProbe._step = 0
 
     xyProbeTravel = float(_plugin._settings.get(["xyProbeTravel"]))
     xyf = float(_plugin.grblSettings.get(110 + xyProbe._step + 1)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
@@ -428,7 +429,7 @@ def do_xy_probe(_plugin, sessionId):
             ]
     axis = "X"
 
-    if xyProbe._step == 0:
+    if xyProbe._step == 0 and axes != "X":
         gcode = [
                     "G21",
                     "G0 G91 Y{} F{}".format(xyProbeTravel * _plugin.invertY * -1, xyf),
@@ -436,8 +437,14 @@ def do_xy_probe(_plugin, sessionId):
                     "G38.2 Y{} F200".format(xyProbeTravel * _plugin.invertY)
                 ]
         axis = "Y"
-    elif len(xyProbe._results) > 1:
-        text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
+    elif len(xyProbe._results) > 1 or (len(xyProbe._results) > 0 and axis in ("X", "Y")):
+        if axes == "XY":
+            text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
+            xyf = float(_plugin.grblSettings.get(110)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+            _plugin._printer.commands(["G0 G54 G90 X0 Y0 F{}".format(xyf), "G91"])
+        else:
+            text = "{} Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>]]".format(axes, xyProbe._results[0])
+            _plugin._printer.commands(["G0 G54 G90 {}0 F{}".format(axes, xyf), "G91"])
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                          sessionId=xyProbe._sessionId,
@@ -448,9 +455,6 @@ def do_xy_probe(_plugin, sessionId):
                                                                        notify_type="info"))
 
         add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
-
-        xyf = float(_plugin.grblSettings.get(110)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
-        _plugin._printer.commands(["G0 G54 G90 X0 Y0 F{}".format(xyf), "G91"])
 
         xyProbe.teardown()
         xyProbe = None
@@ -501,7 +505,7 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
             "G91"
         ])
 
-    do_xy_probe(_plugin, sessionId)
+    do_xy_probe(_plugin, xyProbe._axes, sessionId)
 
 
 def do_simple_zprobe(_plugin, sessionId):
@@ -539,12 +543,15 @@ def simple_zprobe_hook(_plugin, result, position):
     text = ""
     notify_type = ""
 
+    z0 = position + _plugin.zProbeOffset * _plugin.invertZ * -1
+
     if result == 1:
-        _plugin._printer.commands(["G91", "G21", "G92 Z{}".format(_plugin.zProbeOffset * _plugin.invertZ), "G0 Z{}".format(_plugin.zProbeEndPos * _plugin.invertZ)])
+        # _plugin._printer.commands(["G91", "G21", "G92 Z{}".format(_plugin.zProbeOffset * _plugin.invertZ), "G0 Z{}".format(_plugin.zProbeEndPos * _plugin.invertZ)])
+        _plugin._printer.commands(["G91", "G21", "G10 P1 L2 Z{:f}".format(z0), "G0 Z{}".format(_plugin.zProbeEndPos * _plugin.invertZ)])
 
         type="simple_notify"
         title="Single Point Z-Probe"
-        text = "Z Axis Home has been calculated and (temporarily) set to machine position: [<B>{:.3f}</B>]".format(position - (_plugin.zProbeOffset * _plugin.invertZ))
+        text = "Z Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>]".format(z0)
         notify_type="info"
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
