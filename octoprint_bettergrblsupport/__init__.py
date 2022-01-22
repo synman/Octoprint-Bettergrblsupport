@@ -133,6 +133,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.settingsVersion = 5
         self.wizardVersion = 6
 
+        self.connectionState = None
+
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
 
@@ -492,17 +494,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # - CONNECTING
         if event == Events.CONNECTING:
+            self.connectionState = event
             # let's make sure we don't have any commands queued up
             self.grblCmdQueue.clear()
 
         # - CONNECTED
         if event == Events.CONNECTED:
             self._logger.debug('machine connected')
+            self.connectionState = event
             self.autoSleepTimer = time.time()
             self._printer.commands(["$I", "$G"])
 
         # Disconnecting & Disconnected
         if event in (Events.DISCONNECTING, Events.DISCONNECTED):
+            self.connectionState = event
             self.grblState = None
 
         # 'PrintStarted'
@@ -733,6 +738,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
+
+            if self.connectionState == Events.CONNECTING:
+                self._logger.debug("sending initial handshake")
+                return ("\n\n ?", )
+
             return ("?", )
 
         # suppress initialize SD - M21
@@ -956,8 +966,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             return self.pick_a_response(response)
 
-        if line.startswith('Grbl') or len(line.strip()) == 0:
-            self._logger.debug("heartbeat received: [{}]".format(line))
+        if line.startswith('Grbl'):
             # Hack to make Arduino based GRBL work.
             # When the serial port is opened, it resets and the "hello" command
             # is not processed.
