@@ -852,8 +852,8 @@ def is_laser_mode(_plugin):
 
 
 def is_grbl_one_dot_one(_plugin):
-    _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format("1.1" in _plugin.grblVersion))
-    return "1.1" in _plugin.grblVersion
+    _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format("VER:1.1" in _plugin.grblVersion))
+    return "VER:1.1" in _plugin.grblVersion
 
 
 def do_fake_ack(printer, logger):

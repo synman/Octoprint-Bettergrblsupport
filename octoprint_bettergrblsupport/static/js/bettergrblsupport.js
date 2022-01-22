@@ -705,9 +705,9 @@ $(function() {
         self.modeClick = function() {
           if (self.is_operational() && !self.is_printing()) {
             if (self.mode() == "WPos") {
-              OctoPrint.control.sendGcode(["$10=1", "$10", "$132", "?"]);
+              OctoPrint.control.sendGcode(["$10=1", "?", "$$"]);
             } else {
-              OctoPrint.control.sendGcode(["$10=0", "$10", "$132", "?"]);
+              OctoPrint.control.sendGcode(["$10=0", "?", "$$"]);
             }
           }
         }

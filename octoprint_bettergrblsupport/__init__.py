@@ -534,12 +534,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if event == Events.PRINT_CANCELLING:
             self._logger.debug("canceling job")
             self._printer.commands(["!", "?"], force=True)
-            _bgs.queue_cmds_and_send(self, ["M999", "?"], wait=True)
+            _bgs.queue_cmds_and_send(self, ["G4 P0.01", "M999", "?"], wait=True)
 
         # Print Paused
         if event == Events.PRINT_PAUSED:
             self._logger.debug("pausing job")
-            self._printer.commands("!", force=True)
+            self._printer.commands(["G4 P0.01", "!"], force=True)
 
         # Print Resumed
         if event == Events.PRINT_RESUMED:
@@ -756,6 +756,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             _bgs.add_to_notify_queue(self, ["Machine has been reset"])
             return ("\x18",)
 
+        # grbl version info
+        if cmd.upper().startswith("$I"):
+            self.grblVersion = ""
+            self._settings.set(["grblVersion"], self.grblVersion)
+            self._settings.save(trigger_event=True)
+
+
         # ignore all of these -- they do not apply to GRBL
         # M108 (heater off)
         # M84 (disable motors)
@@ -957,18 +964,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # This makes Octoprint recognise the startup message as a successful connection.
             return "ok " + line
 
-        # grbl version signature
-        if line.startswith("[VER:"):
-            self.grblVersion = line.strip("\n").strip("\r")
+        # grbl version signatures
+        if line.startswith(("[VER:", "[OPT:", "[DEVELOPER:", "[CONFIG:", "[ORIGIN:", "[PRODUCER:", "[AUTHOR:", "[MODEL:", "[OLF:", "[OLH:", "[SN:", "[OLM:", "[DATE:")):
+            self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", "")).strip()
             self._settings.set(["grblVersion"], self.grblVersion)
-            self._settings.save()
-            return
-
-        # grbl opt aignature
-        if line.startswith("[OPT:"):
-            self.grblVersion = self.grblVersion + " " + line.strip("\n").strip("\r")
-            self._settings.set(["grblVersion"], self.grblVersion)
-            self._settings.save()
+            self._settings.save(trigger_event=True)
             return
 
         # $G response
@@ -1056,6 +1056,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if not match is None:
                 error = int(match.groups(1)[0])
                 desc = self.grblErrors.get(error)
+                if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
                                                                             title="Grbl Error #{} Received".format(error),
