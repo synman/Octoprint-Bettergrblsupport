@@ -74,7 +74,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.neverSendChecksum = True
         self.reOrderTabs = True
         self.disablePrinterSafety = True
-        self.weakLaserValue = 1
+        self.weakLaserValue = float(1)
         self.framingPercentOfMaxSpeed = float(25)
 
         self.lastGCommand = ""
@@ -90,7 +90,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblY = float(0)
         self.grblZ = float(0)
         self.grblSpeed = 0
-        self.grblPowerLevel = 0
+        self.grblPowerLevel = float(0)
         self.positioning = 0
 
         self.timeRef = 0
@@ -175,7 +175,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             zProbeTravel = float(0.00),
             xyProbeTravel = float(30),
             zProbeEndPos = float(5.00),
-            weakLaserValue = 1,
+            weakLaserValue = float(1),
             framingPercentOfMaxSpeed = float(25),
             overrideM8 = False,
             overrideM9 = False,
@@ -250,7 +250,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.ignoreErrors = self._settings.get(["ignoreErrors"])
         self.doSmoothie = self._settings.get(["doSmoothie"])
 
-        self.weakLaserValue = self._settings.get(["weakLaserValue"])
+        self.weakLaserValue = float(self._settings.get(["weakLaserValue"]))
         self.framingPercentOfMaxSpeed = float(self._settings.get(["framingPercentOfMaxSpeed"]))
 
         self.grblSettingsText = self._settings.get(["grblSettingsText"])
@@ -866,11 +866,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[S]\ *(-?[\d.]+).*", command)
         if not match is None:
-            grblPowerLevel = round(float(match.groups(1)[0]))
+            grblPowerLevel = float(match.groups(1)[0])
 
             # check if power rate is overridden
             if self.powerRate != 0 and grblPowerLevel != 0:
-                grblPowerLevel = round(grblPowerLevel * self.powerRate)
+                grblPowerLevel = grblPowerLevel * self.powerRate
                 command = command.replace("S" + match.groups(1)[0], "S{:.5f}".format(grblPowerLevel))
                 command = command.replace("S " + match.groups(1)[0], "S {:.5f}".format(grblPowerLevel))
                 # self._logger.debug("power rate modified from [{}] to [{}]".format(match.groups(1)[0], grblPowerLevel))
@@ -890,7 +890,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 y=self.grblY,
                                                                                 z=self.grblZ,
                                                                                 speed=self.grblSpeed,
-                                                                                power=self.grblPowerLevel))
+                                                                                power="{:.1f}".format(self.grblPowerLevel)))
                 self.timeRef = currentTime
 
         return (command, )
@@ -932,7 +932,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', line)
             if not match is None:
                 self.grblSpeed = round(float(match.groups(1)[0]))
-                self.grblPowerLevel = round(float(match.groups(1)[1]))
+                self.grblPowerLevel = float(match.groups(1)[1])
 
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                             mode=self.grblMode,
@@ -941,7 +941,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             y=self.grblY,
                                                                             z=self.grblZ,
                                                                             speed=self.grblSpeed,
-                                                                            power=self.grblPowerLevel))
+                                                                            power="{:.1f}".format(self.grblPowerLevel)))
 
             # odd edge case where a machine could be asleep while connecting
             if not self._printer.is_operational() and "SLEEP" in self.grblState.upper():
@@ -1008,8 +1008,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self.grblSpeed = round(float(state.replace("F", "")))
                     self._logger.debug("parser state indicates feed rate of [%d]", self.grblSpeed)
                 elif state.startswith("S"):
-                    self.grblPowerLevel = round(float(state.replace("S", "")))
-                    self._logger.debug("parser state indicates spindle speed of [%d]", self.grblPowerLevel)
+                    self.grblPowerLevel = float(state.replace("S", ""))
+                    self._logger.debug("parser state indicates spindle speed of [%f]", self.grblPowerLevel)
                 elif state.startswith("T"):
                     self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
 
