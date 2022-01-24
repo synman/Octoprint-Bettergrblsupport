@@ -419,21 +419,23 @@ $(function() {
                 if (data.z != undefined) self.zPos(Number.parseFloat(data.z).toFixed(2));
                 if (data.speed != undefined) self.speed(data.speed);
 
-                if (data.state != "Run" && data.power != "N/A" && !self.is_printing()) {
+                if (data.power != undefined && data.state != "Run" && data.power != "N/A" && !self.is_printing()) {
                     var btn = document.getElementById("grblLaserButton");
+                    var newPower = Number.parseFloat(data.power);
+                    var oldPower = Number.parsefloat(self.power);
 
                     if (btn != null) {
-                        if (data.power == "0" && self.power() != "0") {
+                        if (newPower == 0 && oldPower() != 0) {
                             btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
                         } else {
-                            if (self.power() == "0" && data.power != "0") {
+                            if (oldPower == 0 && newPower != 0) {
                                 btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
                             }
                         }
                     }
                 }
 
-                if (data.power != undefined) self.power(data.power);
+                self.power(newPower.toFixed(2));
                 // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
             }

@@ -539,12 +539,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if event == Events.PRINT_CANCELLING:
             self._logger.debug("canceling job")
             self._printer.commands(["!", "?"], force=True)
-            _bgs.queue_cmds_and_send(self, ["G4 P0.01", "M999", "?"], wait=True)
+            _bgs.queue_cmds_and_send(self, ["M999", "?"])
 
         # Print Paused
         if event == Events.PRINT_PAUSED:
             self._logger.debug("pausing job")
-            self._printer.commands(["G4 P0.01", "!"], force=True)
+            self._printer.commands(["G4 P0.01", "!", "?"], force=True)
 
         # Print Resumed
         if event == Events.PRINT_RESUMED:

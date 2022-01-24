@@ -381,7 +381,7 @@ def toggle_weak(_plugin):
 
     if _plugin.grblPowerLevel == 0:
         # turn on laser in weak mode
-        _plugin._printer.commands("G1 F{} M3 S{:.5f}".format(f, _plugin.weakLaserValue))
+        _plugin._printer.commands("G1 F{} M3 S{:.2f}".format(f, _plugin.weakLaserValue))
         add_to_notify_queue(_plugin, ["Weak laser enabled"])
         res = "Laser Off"
     else:
