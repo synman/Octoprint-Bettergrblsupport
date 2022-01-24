@@ -422,7 +422,7 @@ $(function() {
                 if (data.power != undefined && data.state != "Run" && data.power != "N/A" && !self.is_printing()) {
                     var btn = document.getElementById("grblLaserButton");
                     var newPower = Number.parseFloat(data.power);
-                    var oldPower = Number.parsefloat(self.power);
+                    var oldPower = Number.parseFloat(self.power);
 
                     if (btn != null) {
                         if (newPower == 0 && oldPower() != 0) {
