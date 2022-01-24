@@ -89,7 +89,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblX = float(0)
         self.grblY = float(0)
         self.grblZ = float(0)
-        self.grblSpeed = 0
+        self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
         self.positioning = 0
 
@@ -837,23 +837,23 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[F]\ *(-?[\d.]+).*", command)
         if not match is None:
-            grblSpeed = round(float(match.groups(1)[0]))
+            grblSpeed = float(match.groups(1)[0])
 
             if (self.feedRate != 0 or self.plungeRate != 0) and grblSpeed != 0:
                 # check if feed rate is overridden
                 if self.feedRate != 0:
                     if not foundZ:
-                        grblSpeed = round(grblSpeed * self.feedRate)
-                        command = command.replace("F" + match.groups(1)[0], "F{}".format(grblSpeed))
-                        command = command.replace("F " + match.groups(1)[0], "F {}".format(grblSpeed))
+                        grblSpeed = grblSpeed * self.feedRate
+                        command = command.replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
+                        command = command.replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
                         # self._logger.debug("feed rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
 
                 # check if plunge rate is overridden
                 if self.plungeRate != 0:
                     if foundZ:
-                        grblSpeed = round(grblSpeed * self.plungeRate)
-                        command = command.replace("F" + match.groups(1)[0], "F{}".format(grblSpeed))
-                        command = command.replace("F " + match.groups(1)[0], "F {}".format(grblSpeed))
+                        grblSpeed = grblSpeed * self.plungeRate
+                        command = command.replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
+                        command = command.replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
                         # self._logger.debug("plunge rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
 
             # make sure we post all speed on / off events
@@ -871,8 +871,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # check if power rate is overridden
             if self.powerRate != 0 and grblPowerLevel != 0:
                 grblPowerLevel = grblPowerLevel * self.powerRate
-                command = command.replace("S" + match.groups(1)[0], "S{:.5f}".format(grblPowerLevel))
-                command = command.replace("S " + match.groups(1)[0], "S {:.5f}".format(grblPowerLevel))
+                command = command.replace("S" + match.groups(1)[0], "S{:.3f}".format(grblPowerLevel))
+                command = command.replace("S " + match.groups(1)[0], "S {:.3f}".format(grblPowerLevel))
                 # self._logger.debug("power rate modified from [{}] to [{}]".format(match.groups(1)[0], grblPowerLevel))
 
             # make sure we post all power on / off events
@@ -890,7 +890,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 y=self.grblY,
                                                                                 z=self.grblZ,
                                                                                 speed=self.grblSpeed,
-                                                                                power="{:.1f}".format(self.grblPowerLevel)))
+                                                                                power=self.grblPowerLevel))
                 self.timeRef = currentTime
 
         return (command, )
@@ -941,7 +941,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             y=self.grblY,
                                                                             z=self.grblZ,
                                                                             speed=self.grblSpeed,
-                                                                            power="{:.1f}".format(self.grblPowerLevel)))
+                                                                            power=self.grblPowerLevel))
 
             # odd edge case where a machine could be asleep while connecting
             if not self._printer.is_operational() and "SLEEP" in self.grblState.upper():
