@@ -131,7 +131,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.invertZ = 1
 
         self.settingsVersion = 5
-        self.wizardVersion = 6
+        self.wizardVersion = 7
 
         self.connectionState = None
 
@@ -538,7 +538,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Print Cancelling
         if event == Events.PRINT_CANCELLING:
             self._logger.debug("canceling job")
-            self._printer.commands(["!", "?"], force=True)
+            self._printer.commands(["!", "?", "?", "?"], force=True)
             _bgs.queue_cmds_and_send(self, ["M999", "?"])
 
         # Print Paused

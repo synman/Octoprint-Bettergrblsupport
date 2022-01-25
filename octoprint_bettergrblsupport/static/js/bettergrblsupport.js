@@ -425,7 +425,7 @@ $(function() {
                     var oldPower = Number.parseFloat(self.power);
 
                     if (btn != null) {
-                        if (newPower == 0 && oldPower() != 0) {
+                        if (newPower == 0 && oldPower != 0) {
                             btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
                         } else {
                             if (oldPower == 0 && newPower != 0) {
@@ -507,10 +507,10 @@ $(function() {
                   var text = "";
                   var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
 
-                  // if (!confirmActions) {
-                  //   OctoPrint.control.sendGcode(data.gcode);
-                  //   return
-                  // }
+                  if (!confirmActions && ((data.axes == "XY" && data.step >= 0) || data.axes == "ALL")) {
+                    OctoPrint.control.sendGcode(data.gcode);
+                    return
+                  }
 
                   text = "Select <B>PROCEED</B> to initiate an X/Y Probe for the [" + data.axis + "] axis.  Please ensure the probe is positioned properly before proceeding.";
 

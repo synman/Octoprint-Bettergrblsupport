@@ -487,6 +487,8 @@ def do_xy_probe(_plugin, axes, sessionId):
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="xy_probe",
                                                                      sessionId=xyProbe._sessionId,
                                                                           axis=axis,
+                                                                          axes=axes,
+                                                                          step=xYProbe._step,
                                                                          gcode=gcode))
 
 def xy_probe_hook(_plugin, result, position, axis):
