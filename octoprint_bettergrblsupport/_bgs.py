@@ -413,6 +413,19 @@ def do_xy_probe(_plugin, axes, sessionId):
     global xyProbe
     _plugin._logger.debug("_bgs: do_xy_probe step=[{}] axes=[{}] sessionId=[{}]".format(xyProbe._step if xyProbe != None else "N/A", axes, sessionId))
 
+    frameOrigin = _plugin._settings.get(["frame_origin"])
+
+    # do we do not support xy probe for center origins
+    if "Center" in frameOrigin:
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                         sessionId=sessionId,
+                                                                             title="X/Y Probe",
+                                                                              text="You must select a <i>Material Framing</i> corner <b>Starting Position</b> to perform an X and/or Y axis probe.",
+                                                                              hide=False,
+                                                                             delay=0,
+                                                                       notify_type="notice"))
+        return
+
     if xyProbe == None:
         xyProbe = XyProbe(_plugin, xy_probe_hook, axes, sessionId)
         if axes == "Y": xyProbe._step = 0
@@ -421,22 +434,29 @@ def do_xy_probe(_plugin, axes, sessionId):
     xyf = float(_plugin.grblSettings.get(110 + xyProbe._step + 1)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
     zf = float(_plugin.grblSettings.get(112)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
 
+    originInvert = -1 if "Left" in frameOrigin else 1
+    distance = xyProbeTravel * _plugin.invertX * originInvert
+
     gcode = [
                 "G21",
-                "G0 G91 X{} F{}".format(xyProbeTravel * _plugin.invertX * -1, xyf),
+                "G0 G91 X{} F{}".format(distance, xyf),
                 "G0 G91 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
-                "G38.2 X{} F200".format(xyProbeTravel * _plugin.invertX)
+                "G38.2 X{} F200".format(distance * -1)
             ]
     axis = "X"
 
     if xyProbe._step == 0 and axes != "X":
+        originInvert = -1 if "Bottom" in frameOrigin else 1
+        distance = xyProbeTravel * _plugin.invertY * originInvert
+
         gcode = [
                     "G21",
-                    "G0 G91 Y{} F{}".format(xyProbeTravel * _plugin.invertY * -1, xyf),
+                    "G0 G91 Y{} F{}".format(distance, xyf),
                     "G0 G91 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
-                    "G38.2 Y{} F200".format(xyProbeTravel * _plugin.invertY)
+                    "G38.2 Y{} F200".format(distance * -1)
                 ]
         axis = "Y"
+
     elif len(xyProbe._results) > 1 or (len(xyProbe._results) > 0 and axis in ("X", "Y")):
         if axes == "XY":
             text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
@@ -487,8 +507,8 @@ def xy_probe_hook(_plugin, result, position, axis):
 
 def defer_do_xy_probe(_plugin, position, axis, sessionId):
     global xyProbe
-
     _plugin._logger.debug("_bgs: defer_do_xy_probe sessionId=[{}]".format(sessionId))
+
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     _plugin._printer.commands("?")
     wait_for_empty_cmd_queue(_plugin)
@@ -496,13 +516,20 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
 
     xyf = float(_plugin.grblSettings.get(110 + xyProbe._step)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
     zf = float(_plugin.grblSettings.get(112)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
-    invert = _plugin.invertX if axis == "X" else _plugin.invertY
+
+    frameOrigin = _plugin._settings.get(["frame_origin"])
+    originInvert = -1 if "Left" in frameOrigin else 1
+    invert = _plugin.invertX
+
+    if axis == "Y":
+        originInvert = -1 if "Bottom" in frameOrigin else 1
+        invert = _plugin.invertY
 
     # set home for our current axis and travel back to where we started
     _plugin._printer.commands([
             "G10 P1 L2 {}{:f}".format(axis, position),
-            "G0 {}{} Z{} F{}".format(axis, 10 * -1 * invert, 15 * _plugin.invertZ, zf),
-            "G0 G54 G90 {}{} F{}".format(axis, 10 * invert, xyf),
+            "G0 {}{} Z{} F{}".format(axis, 10 * originInvert * invert, 15 * _plugin.invertZ, zf),
+            "G0 G54 G90 {}{} F{}".format(axis, 10 * originInvert * invert * -1, xyf),
             "G91"
         ])
 

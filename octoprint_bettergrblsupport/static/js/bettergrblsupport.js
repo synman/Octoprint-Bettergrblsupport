@@ -507,10 +507,10 @@ $(function() {
                   var text = "";
                   var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
 
-                  if (!confirmActions) {
-                    OctoPrint.control.sendGcode(data.gcode);
-                    return
-                  }
+                  // if (!confirmActions) {
+                  //   OctoPrint.control.sendGcode(data.gcode);
+                  //   return
+                  // }
 
                   text = "Select <B>PROCEED</B> to initiate an X/Y Probe for the [" + data.axis + "] axis.  Please ensure the probe is positioned properly before proceeding.";
 
@@ -571,10 +571,10 @@ $(function() {
                   var text = "";
                   var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
 
-                  if (!confirmActions) {
-                    OctoPrint.control.sendGcode(data.gcode);
-                    return
-                  }
+                  // if (!confirmActions) {
+                  //   OctoPrint.control.sendGcode(data.gcode);
+                  //   return
+                  // }
 
                   text = "Select <B>PROCEED</B> to initiate Single Point Z-Probe once the machine is at the desired location, and you are ready to continue.";
 

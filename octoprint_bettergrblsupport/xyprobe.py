@@ -54,9 +54,18 @@ class XyProbe:
             if notification.startswith("[PRB:"):
                 self._step+=1
 
+                frameOrigin = self._plugin._settings.get(["frame_origin"])
                 xProbeOffset = float(self._plugin._settings.get(["xProbeOffset"])) * self._plugin.invertX
                 yProbeOffset = float(self._plugin._settings.get(["yProbeOffset"])) * self._plugin.invertY
-                offset = xProbeOffset if self._step == 0 else yProbeOffset
+
+                offset = 0
+
+                if self._step == 0:
+                    originInvert = 1 if "Left" in frameOrigin else -1
+                    offset = xProbeOffset * originInvert
+                else:
+                    originInvert = 1 if "Bottom" in frameOrigin else -1
+                    offset = yProbeOffset * originInvert
 
                 firstSplit = notification.replace("[", "").replace("]", "").split(":")
                 secondSplit = firstSplit[1].split(",")
