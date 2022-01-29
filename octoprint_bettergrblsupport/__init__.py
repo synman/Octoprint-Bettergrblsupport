@@ -1299,19 +1299,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug("move direction=[{}] distance=[{}] axis=[{}] xlimit=[{}] ylimit=[{}] zlimit=[{}]".format(direction, distance, axis, self.xLimit, self.yLimit, self.zLimit))
 
             if direction == "home":
-                self._printer.commands(["G54", "G90"])
-
                 if axis == "X":
-                    self._printer.commands(["G0 X0", "G91"])
+                    self._printer.commands("G0 G90 X0")
                 elif axis == "Y":
-                    self._printer.commands(["G0 Y0", "G91"])
+                    self._printer.commands("G0 G90 Y0")
                 elif axis == "Z":
-                    self._printer.commands(["G0 Z0", "G91"])
+                    self._printer.commands("G0 G90 Z0")
                 elif axis == "XY":
-                    self._printer.commands(["G0 X0 Y0", "G91"])
+                    self._printer.commands("G0 G90 X0 Y0")
                 else:
-                    self._printer.commands(["G0 X0 Y0 Z0", "G91"])
-
+                    self._printer.commands("G0 G90 X0 Y0 Z0")
+                
                 # add a notification if we just homed
                 _bgs.add_to_notify_queue(self, ["Moved to work home for {}".format(axis)])
                 return
