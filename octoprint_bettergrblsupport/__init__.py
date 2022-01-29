@@ -90,6 +90,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
         self.positioning = 0
+        self.grblCoordinateSystem = "G54"
 
         self.timeRef = 0
 
@@ -657,7 +658,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # forward on coordinate system change
         if cmd.upper().strip() in ("G54", "G55", "G56", "G57", "G58", "G59"):
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coord=cmd.upper().strip()))
+            self.grblCoordinateSystem = cmd.upper().strip()
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coord=self.grblCoordinateSystem))
 
         # M8 (air assist on) processing - work in progress
         if cmd.upper().strip() == "M8" and self.overrideM8:
@@ -932,7 +934,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # $G response
         if line.startswith("[GC:"):
-            coordinateSystem = "G54"
             parserState = line.replace("[", "").replace("]", "").replace("GC:", "")
 
             for state in parserState.split(" "):
@@ -943,8 +944,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
                     self._logger.debug("parser state indicates [%s] motion mode", state)
                 elif state in ("G54", "G55", "G56", "G57", "G58", "G59"):
-                    coordinateSystem = state
-                    self._logger.debug("parser state indicates [%s] coordinate system active", coordinateSystem)
+                    self.grblCoordinateSystem = state
+                    self._logger.debug("parser state indicates [%s] coordinate system active", self.grblCoordinateSystem)
                 elif state in ("G17", "G18", "G19"):
                     self._logger.debug("parser state indicates [%s] plane selected", state)
                 elif state in ("G20", "G21"):
@@ -965,7 +966,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif state.startswith("T"):
                     self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
 
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", speed=self.grblSpeed, power=self.grblPowerLevel, coord=coordinateSystem))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", speed=self.grblSpeed, power=self.grblPowerLevel, coord=self.grblCoordinateSystem))
 
             return self.pick_a_response(None)
 
@@ -1309,7 +1310,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._printer.commands("G0 G90 X0 Y0")
                 else:
                     self._printer.commands("G0 G90 X0 Y0 Z0")
-                
+
                 # add a notification if we just homed
                 _bgs.add_to_notify_queue(self, ["Moved to work home for {}".format(axis)])
                 return
@@ -1374,24 +1375,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "origin":
             axis = data.get("origin_axis")
 
-            # if axis != self._settings.get(["origin_axis"]):
-            #     self._settings.set(["origin_axis"], axis)
-            #     self._settings.save()
-
-            self._logger.debug("origin axis=[{}]".format(axis))
+            program = int(float(self.grblCoordinateSystem.replace("G", "")))
+            program = -53 + program
 
             if axis == "X":
-                self._printer.commands(["G91 G10 P1 L20 X0"])
+                self._printer.commands("G91 G10 P{} L20 X0".format(program))
             elif axis == "Y":
-                self._printer.commands(["G91 G10 P1 L20 Y0"])
+                self._printer.commands("G91 G10 P{} L20 Y0".format(program))
             elif axis == "Z":
-                self._printer.commands(["G91 G10 P1 L20 Z0"])
+                self._printer.commands("G91 G10 P{} L20 Z0".format(program))
             elif axis == "XY":
-                self._printer.commands(["G91 G10 P1 L20 X0 Y0"])
+                self._printer.commands("G91 G10 P{} L20 X0 Y0".format(program))
             else:
-                self._printer.commands(["G91 G10 P1 L20 X0 Y0 Z0"])
+                self._printer.commands("G91 G10 P{} L20 X0 Y0 Z0".format(program))
 
-            _bgs.add_to_notify_queue(self, ["Work origin for {} set".format(axis)])
+            _bgs.add_to_notify_queue(self, ["coordinate system {} origin for {} set".format(program, axis)])
             return
 
         if command == "toggleWeak":
