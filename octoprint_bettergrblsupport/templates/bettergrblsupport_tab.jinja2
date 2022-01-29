@@ -145,15 +145,17 @@
          <tr>
             <td colspan=2 class="distance">
               <span>
-                <button type="button" class="btn" style="border: 1px solid; width: 35px; margin: 5px 2px 0px 0px" data-bind="click: function() { operatorClicked() }, text: operator"></button>
-              </span>
-               <span align="center" class="btn-group">
-                  <!-- ko foreach: distances -->
-                    <button type="button" class="btn dist" style="border: 1px solid; margin: 5px 0px 0px 0px" data-bind="click: function() { $parent.distanceClicked($data) }, text: $data "></button>
-                  <!-- /ko -->
-               </span>
-               <span>
-                 <input type="number" value="100" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 5px 0px 0px 2px" data-bind="textInput: distance"></button>
+                <span>
+                  <button type="button" class="btn" style="border: 1px solid; width: 35px; margin: 5px 2px 0px 0px" data-bind="click: function() { operatorClicked() }, text: operator"></button>
+                </span>
+                 <span align="center" class="btn-group">
+                    <!-- ko foreach: distances -->
+                      <button type="button" class="btn dist" style="border: 1px solid; margin: 5px 0px 0px 0px" data-bind="click: function() { $parent.distanceClicked($data) }, text: $data "></button>
+                    <!-- /ko -->
+                 </span>
+                 <span>
+                   <input type="number" value="100" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 5px 0px 0px 2px" data-bind="textInput: distance"></button>
+                 </span>
                </span>
             </td>
          </tr>
