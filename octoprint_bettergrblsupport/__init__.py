@@ -1311,8 +1311,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 else:
                     self._printer.commands("G0 G90 X0 Y0 Z0")
 
+                program = int(float(self.grblCoordinateSystem.replace("G", "")))
+                program = -53 + program
+
                 # add a notification if we just homed
-                _bgs.add_to_notify_queue(self, ["Moved to work home for {}".format(axis)])
+                _bgs.add_to_notify_queue(self, ["Moved to coordinate system {} home for {}".format(program, axis)])
                 return
 
             if direction == "probe":
@@ -1389,7 +1392,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 self._printer.commands("G91 G10 P{} L20 X0 Y0 Z0".format(program))
 
-            _bgs.add_to_notify_queue(self, ["coordinate system {} origin for {} set".format(program, axis)])
+            _bgs.add_to_notify_queue(self, ["Coordinate system {} home for {} set".format(program, axis)])
             return
 
         if command == "toggleWeak":

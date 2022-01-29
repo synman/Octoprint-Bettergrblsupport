@@ -83,7 +83,7 @@
             </td>
             <td rowspan=5 valign="top">
               <!-- ko foreach: coordinate_systems -->
-               <button type="button" class="btn coordinate_system" style="border: 1px solid;" data-bind="enable: $root.is_operational() && !$root.is_printing() && $root.state() == 'Idle', click: function() { $root.coordinateSystemChanged($data) }, text: $data, css: { active: $root.coordinate_system() === $data }"></button>
+               <button type="button" class="btn coordinate_system" style="border: 1px solid; margin: 2px 10px 2px 0px;" data-bind="enable: $root.is_operational() && !$root.is_printing() && $root.state() == 'Idle', click: function() { $root.coordinateSystemChanged($data) }, text: $data, css: { active: $root.coordinate_system() === $data }"></button>
                <br>
               <!-- /ko -->
             </td>
