@@ -464,10 +464,10 @@ def do_xy_probe(_plugin, axes, sessionId):
         if axes == "XY":
             text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
             xyf = float(_plugin.grblSettings.get(110)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
-            _plugin._printer.commands(["G0 G54 G90 X0 Y0 F{}".format(xyf), "G91"])
+            _plugin._printer.commands(["G0 G90 X0 Y0 F{}".format(xyf), "G91"])
         else:
             text = "{} Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>]]".format(axes, xyProbe._results[0])
-            _plugin._printer.commands(["G0 G54 G90 {}0 F{}".format(axes, xyf), "G91"])
+            _plugin._printer.commands(["G0 G90 {}0 F{}".format(axes, xyf), "G91"])
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                          sessionId=xyProbe._sessionId,
@@ -530,11 +530,14 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
         originInvert = -1 if "Bottom" in frameOrigin else 1
         invert = _plugin.invertY
 
+    program = int(float(_plugin.grblCoordinateSystem.replace("G", "")))
+    program = -53 + program
+
     # set home for our current axis and travel back to where we started
     _plugin._printer.commands([
-            "G10 P1 L2 {}{:f}".format(axis, position),
+            "G10 P{} L2 {}{:f}".format(program, axis, position),
             "G0 {}{} Z{} F{}".format(axis, 10 * originInvert * invert, 15 * _plugin.invertZ, zf),
-            "G0 G54 G90 {}{} F{}".format(axis, 10 * originInvert * invert * -1, xyf),
+            "G0 G90 {}{} F{}".format(axis, 10 * originInvert * invert * -1, xyf),
             "G91"
         ])
 
@@ -604,7 +607,10 @@ def defer_simple_z_probe(_plugin, z0):
     _plugin._printer.commands("?")
     wait_for_empty_cmd_queue(_plugin)
 
-    _plugin._printer.commands(["G91", "G21", "G10 P1 L2 Z{:f}".format(z0), "G0 Z{}".format(_plugin.zProbeEndPos * _plugin.invertZ)])
+    program = int(float(_plugin.grblCoordinateSystem.replace("G", "")))
+    program = -53 + program
+
+    _plugin._printer.commands(["G91", "G21", "G10 P{} L2 Z{:f}".format(program, z0), "G0 Z{}".format(_plugin.zProbeEndPos * _plugin.invertZ)])
 
     zProbe.teardown()
     zProbe = None
@@ -767,7 +773,10 @@ def do_multipoint_zprobe(_plugin, sessionId):
             position = positionTuple[0]
             location = positionTuple[1]
 
-            queue_cmds_and_send(_plugin, ["G10 P1 L2 Z{:f}".format(position)])
+            program = int(float(_plugin.grblCoordinateSystem.replace("G", "")))
+            program = -53 + program
+
+            queue_cmds_and_send(_plugin, ["G10 P{} L2 Z{:f}".format(program, position)])
 
             text = "Z Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>] ({})\r\n\r\n Result Details:\r\n\r\nVariance: {:.3f}mm\r\n\r\nHighest Point: {:.3f} ({})\r\nLowest Point: {:.3f} ({})\r\nMean Point: {:.3f}\r\nComputed Average: {:.3f}".format(
                 position,
