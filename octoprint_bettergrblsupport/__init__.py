@@ -28,7 +28,6 @@
 #
 from __future__ import absolute_import
 from octoprint.events import Events
-from timeit import default_timer as timer
 from shutil import copyfile
 
 from . import _bgs
@@ -38,7 +37,6 @@ import octoprint.plugin
 import sys
 import os
 import time
-import math
 import subprocess
 import threading
 
@@ -417,6 +415,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._logger.debug("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
+        # let's bail if our only change is our frame dimensions
+        if "frame_width" in data or "frame_length" in data or "frame_origin" in data:
+            return
+
         # reload our config
         self.on_after_startup()
 
@@ -473,7 +475,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_event(self, event, payload):
         self._logger.debug("__init__: on_event event=[{}] payload=[{}]".format(event, payload))
 
-        subscribed_events = (Events.FILE_SELECTED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
+        subscribed_events = (Events.FILE_SELECTED, Events.FILE_ADDED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
                             Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED,
                             Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
@@ -555,19 +557,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblState = "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
-        # File uploaded
-        if event == Events.UPLOAD:
-            if payload["path"].endswith(".gc") or payload["path"].endswith(".nc"):
-                # uploaded_file = self._settings.global_get_basefolder("uploads") + '/' + payload["path"]
-                # renamed_file = uploaded_file[:len(uploaded_file) - 2] + "gcode"
-                renamed_file = payload["path"][:len(payload["path"]) - 2] + "gcode"
-
-                self._logger.debug("renaming [%s] to [%s]", payload["path"], renamed_file)
-
-                self._file_manager.remove_file(payload["target"], renamed_file)
-                self._file_manager.move_file(payload["target"], payload["path"], renamed_file)
-                # os.rename(uploaded_file, renamed_file)
-
         # starting up
         if event == Events.STARTUP:
             self._logger.info("starting up")
@@ -577,67 +566,25 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info("shutting down")
             self._settings.save();
 
+        # File uploaded
+        if event == Events.UPLOAD:
+            if payload["path"].endswith(".gc") or payload["path"].endswith(".nc"):
+                renamed_file = payload["path"][:len(payload["path"]) - 2] + "gcode"
+
+                self._logger.debug("renaming [%s] to [%s]", payload["path"], renamed_file)
+
+                self._file_manager.remove_file(payload["target"], renamed_file)
+                self._file_manager.move_file(payload["target"], payload["path"], renamed_file)
+
+                _bgs.generate_metadata_for_file(self, renamed_file, notify=False, force=True)
+
+        # 'FileAdded'
+        if event == Events.FILE_ADDED:
+            _bgs.generate_metadata_for_file(self, payload["path"], notify=False, force=True)
+
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
-            selected_file = self._settings.global_get_basefolder("uploads") + '/' + payload['path']
-            f = open(selected_file, 'r')
-
-            minX = float("inf")
-            minY = float("inf")
-            maxX = float("-inf")
-            maxY = float("-inf")
-
-            x = float(0)
-            y = float(0)
-
-            lastGCommand = ""
-            positioning = self.positioning
-
-            start = timer()
-
-            for line in f:
-                # save our G command for shorthand post processors
-                if line.upper().startswith("G"):
-                    lastGCommand = line[:3] if line[2:3].isnumeric() else line[:2]
-
-                # use our saved G command if our line starts with a coordinate
-                if line.upper().lstrip().startswith(("X", "Y", "Z")):
-                    command = lastGCommand.upper() + " " + line.upper().strip()
-                else:
-                    command = line.upper().strip()
-
-                if "G90" in command.upper():
-                    # absolute positioning
-                    positioning = 0
-
-                if "G91" in command.upper():
-                    # relative positioning
-                    positioning = 1
-
-                # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
-                match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
-                if not match is None:
-                    x = float(match.groups(1)[0]) if positioning == 0 else x + float(match.groups(1)[0])
-                    if x < minX: minX = x
-                    if x > maxX: maxX = x
-
-                # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
-                match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
-                if not match is None:
-                    y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
-                    if y < minY: minY = y
-                    if y > maxY: maxY = y
-
-                # self._logger.debug("x=%.2f y=%.2f", x, y)
-
-            length = math.ceil(maxY - minY)
-            width = math.ceil(maxX - minX)
-
-            self._logger.debug('finished reading file length=[{}] width=[{}] positioning=[{}] time=[{}]'.format(length, width, positioning, timer() - start))
-
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_frame_size",
-                                                                            length=length,
-                                                                            width=width))
+            _bgs.generate_metadata_for_file(self, payload["path"], notify=True)
             return
 
         if event == Events.FILE_DESELECTED:
@@ -707,6 +654,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().lstrip().startswith((";", "(", "%")):
             self._logger.debug('Ignoring extraneous [%s]', cmd)
             return (None, )
+
+        # forward on coordinate system change
+        if cmd.upper().strip() in ("G54", "G55", "G56", "G57", "G58", "G59"):
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coord=cmd.upper().strip()))
 
         # M8 (air assist on) processing - work in progress
         if cmd.upper().strip() == "M8" and self.overrideM8:
@@ -981,6 +932,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # $G response
         if line.startswith("[GC:"):
+            coordinateSystem = "G54"
             parserState = line.replace("[", "").replace("]", "").replace("GC:", "")
 
             for state in parserState.split(" "):
@@ -991,7 +943,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
                     self._logger.debug("parser state indicates [%s] motion mode", state)
                 elif state in ("G54", "G55", "G56", "G57", "G58", "G59"):
-                    self._logger.debug("parser state indicates [%s] coordinate system available", state)
+                    coordinateSystem = state
+                    self._logger.debug("parser state indicates [%s] coordinate system active", coordinateSystem)
                 elif state in ("G17", "G18", "G19"):
                     self._logger.debug("parser state indicates [%s] plane selected", state)
                 elif state in ("G20", "G21"):
@@ -1012,7 +965,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif state.startswith("T"):
                     self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
 
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", speed=self.grblSpeed, power=self.grblPowerLevel))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", speed=self.grblSpeed, power=self.grblPowerLevel, coord=coordinateSystem))
 
             return self.pick_a_response(None)
 

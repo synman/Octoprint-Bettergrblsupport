@@ -32,6 +32,9 @@ $(function() {
         self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
         self.origin_axis = ko.observable("XY");
 
+        self.coordinate_systems = ko.observableArray(["G54", "G55", "G56", "G57", "G58", "G59"]);
+        self.coordinate_system = ko.observable("G54");
+
         self.operator = ko.observable("=");
         self.distances = ko.observableArray([.1, 1, 5, 10, 50, 100]);
         self.distance = ko.observable(100);
@@ -68,7 +71,7 @@ $(function() {
 
             var timeout = self.settings.webcam_streamTimeout() || 5;
             self.webcamDisableTimeout = setTimeout(function() {
-                log.debug("Unloading webcam stream");
+                console.log("Unloading webcam stream");
                 $("#webcam_image").attr("src", "");
                 self.webcamLoaded(false);
             }, timeout * 1000);
@@ -105,13 +108,17 @@ $(function() {
         self.onWebcamLoaded = function() {
             if (self.webcamLoaded()) return;
 
-            log.debug("Webcam stream loaded");
+            console.log("Webcam stream loaded");
             self.webcamLoaded(true);
             self.webcamError(false);
         };
 
         self.onWebcamErrored = function() {
-            log.debug("Webcam stream failed to load/disabled");
+            console.log("Webcam stream failed to load/disabled");
+            if (self.webcamLoaded()) {
+              self._enableWebcam();
+              return;
+            }
             self.webcamLoaded(false);
             self.webcamError(true);
         };
@@ -387,6 +394,11 @@ $(function() {
             });
         };
 
+        self.coordinateSystemChanged = function (coordinate_system) {
+          // self.coordinate_system(coordinate_system)
+          OctoPrint.control.sendGcode([coordinate_system, "?"]);
+        };
+
         self.onAllBound = function (allViewModels) {
           self._enableWebcam();
 
@@ -419,9 +431,10 @@ $(function() {
                 if (data.z != undefined) self.zPos(Number.parseFloat(data.z).toFixed(2));
                 if (data.speed != undefined) self.speed(Number.parseFloat(data.speed).toFixed(2));
 
-                if (data.power != undefined && data.state != "Run" && data.power != "N/A" && !self.is_printing()) {
+                if (data.power != undefined) {
+                  var newPower = Number.parseFloat(data.power);
+                  if (data.state != "Run" && data.power != "N/A" && !self.is_printing()) {
                     var btn = document.getElementById("grblLaserButton");
-                    var newPower = Number.parseFloat(data.power);
                     var oldPower = Number.parseFloat(self.power);
 
                     if (btn != null) {
@@ -433,9 +446,11 @@ $(function() {
                             }
                         }
                     }
+                  }
+                  self.power(newPower.toFixed(2));
                 }
 
-                self.power(newPower.toFixed(2));
+                if (data.coord != undefined) self.coordinate_system(data.coord);
                 // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
             }

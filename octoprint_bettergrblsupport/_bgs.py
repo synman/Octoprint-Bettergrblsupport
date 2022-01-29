@@ -28,10 +28,13 @@
 #
 import os
 import time
+import math
+
 import re
 import requests
 import threading
 
+from timeit import default_timer as timer
 from .zprobe import ZProbe
 from .xyprobe import XyProbe
 
@@ -160,7 +163,7 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
     # add pretty much all of grbl to long running commands list
-    longCmds = self._settings.global_get(["serial", "longRunningCommands"])
+    longCmds = _plugin._settings.global_get(["serial", "longRunningCommands"])
     if longCmds == None:
         longCmds = []
 
@@ -196,8 +199,8 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if "M9" in longCmds: longCmds.remove("M9")
     if "M30" in longCmds: longCmds.remove("M30")
 
-    self._settings.global_set(["serial", "longRunningCommands"], longCmds)
-    self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 5)
+    _plugin._settings.global_set(["serial", "longRunningCommands"], longCmds)
+    _plugin._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 5)
 
     _plugin._settings.save()
 
@@ -880,6 +883,127 @@ def add_to_notify_queue(_plugin, notifications):
     for notification in notifications:
         _plugin._logger.debug("queuing notification [%s]", notification)
         _plugin.notifyQueue.append(notification)
+
+
+def generate_metadata_for_file(_plugin, filename, notify=False, force=False):
+    metadata = _plugin._file_manager.get_metadata("local", filename)
+    created = os.path.getctime(_plugin._file_manager.path_on_disk("local", filename))
+
+    processing = True if metadata.get("bgs_processing") == "true" else False
+    length = metadata.get("bgs_length")
+    width = metadata.get("bgs_width")
+    timestamp = metadata.get("bgs_timestamp")
+
+    if timestamp is None or created > timestamp:
+        force = True
+
+    _plugin._logger.debug("_bgs: generate_metadata_for_file filename=[{}] notify=[{}] force=[{}] processing=[{}] length=[{}] width=[{}]".format(filename, notify, force, processing, length, width))
+
+    if length is None or width is None or force:
+        _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_width")
+        _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_length")
+
+        if processing and notify:
+            threading.Thread(target=wait_for_metadata_processing, args=(_plugin, filename, notify)).start()
+        else:
+            _plugin._file_manager.set_additional_metadata("local", filename, "bgs_processing", "true", overwrite=True)
+            threading.Thread(target=defer_generate_metadata_for_file, args=(_plugin, filename, notify)).start()
+    else:
+        if notify:
+            _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_frame_size",
+                                                                         length=length,
+                                                                          width=width))
+
+def defer_generate_metadata_for_file(_plugin, filename, notify):
+    _plugin._logger.debug("_bgs: defer_generate_metadata_for_file filename=[{}] notify=[{}]".format(filename, notify))
+
+    file = _plugin._file_manager.path_on_disk("local", filename)
+    created = os.path.getctime(file)
+
+    f = open(file, 'r')
+
+    minX = float("inf")
+    minY = float("inf")
+    maxX = float("-inf")
+    maxY = float("-inf")
+
+    x = float(0)
+    y = float(0)
+
+    lastGCommand = ""
+    positioning = _plugin.positioning
+
+    start = timer()
+
+    for line in f:
+        # save our G command for shorthand post processors
+        if line.upper().startswith("G"):
+            lastGCommand = line[:3] if line[2:3].isnumeric() else line[:2]
+
+        # use our saved G command if our line starts with a coordinate
+        if line.upper().lstrip().startswith(("X", "Y", "Z")):
+            command = lastGCommand.upper() + " " + line.upper().strip()
+        else:
+            command = line.upper().strip()
+
+        if "G90" in command.upper():
+            # absolute positioning
+            positioning = 0
+
+        if "G91" in command.upper():
+            # relative positioning
+            positioning = 1
+
+        # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
+        if not match is None:
+            x = float(match.groups(1)[0]) if positioning == 0 else x + float(match.groups(1)[0])
+            if x < minX: minX = x
+            if x > maxX: maxX = x
+
+        # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
+        if not match is None:
+            y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
+            if y < minY: minY = y
+            if y > maxY: maxY = y
+
+    length = math.ceil(maxY - minY)
+    width = math.ceil(maxX - minX)
+
+    _plugin._file_manager.set_additional_metadata("local", filename, "bgs_length", length, overwrite=True)
+    _plugin._file_manager.set_additional_metadata("local", filename, "bgs_width", width, overwrite=True)
+    _plugin._file_manager.set_additional_metadata("local", filename, "bgs_timestamp", created, overwrite=True)
+
+    _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_processing")
+
+    _plugin._logger.debug('finished reading file=[{}] length=[{}] width=[{}] positioning=[{}] time=[{}]'.format(filename, length, width, positioning, timer() - start))
+
+    if notify:
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_frame_size",
+                                                                         length=length,
+                                                                          width=width))
+
+def wait_for_metadata_processing(_plugin, filename, notify):
+    _plugin._logger.debug("_bgs: wait_for_metadata_processing filename=[{}] notify=[{}]".format(filename, notify))
+
+    metadata = _plugin._file_manager.get_metadata("local", filename)
+    processing = True if metadata.get("bgs_processing") == "true" else False
+    seconds = 0
+
+    while seconds < 300 and processing:
+        time.sleep(1)
+        metadata = _plugin._file_manager.get_metadata("local", filename)
+        processing = True if metadata.get("bgs_processing") == "true" else False
+        seconds += 1
+
+    if not processing and notify:
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_frame_size",
+                                                                            length=metadata.get("bgs_length"),
+                                                                             width=metadata.get("bgs_width")))
+    else:
+        _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_processing")
+        _plugin._logger.warning("gave up waiting for metadata processing")
 
 
 def is_laser_mode(_plugin):
