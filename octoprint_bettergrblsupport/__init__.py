@@ -551,7 +551,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Print Resumed
         if event == Events.PRINT_RESUMED:
             self._logger.debug("resuming job")
-            self._printer.commands(["~", "?", "?". "?"], force=True)
+            self._printer.commands(["~", "?", "?", "?"], force=True)
 
             _bgs.queue_cmds_and_send(self, ["?"])
 
