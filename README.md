@@ -1,4 +1,4 @@
-[![Usage Statistics](https://github.com/synman/OctoPluginStats/actions/workflows/get-data.yaml/badge.svg?branch=main)](https://synman.github.io/OctoPluginStats/#bettergrblsupportContainer)
+[![Usage Statistics](https://github.com/synman/OctoPluginStats/actions/workflows/get-data.yaml/badge.svg)](https://synman.github.io/OctoPluginStats/#bettergrblsupportContainer)
 # Better Grbl Support Plugin for Octoprint
 
 ![grbl](https://user-images.githubusercontent.com/1299716/147993411-7005d1bb-53bf-4277-9e09-5022b40ccc0b.png)
