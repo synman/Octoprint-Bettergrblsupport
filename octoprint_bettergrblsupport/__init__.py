@@ -130,9 +130,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.invertZ = 1
 
         self.settingsVersion = 5
-        self.wizardVersion = 7
+        self.wizardVersion = 8
 
         self.connectionState = None
+        self.pausedPower = 0
 
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
@@ -515,7 +516,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
-            if not self.grblState in ("Idle", "Check"):
+            if "HOLD" in self.grblState.upper():
+                self._printer.commands(["~", "M999", "$G"], force=True)
+            elif not self.grblState.upper() in ("IDLE", "CHECK"):
                 # we have to stop This
                 self._printer.cancel_print()
                 return
@@ -540,20 +543,23 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # Print Cancelling
         if event == Events.PRINT_CANCELLING:
-            self._logger.debug("canceling job")
-            self._printer.commands(["!", "M999", "?", "?", "?"], force=True)
+            self._logger.debug("cancelling job")
+
+            if "HOLD" in self.grblState.upper():
+                self._printer.commands(["~", "M999", "$G"], force=True)
+            else:
+                self._printer.commands(["M400", "M999", "$G"], force=True)
 
         # Print Paused
         if event == Events.PRINT_PAUSED:
             self._logger.debug("pausing job")
-            self._printer.commands(["!", "?", "?", "?"], force=True)
+            self.pausedPower = self.grblPowerLevel
+            self._printer.commands(["S0", "!", "?"], force=True)
 
         # Print Resumed
         if event == Events.PRINT_RESUMED:
             self._logger.debug("resuming job")
-            self._printer.commands(["~", "?", "?", "?"], force=True)
-
-            _bgs.queue_cmds_and_send(self, ["?"])
+            self._printer.commands(["~", "S{}".format(self.pausedPower), "$G"], force=True)
 
             self.grblState = "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
@@ -676,7 +682,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # cancel jog -- doesn't appear to work
         if cmd.upper().strip() == "SYN1":
             self._logger.debug("Cancelling Jog")
-            return ("\x85",)
+            return ("? " + chr(133) + " ?",)
 
         # rewrite M115 firmware as $$ (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
@@ -895,8 +901,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel))
 
-            # odd edge case where a machine could be asleep while connecting
-            if not self._printer.is_operational() and "SLEEP" in self.grblState.upper():
+            # odd edge case where a machine could be asleep or holding while connecting
+            if not self._printer.is_operational() and ("SLEEP" in self.grblState.upper() or "HOLD" in self.grblState.upper()):
                 self._printer.commands("M999", force=True)
 
             # pop any queued commands if state is IDLE or HOLD:0 or Check
@@ -1064,8 +1070,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     line = line.replace("[","").replace("]","").replace("MSG:","")
                     line = line.replace("\n", "").replace("\r", "")
 
-                    _bgs.add_to_notify_queue(self, [line])
-                    self._printer.commands("?", force=True)
+                    if len(line.strip()) > 0:
+                        _bgs.add_to_notify_queue(self, [line])
+                        self._printer.commands("?", force=True)
 
             return
 
