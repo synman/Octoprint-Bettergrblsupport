@@ -129,11 +129,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.invertY = 1
         self.invertZ = 1
 
-        self.settingsVersion = 5
-        self.wizardVersion = 8
-
         self.connectionState = None
         self.pausedPower = 0
+
+        self.settingsVersion = 5
+        self.wizardVersion = 9
 
         self.octoprintVersion = octoprint.server.VERSION
 
