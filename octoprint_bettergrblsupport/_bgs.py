@@ -103,10 +103,11 @@ def save_grbl_settings(_plugin):
 def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._logger.debug("_bgs: cleanup_due_to_uninstall remove_profile=[{}]".format(remove_profile))
 
-    # re-enable model size detection, sd card support, and send checksum
+    # re-enable model size detection, sd card support, send checksum, and encodingScheme
     _plugin._settings.global_set_boolean(["feature", "modelSizeDetection"], True)
     _plugin._settings.global_set_boolean(["feature", "sdSupport"], True)
     _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
+    _plugin._settings.global_set(["serial", "encodingScheme"], "ascii")
 
     # load maps of disabled plugins & tabs
     disabledPlugins = _plugin._settings.global_get(["plugins", "_disabled"])
@@ -164,8 +165,7 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
 
     # add pretty much all of grbl to long running commands list
     longCmds = _plugin._settings.global_get(["serial", "longRunningCommands"])
-    if longCmds == None:
-        longCmds = []
+    if longCmds == None: longCmds = []
 
     if "$H" in longCmds: longCmds.remove("$H")
     if "G92" in longCmds: longCmds.remove("G92")
@@ -1021,8 +1021,16 @@ def is_laser_mode(_plugin):
 
 
 def is_grbl_one_dot_one(_plugin):
-    _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format("VER:1.1" in _plugin.grblVersion))
-    return "VER:1.1" in _plugin.grblVersion
+    oneDotOne = "VER:1.1" in _plugin.grblVersion
+    _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format(oneDotOne))
+    return oneDotOne
+
+
+def is_latin_encoding_available(_plugin):
+    octoprintVersion = _plugin.octoprintVersion
+    latinEncoding = int(octoprintVersion.split(".")[0]) > 1 or int(octoprintVersion.split(".")[1]) >= 7
+    _plugin._logger.debug("_bgs: is_latin_encoding_available result=[{}]".format(latinEncoding))
+    return latinEncoding
 
 
 def do_fake_ack(printer, logger):

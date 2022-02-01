@@ -51,42 +51,42 @@
 
 		<label class="control-label">Touchplate Height (Z)</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset">mm
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 		</div>
 
 		<br>
 
 		<label class="control-label">Z Probe Distance</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel">mm (0 = use machine Z limit)
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = use machine Z limit)
 		</div>
 
 		<br>
 
 		<label class="control-label">Z Probe End Position</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos">mm
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 		</div>
 
 		<br>
 
 		<label class="control-label">Touchplate Width (X)</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xProbeOffset">mm (include your tool's radius)
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
 		</div>
 
 		<br>
 
 		<label class="control-label">Touchplate Length (Y)</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.yProbeOffset">mm (include your tool's radius)
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.yProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
 		</div>
 
 		<br>
 
 		<label class="control-label">X/Y Probe Distance</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xyProbeTravel">mm
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xyProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 		</div>
 
 		<br>
@@ -95,20 +95,20 @@
 
 		<label class="control-label">Initial Jog Distance</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.distance">mm (0 = min of x/y limit)
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = min of x/y limit)
 		</div>
 
 		<br>
 		<label class="control-label">Framing Feed Rate</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed">% of max
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">% of max
 		</div>
 
 		<br>
 
 		<label class="control-label">Weak Laser Intensity</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 		</div>
 
 		<br>
@@ -134,7 +134,7 @@
 
 		<label class="control-label">Inactivity Time</label>
 		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval">min
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
 		</div>
 		<br>
 
@@ -155,7 +155,7 @@
 			</label>
 			<!-- ko if: settings.plugins.bettergrblsupport.overrideM8 -->
 					<label>And Execute:</label>
-	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.bettergrblsupport.m8Command">
+	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.bettergrblsupport.m8Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 					<br><br>
 			<!-- /ko -->
 			<label class="checkbox">
@@ -163,7 +163,7 @@
 			</label>
 			<!-- ko if: settings.plugins.bettergrblsupport.overrideM9 -->
 					<label>And Execute:</label>
-	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.bettergrblsupport.m9Command">
+	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.bettergrblsupport.m9Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 					<br><br>
 			<!-- /ko -->
 		</div>
@@ -173,7 +173,7 @@
 			<br>
 			<label class="control-label">Hello Command</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.hello">
+					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.hello, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 					<br>
 					<label class="checkbox">
 						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
@@ -185,7 +185,7 @@
 			<div class="control-group">
 				<label class="control-label">Status Command</label>
 				<div class="controls">
-						<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.statusCommand">
+						<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.statusCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 						<br>
 						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
 						<br>
@@ -195,7 +195,7 @@
 
 			<label class="control-label">Position Command</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.positionCommand">
+					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.positionCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 					<br>
 					<label class="checkbox">
 						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM114"> Replace M114 requests with above
@@ -206,7 +206,7 @@
 
 			<label class="control-label">Dwell Command</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.dwellCommand">
+					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.dwellCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 					<br>
 					<label class="checkbox">
 						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
@@ -245,7 +245,7 @@
 					<tr>
 						<td align="center" data-bind="text: id"></td>
 						<td align="center">
-									<input type="text" class="input-min" style="width: 80px" data-bind="numeric, value: value, event: { change: $parent.updateSetting(id, value, oldvalue) }">
+									<input type="text" class="input-min" style="width: 80px" data-bind="numeric, value: value, event: { change: $parent.updateSetting(id, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
 						</td>
 						<td align="left" data-bind="text: description"></td>
 					</tr>

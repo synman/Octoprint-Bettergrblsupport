@@ -223,6 +223,12 @@ $(function() {
           self.is_operational(data.flags.operational);
       };
 
+      self.handleFocus = function (event, type, item) {
+        window.setTimeout(function () {
+            event.target.select();
+        }, 0);
+      };
+
       ko.bindingHandlers.numeric = {
           init: function (element, valueAccessor) {
               $(element).on("keydown", function (event) {

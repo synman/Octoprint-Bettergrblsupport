@@ -135,6 +135,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.connectionState = None
         self.pausedPower = 0
 
+        self.octoprintVersion = octoprint.server.VERSION
+
         # load up our item/value pairs for errors, warnings, and settings
         _bgs.load_grbl_descriptions(self)
 
@@ -375,6 +377,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set(["serial", "longRunningCommands"], longCmds)
         self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
+        self._settings.global_set(["serial", "encodingScheme"], "latin_1")
 
         self._settings.save()
         _bgs.load_grbl_settings(self)
@@ -679,10 +682,114 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             subprocess.call(self.m9Command, shell=True)
             return (None,)
 
-        # cancel jog -- doesn't appear to work
-        if cmd.upper().strip() == "SYN1":
-            self._logger.debug("Cancelling Jog")
-            return ("? " + chr(133) + " ?",)
+
+        # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
+        # see https://github.com/OctoPrint/OctoPrint/pull/4390
+
+        # safety door
+        if cmd.upper().strip() == "SAFETYDOOR":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Triggering safety door ")
+                return ("? {} ?".format("\x84"), )
+            else:
+                return (None, )
+
+        # cancel jog
+        if cmd.upper().strip() == "CANCELJOG":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Cancelling jog")
+                return ("? {} ?".format("\x85"), )
+            else:
+                return (None, )
+
+        # normal feed
+        if cmd.upper().strip() == "FEEDNORMAL":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting normal feed rate")
+                return ("? {} ?".format("\x90"), )
+            else:
+                return (None, )
+
+        # feed +10%
+        if cmd.upper().strip() == "FEEDPLUS10":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting feed rate +10%")
+                return ("? {} ?".format("\x91"), )
+            else:
+                return (None, )
+
+        # feed -10%
+        if cmd.upper().strip() == "FEEDMINUS10":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting feed rate -10%")
+                return ("? {} ?".format("\x92"), )
+            else:
+                return (None, )
+
+        # feed +1%
+        if cmd.upper().strip() == "FEEDPLUS1":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting feed rate +1%")
+                return ("? {} ?".format("\x93"), )
+            else:
+                return (None, )
+
+        # feed -1%
+        if cmd.upper().strip() == "FEEDMINUS1":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting feed rate -1%")
+                return ("? {} ?".format("\x94"), )
+            else:
+                return (None, )
+
+        # normal spindle
+        if cmd.upper().strip() == "SPINDLENORMAL":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting normal spindle speed")
+                return ("? {} ?".format("\x99"), )
+            else:
+                return (None, )
+
+        # spindle +10%
+        if cmd.upper().strip() == "SPINDLEPLUS10":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting spindle speed +10%")
+                return ("? {} ?".format("\x9A"), )
+            else:
+                return (None, )
+
+        # spindle -10%
+        if cmd.upper().strip() == "SPINDLEMINUS10":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting spindle speed -10%")
+                return ("? {} ?".format("\x9B"), )
+            else:
+                return (None, )
+
+        # spindle +1%
+        if cmd.upper().strip() == "SPINDLEPLUS1":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting spindle speed +1%")
+                return ("? {} ?".format("\x9C"), )
+            else:
+                return (None, )
+
+        # spindle -1%
+        if cmd.upper().strip() == "SPINDLEMINUS1":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Setting spindle speed -1%")
+                return ("? {} ?".format("\x9D"), )
+            else:
+                return (None, )
+
+        # toggle spindle
+        if cmd.upper().strip() == "TOGGLESPINDLE":
+            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+                self._logger.debug("Toggling spindle stop")
+                return ("? {} ?".format("\x9E"), )
+            else:
+                return (None, )
+
 
         # rewrite M115 firmware as $$ (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
@@ -1337,10 +1444,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif axis == "ALL":
                     _bgs.do_xyz_probe(self, sessionId)
                 return
-
-            # cancel jog if grbl 1.1+
-            if _bgs.is_grbl_one_dot_one(self):
-                self._printer.commands("SYN1", force=True)
 
             # check distance against limits
             if ("west" in direction or "east" in direction) and abs(distance) > abs(self.xLimit):

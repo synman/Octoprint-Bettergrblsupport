@@ -196,6 +196,37 @@ $(function() {
             self.webcamHlsEnabled(true);
         };
 
+        self.handleFocus = function (event, type, item) {
+          window.setTimeout(function () {
+              event.target.select();
+          }, 0);
+        };
+
+        self.isIdleOrJogging = function() {
+          return self.is_operational() &&
+                 !self.is_printing() &&
+                 (self.state() == 'Idle' || self.state() == 'Jog');
+        };
+
+        var jogInterval = undefined;
+
+        self.jog = function(direction) {
+          self.cancelJog();
+
+          if (self.operator() == "J") {
+            jogInterval = setInterval(function() { self.moveHead(direction, 10) }, 200);
+          } else {
+            self.moveHead(direction);
+          }
+        };
+
+        self.cancelJog = function() {
+          if (jogInterval != undefined) {
+            OctoPrint.control.sendGcode("CANCELJOG");
+            clearInterval(jogInterval);
+            jogInterval = undefined;
+          }
+        }
 
         self.toggleWeak = function() {
             $.ajax({
@@ -249,16 +280,25 @@ $(function() {
                 self.operator("-");
             } else {
                 if (self.operator() == "-") {
-                    self.operator("=");
+                    self.operator("J");
                 } else {
                     if (self.operator() == "=") {
                         self.operator("+");
+                    } else {
+                      if (self.operator() == "J") {
+                        self.operator("=");
+                      }
                     }
                 }
             }
+
+            if (self.operator == "J") {
+
+            }
         };
 
-        self.moveHead = function(direction) {
+        self.moveHead = function(direction, distance) {
+          if (distance == undefined) distance = self.distance();
             $.ajax({
                 url: API_BASEURL + "plugin/bettergrblsupport",
                 type: "POST",
@@ -267,7 +307,7 @@ $(function() {
                     command: "move",
                     sessionId: self.sessionId,
                     direction: direction,
-                    distance: self.distance(),
+                    distance: distance,
                     axis: self.origin_axis()
                 }),
                 contentType: "application/json; charset=UTF-8",

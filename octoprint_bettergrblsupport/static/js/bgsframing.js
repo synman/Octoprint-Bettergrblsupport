@@ -14,6 +14,11 @@ $(function () {
 
         self.state = ko.observable("unknown");
 
+        self.handleFocus = function (event, type, item) {
+          window.setTimeout(function () {
+              event.target.select();
+          }, 0);
+        };
 
         self.onBeforeBinding = function() {
           self.length(self.settings.settings.plugins.bettergrblsupport.frame_length());

@@ -4,7 +4,7 @@
         <tr>
            <td style="padding: 0px 0px 0px 10px;" align="left">Length</td>
            <td style="padding: 10px 10px 0px 10px; vertical-align: middle; white-space: nowrap;">
-              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: length" placeholder="100">mm
+              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: length, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }" placeholder="100">mm
            </td>
         </tr>
         <tr>
@@ -13,7 +13,7 @@
         <tr>
            <td  style="padding: 0px 0px 0px 10px;" align="left">&nbsp;Width</td>
            <td style="padding: 5px 10px 0px 10px; vertical-align: middle; white-space: nowrap;">
-              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: width" placeholder="100">mm
+              <input type="number" step="1.0" class="input-mini text-right" data-bind="value: width, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }" placeholder="100">mm
            </td>
         </tr>
      </table>
