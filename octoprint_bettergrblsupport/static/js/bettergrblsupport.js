@@ -1146,6 +1146,10 @@ $(function() {
     var lastY = 0;
 
     function updateStatus() {
+      if (!self.isIdleOrJogging()) {
+        return;
+      }
+
       if (!haveEvents) {
         scangamepads();
       }
