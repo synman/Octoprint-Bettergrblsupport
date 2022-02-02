@@ -1102,6 +1102,125 @@ $(function() {
         });
     }
 
+    var haveEvents = 'ongamepadconnected' in window;
+    var controllers = {};
+    var controllerInterval = undefined;
+
+    function connecthandler(e) {
+      addgamepad(e.gamepad);
+    }
+
+    function addgamepad(gamepad) {
+      controllers[gamepad.index] = gamepad;
+      if (controllerInterval == undefined) {
+        console.log("updateStatus interval created");
+        controllerInterval = setInterval(updateStatus, 250);
+      }
+    }
+
+    function disconnecthandler(e) {
+      removegamepad(e.gamepad);
+    }
+
+    function removegamepad(gamepad) {
+      delete controllers[gamepad.index];
+
+      var j;
+      var empty = true;
+
+      for (j in controllers) {
+        if (j != undefined) {
+          empty = false;
+          break;
+        }
+      }
+
+      if (empty) {
+        console.log("updateStatus interval destroyed");
+        clearInterval(controllerInterval);
+        controllerInterval = undefined;
+      }
+    }
+
+    var lastX = 0;
+    var lastY = 0;
+
+    function updateStatus() {
+      if (!haveEvents) {
+        scangamepads();
+      }
+
+      var i = 0;
+      var j;
+
+      for (j in controllers) {
+        var controller = controllers[j];
+        var x = 0;
+        var y = 0;
+
+        for (i = 0; i < 2; i++) {
+          if (Math.abs(controller.axes[i]) >= .2) {
+            value = controller.axes[i];
+            // value = value + .2 * (value > 0 ? -1 : 1);
+
+            if (i == 1 || i == 3) {
+              invert = -1;
+            } else {
+              invert = 1;
+            }
+
+            value = value * 10 * invert;
+
+            if (invert == -1) {
+              y = value;
+            } else {
+              x = value;
+            }
+          } else {
+            if (i == 1 || i == 3) {
+              y = 0;
+            } else {
+              x = 0;
+            }
+          }
+        }
+      }
+      if (x != lastX || y != lastY) {
+        if (x == 0 && y == 0) {
+          OctoPrint.control.sendGcode("CANCELJOG");
+          console.log("gamepad centered");
+        }
+
+        lastX = x;
+        lastY = y;
+      }
+
+      if (x != 0 || y != 0) {
+        OctoPrint.control.sendGcode("$J=G91 G21 X" + x + " Y" + y + " F2000");
+        console.log("x=" + x + " y=" + y);
+      }
+    }
+
+    function scangamepads() {
+      var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads() : []);
+      for (var i = 0; i < gamepads.length; i++) {
+        if (gamepads[i]) {
+          if (gamepads[i].index in controllers) {
+            controllers[gamepads[i].index] = gamepads[i];
+          } else {
+            addgamepad(gamepads[i]);
+          }
+        }
+      }
+    }
+
+    window.addEventListener("gamepadconnected", connecthandler);
+    window.addEventListener("gamepaddisconnected", disconnecthandler);
+
+    if (!haveEvents) {
+     setInterval(scangamepads, 500);
+    }
+
     OCTOPRINT_VIEWMODELS.push([
         BettergrblsupportViewModel,
         ["settingsViewModel", "loginStateViewModel", "accessViewModel"],
