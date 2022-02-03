@@ -1308,7 +1308,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "updateGrblSetting":
             self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
             self.grblSettings.update({int(data.get("id")): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id")))]})
-            self._printer.commands("$$")
+            # self._printer.commands("$$")
             return
 
         if command == "backupGrblSettings":
