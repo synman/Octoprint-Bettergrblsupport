@@ -250,11 +250,11 @@ def send_frame_init_gcode(_plugin):
     f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
 
     # cancel jog if grbl 1.1+is_grbl_one_dot_one
-    if is_grbl_one_dot_one(_plugin):
+    if is_grbl_one_dot_one(_plugin) and is_latin_encoding_available(_plugin):
         _plugin._printer.commands("CANCELJOG", force=True)
 
-    # Linear mode, feedrate f% of max, spindle off
-    _plugin._printer.commands("G1 F{} M5".format(f))
+    # Linear mode, feedrate f% of max
+    _plugin._printer.commands("G1 F{}".format(f))
 
     # turn on laser in weak mode if laser mode enabled
     if is_laser_mode(_plugin):
