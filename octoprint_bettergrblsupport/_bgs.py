@@ -266,6 +266,7 @@ def send_frame_init_gcode(_plugin):
 
 def send_frame_end_gcode(_plugin):
     _plugin._logger.debug("_bgs: send_frame_end_gcode")
+    queue_cmds_and_send(_plugin, ["?"])
     queue_cmds_and_send(_plugin, ["M5 S0 G0"])
 
 def send_bounding_box_upper_left(_plugin, y, x):
