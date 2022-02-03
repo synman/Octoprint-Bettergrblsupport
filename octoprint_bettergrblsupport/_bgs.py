@@ -251,7 +251,7 @@ def send_frame_init_gcode(_plugin):
 
     # cancel jog if grbl 1.1+is_grbl_one_dot_one
     if is_grbl_one_dot_one(_plugin):
-        _plugin._printer.commands("SYN1", force=True)
+        _plugin._printer.commands("CANCELJOG", force=True)
 
     # Linear mode, feedrate f% of max, spindle off
     _plugin._printer.commands("G1 F{} M5".format(f))
