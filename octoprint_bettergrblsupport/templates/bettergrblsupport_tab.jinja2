@@ -196,7 +196,7 @@
   <span id="grbl-control-jog-zy-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 20px 20px 20px; margin: 10px 20px 10px 20px;">
       <label>Feed Rate Modifier</label>
       <span class="input-append control-box">
-          <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: feedRate, event: { blur: resetFeedRateDisplay, focus: cancelFeedRateDisplayReset }, css: { pulsate_text_opacity: feedRateResetter() !== undefined }">
+          <input type="number" class="input-mini" style="width:40px;" min="1" step="1" data-bind="textInput: feedRate, event: { blur: resetFeedRateDisplay, focus: cancelFeedRateDisplayReset }, css: { pulsate_text_opacity: feedRateResetter() !== undefined }">
           <span class="add-on">%</span>
           <button class="btn" data-bind="enable: is_operational() && is_printing() && feedRate(), click: function() { $root.sendCommand('feedRate') }">Set</button>
       </span>
@@ -205,7 +205,7 @@
   <span id="grbl-control-jog-z-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 20px 20px 20px; margin: 10px 20px 10px 20px;">
       <label>Plunge Rate Modifier</label>
       <span class="input-append control-box">
-          <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: plungeRate, event: { blur: resetPlungeRateDisplay, focus: cancelPlungeRateDisplayReset }, css: { pulsate_text_opacity: plungeRateResetter() !== undefined }">
+          <input type="number" class="input-mini" style="width:40px;" min="1" step="1" data-bind="textInput: plungeRate, event: { blur: resetPlungeRateDisplay, focus: cancelPlungeRateDisplayReset }, css: { pulsate_text_opacity: plungeRateResetter() !== undefined }">
           <span class="add-on">%</span>
           <button class="btn" data-bind="enable: is_operational() && is_printing() && plungeRate(), click: function() { $root.sendCommand('plungeRate') }">Set</button>
       </span>
@@ -214,7 +214,7 @@
   <span id="grbl-control-jog-flowrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 20px 20px 20px; margin: 10px 20px 10px 20px;">
       <label>Spindle / Power Modifier</label>
       <span class="input-append control-box">
-          <input type="number" class="input-mini" style="width:70px;" min="1" step="1" data-bind="textInput: powerRate, event: { blur: resetPowerRateDisplay, focus: cancelPowerRateDisplayReset }, css: { pulsate_text_opacity: powerRateResetter() !== undefined }">
+          <input type="number" class="input-mini" style="width:40px;" min="1" step="1" data-bind="textInput: powerRate, event: { blur: resetPowerRateDisplay, focus: cancelPowerRateDisplayReset }, css: { pulsate_text_opacity: powerRateResetter() !== undefined }">
           <span class="add-on">%</span>
           <button class="btn" data-bind="enable: is_operational() && is_printing() && powerRate(), click: function() { $root.sendCommand('powerRate') }">Set</button>
       </span>
