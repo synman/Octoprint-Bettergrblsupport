@@ -103,16 +103,15 @@ def save_grbl_settings(_plugin):
 def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._logger.debug("_bgs: cleanup_due_to_uninstall remove_profile=[{}]".format(remove_profile))
 
-    # re-enable model size detection, sd card support, send checksum, and encodingScheme
+    # re-enable model size detection, sd card support
     _plugin._settings.global_set_boolean(["feature", "modelSizeDetection"], True)
     _plugin._settings.global_set_boolean(["feature", "sdSupport"], True)
-    _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
-    _plugin._settings.global_set(["serial", "encoding"], "ascii")
 
     # load maps of disabled plugins & tabs
     disabledPlugins = _plugin._settings.global_get(["plugins", "_disabled"])
     disabledTabs = _plugin._settings.global_get(["appearance", "components", "disabled", "tab"])
     orderedTabs = _plugin._settings.global_get(["appearance", "components", "order", "tab"])
+    orderedSidebar = _plugin._settings.global_get(["appearance", "components", "order", "sidebar"])
 
     if disabledPlugins == None:
         disabledPlugins = []
@@ -122,6 +121,9 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
 
     if orderedTabs == None:
         orderedTabs = []
+
+    if orderedSidebar == None:
+        orderedSidebar = []
 
     # re-enable the printer safety check plugin
     if "printer_safety_check" in disabledPlugins:
@@ -145,6 +147,10 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if "plugin_bettergrblsupport" in orderedTabs:
         orderedTabs.remove("plugin_bettergrblsupport")
 
+    # remove me from ordered sidebar if i'm in there
+    if "plugin_bettergrblsupport" in orderedSidebar:
+        orderedSidebar.remove("plugin_bettergrblsupport")
+
     if remove_profile:
         # restore the original printer profile (if it exists) and delete mine
         old_profile = _plugin._settings.get(["old_profile"])
@@ -162,6 +168,7 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set(["plugins", "_disabled"], disabledPlugins)
     _plugin._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
     _plugin._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
+    _plugin._settings.global_set(["appearance", "components", "order", "sidebar"], orderedSidebar)
 
     # add pretty much all of grbl to long running commands list
     longCmds = _plugin._settings.global_get(["serial", "longRunningCommands"])
@@ -201,6 +208,8 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
 
     _plugin._settings.global_set(["serial", "longRunningCommands"], longCmds)
     _plugin._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 5)
+    _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
+    _plugin._settings.global_set(["serial", "encoding"], "ascii")
 
     _plugin._settings.save()
 

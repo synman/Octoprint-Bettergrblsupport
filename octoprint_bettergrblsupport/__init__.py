@@ -71,6 +71,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.disableModelSizeDetection = True
         self.neverSendChecksum = True
         self.reOrderTabs = True
+        self.reOrderSidebar = True
         self.disablePrinterSafety = True
         self.weakLaserValue = float(1)
         self.framingPercentOfMaxSpeed = float(25)
@@ -168,6 +169,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             disableModelSizeDetection = True,
             neverSendChecksum = True,
             reOrderTabs = True,
+            reOrderSidebar = True,
             disablePrinterSafety = True,
             grblSettingsText = None,
             grblSettingsBackup = "",
@@ -242,7 +244,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.disableModelSizeDetection = self._settings.get_boolean(["disableModelSizeDetection"])
         self.neverSendChecksum = self._settings.get_boolean(["neverSendChecksum"])
+
         self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
+        self.reOrderSidebar = self._settings.get_boolean(["reOrderSidebar"])
 
         self.overrideM8 = self._settings.get_boolean(["overrideM8"])
         self.overrideM9 = self._settings.get_boolean(["overrideM9"])
@@ -294,6 +298,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if orderedTabs == None:
             orderedTabs = []
 
+        # initialize config.yaml ordered sidebar list
+        orderedSidebar = self._settings.global_get(["appearance", "components", "order", "sidebar"])
+        if orderedSidebar == None:
+            orderedSidebar = []
+
         # disable the printer safety check plugin
         if self.disablePrinterSafety:
             if "printer_safety_check" not in disabledPlugins:
@@ -334,9 +343,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self.reOrderTabs:
             orderedTabs.insert(0, "plugin_bettergrblsupport")
 
+        # ensure i am at the top of the sidebar
+        if "plugin_bettergrblsupport" in orderedSidebar:
+            orderedSidebar.remove("plugin_bettergrblsupport")
+        if self.reOrderSidebar:
+            orderedSidebar.insert(0, "plugin_bettergrblsupport")
+
         self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
         self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
+        self._settings.global_set(["appearance", "components", "order", "sidebar"], orderedTabs)
 
         # add pretty much all of grbl to long running commands list
         longCmds = self._settings.global_get(["serial", "longRunningCommands"])

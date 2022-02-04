@@ -1,26 +1,30 @@
 <form class="form-horizontal">
 	<h4>Plugin Options</h4>
 	<hr>
-		<div class="control-group">
-				<div class="controls">
-							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
-						<br>
-							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
-						<br>
-							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
-						<br>
-							<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
-						<!-- ko ifnot: settings.plugins.bettergrblsupport.hideControlTab -->
-								<br>
-								&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.customControls"> Add Laser Controls and State to Control tab *
-						<!-- /ko -->
-				</div>
+		<div class="controls">
+			<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
+			</label>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderSidebar"> Material Framing is always at top of sidebar *
+				</label>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
+				</label>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
+				</label>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
+				</label>
 		</div>
 
 		<h5><b>Probing</b></h5>
 
 		<div class="controls">
+			<label class="checkbox">
 				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions"> Confirm all Probe actions
+			</label>
 		</div>
 
 		<br>
@@ -114,21 +118,22 @@
 		<br>
 
 		<div class="controls">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertX"> Invert X Axis (jogging / framing / probing)
-		</div>
-		<div class="controls">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertY"> Invert Y Axis (jogging / framing / probing)
-		</div>
-		<div class="controls">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertZ"> Invert Z Axis (jogging / probing)
-		</div>
+			<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertX"> Invert X Axis (jogging / framing / probing)
+			</label>
+			<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertY"> Invert Y Axis (jogging / framing / probing)
+			</label>
+			<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertZ"> Invert Z Axis (jogging / probing)
+			</label>
 
-		<br>
+			<br>
 
-		<div class="controls">
-  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Sleep automatically
+	 		<label class="checkbox">
+	  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Sleep automatically
+			</label>
 		</div>
-		<br>
 
 		<!-- ko if: settings.plugins.bettergrblsupport.autoSleep -->
 
@@ -136,12 +141,14 @@
 		<div class="controls">
 				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
 		</div>
-		<br>
 
 		<!-- /ko -->
+		<br>
 
 		<div class="controls">
-			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
+			<label class="checkbox">
+				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
+			</label>
 		</div>
 
 		<br>

@@ -173,20 +173,20 @@
 
    <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 20px 0px 20px 0px" >
       <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
-        <button id="grblLaserButton" class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
+        <button id="grblLaserButton" class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
         <br>
         <br>
       <!-- /ko -->
-      <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Machine Home</button>
+      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Machine Home</button>
       <br>
       <br>
-      <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>
+      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>
       <br>
       <br>
-      <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() != 'Run' && state() != 'Sleep', click: function() { sendCommand('sleep') }">Sleep</button>
+      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() != 'Run' && state() != 'Sleep', click: function() { sendCommand('sleep') }">Sleep</button>
       <br>
       <br>
-      <button class="btn" style="width: 145px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
+      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
       <br>
    </span>
    <span style="display: inline-block; margin: 0px 20px 0px 20px; vertical-align: middle;">&nbsp;</span>
