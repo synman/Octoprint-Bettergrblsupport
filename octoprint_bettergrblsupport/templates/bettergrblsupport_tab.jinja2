@@ -27,9 +27,9 @@
   <!-- /ko -->
 {% endif %}
 
-<div id="control_panel" style="text-align: center; overflow: hidden; margin: 20px 10px 10px 10px;" valign="top" align="center">
+<div id="control_panel" style="text-align: center; overflow: hidden; margin: 20px 0px 5px 0px;" valign="top" align="center">
 
-  <span style="display: inline-block; margin: 0px 20px 0px 20px; vertical-align: middle;">&nbsp;</span>
+  <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
 
    <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 0px 20px 0px; vertical-align: middle;">
       <table align="center" style="margin: 0 auto; margin: 0px 0px 5px 0px;">
@@ -64,7 +64,7 @@
       </table>
    </span>
 
-   <span style="display: inline-block; margin: 0px 20px 0px 20px; vertical-align: middle;">&nbsp;</span>
+   <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
 
    <span style="display: inline-block; margin: 0px 0px 10px 0px; vertical-align: middle;">
       <table class="jog-panel" id="jog_panel" border=0 style="margin: 0 auto;"">
@@ -169,7 +169,7 @@
       </table>
    </span>
 
-   <span style="display: inline-block; margin: 0px 20px 0px 20px; vertical-align: middle;">&nbsp;</span>
+   <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
 
    <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 20px 0px 20px 0px" >
       <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
@@ -189,7 +189,8 @@
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
       <br>
    </span>
-   <span style="display: inline-block; margin: 0px 20px 0px 20px; vertical-align: middle;">&nbsp;</span>
+
+   <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
 </div>
 
 <div id="overrides_panel" style="text-align: center; overflow: hidden; margin: 0px 0px 0px 0px;" valign="top" align="center">
