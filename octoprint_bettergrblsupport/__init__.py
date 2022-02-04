@@ -377,7 +377,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set(["serial", "longRunningCommands"], longCmds)
         self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
-        self._settings.global_set(["serial", "encodingScheme"], "latin_1")
+        self._settings.global_set(["serial", "encoding"], "latin_1")
 
         self._settings.save()
         _bgs.load_grbl_settings(self)

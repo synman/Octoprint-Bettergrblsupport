@@ -107,7 +107,7 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set_boolean(["feature", "modelSizeDetection"], True)
     _plugin._settings.global_set_boolean(["feature", "sdSupport"], True)
     _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
-    _plugin._settings.global_set(["serial", "encodingScheme"], "ascii")
+    _plugin._settings.global_set(["serial", "encoding"], "ascii")
 
     # load maps of disabled plugins & tabs
     disabledPlugins = _plugin._settings.global_get(["plugins", "_disabled"])
