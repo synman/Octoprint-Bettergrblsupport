@@ -1146,7 +1146,7 @@ $(function() {
     var lastY = 0;
 
     function updateStatus() {
-      if (!self.isIdleOrJogging()) {
+      if (document.getElementById("bgs_printer_state").innerText == "Run") {
         return;
       }
 
