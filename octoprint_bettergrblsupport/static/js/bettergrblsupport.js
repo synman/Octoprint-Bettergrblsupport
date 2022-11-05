@@ -1139,14 +1139,26 @@ $(function() {
         console.log("updateStatus interval destroyed");
         clearInterval(controllerInterval);
         controllerInterval = undefined;
+
+        var state = document.getElementById("bgs_printer_state").innerText;
+        if (state != "Run") {
+          OctoPrint.control.sendGcode("CANCELJOG");
+        }
       }
+    }
+
+    function scaleValue(value, from, to) {
+    	var scale = (to[1] - to[0]) / (from[1] - from[0]);
+    	var capped = Math.min(from[1], Math.max(from[0], value)) - from[0];
+    	return ~~(capped * scale + to[0]);
     }
 
     var lastX = 0;
     var lastY = 0;
 
     function updateStatus() {
-      if (document.getElementById("bgs_printer_state").innerText == "Run") {
+      var state = document.getElementById("bgs_printer_state").innerText;
+      if (!(state == "Idle" || state == "Jog")) {
         return;
       }
 
@@ -1163,7 +1175,7 @@ $(function() {
         var y = 0;
 
         for (i = 0; i < 2; i++) {
-          if (Math.abs(controller.axes[i]) >= .2) {
+          if (Math.abs(controller.axes[i]) >= .1) {
             value = controller.axes[i];
             // value = value + .2 * (value > 0 ? -1 : 1);
 
@@ -1173,7 +1185,7 @@ $(function() {
               invert = 1;
             }
 
-            value = value * 10 * invert;
+            value = value * 20 * invert;
 
             if (invert == -1) {
               y = value;
@@ -1200,7 +1212,15 @@ $(function() {
       }
 
       if (x != 0 || y != 0) {
-        OctoPrint.control.sendGcode("$J=G91 G21 X" + x + " Y" + y + " F2000");
+        var fastAxis = 0;
+
+        if (Math.abs(x) > Math.abs(y)) {
+          fastAxis = Math.abs(x);
+        } else {
+          fastAxis = Math.abs(y);
+        }
+
+        OctoPrint.control.sendGcode("$J=G91 G21 X" + x + " Y" + y + " F" + scaleValue(fastAxis, [1,20], [100,2500]));
         console.log("x=" + x + " y=" + y);
       }
     }
