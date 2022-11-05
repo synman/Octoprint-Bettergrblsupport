@@ -23,12 +23,24 @@
 100 X-axis steps per millimeter
 101 Y-axis steps per millimeter
 102 Z-axis steps per millimeter
+103 A-axis steps per millimeter
+104 B-axis steps per millimeter
+105 C-axis steps per millimeter
 110 X-axis maximum rate, mm/min
 111 Y-axis maximum rate, mm/min
 112 Z-axis maximum rate, mm/min
+113 A-axis maximum rate, mm/min
+114 B-axis maximum rate, mm/min
+115 C-axis maximum rate, mm/min
 120 X-axis acceleration, mm/sec^2
 121 Y-axis acceleration, mm/sec^2
 122 Z-axis acceleration, mm/sec^2
+123 A-axis acceleration, mm/sec^2
+124 B-axis acceleration, mm/sec^2
+125 C-axis acceleration, mm/sec^2
 130 X-axis maximum travel, millimeters
 131 Y-axis maximum travel, millimeters
 132 Z-axis maximum travel, millimeters
+133 A-axis maximum travel, millimeters
+134 B-axis maximum travel, millimeters
+135 C-axis maximum travel, millimeters

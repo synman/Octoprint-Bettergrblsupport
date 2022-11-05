@@ -1031,7 +1031,7 @@ def is_laser_mode(_plugin):
 
 
 def is_grbl_one_dot_one(_plugin):
-    oneDotOne = "VER:1.1" in _plugin.grblVersion
+    oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion
     _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format(oneDotOne))
     return oneDotOne
 
