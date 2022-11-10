@@ -851,7 +851,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith('M999') and not self.doSmoothie:
             self._logger.debug('Sending Soft Reset')
             _bgs.add_to_notify_queue(self, ["Machine has been reset"])
-            _bgs.queue_cmds_and_send(self, ["?"])
+            self.grblState = "Reset"
             return ("\x18",)
 
         # grbl version info
@@ -1035,8 +1035,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if not self._printer.is_operational() and self.grblState.upper().strip() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
                 self._printer.commands("M999", force=True)
 
-            # pop any queued commands if state is IDLE or HOLD:0, Check, or SLEEP
-            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK", "SLEEP"):
+            # pop any queued commands if state is IDLE or HOLD:0 or Check
+            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK":
                 self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
                 self._printer.commands(self.grblCmdQueue[0])
                 self.grblCmdQueue.pop(0)
