@@ -851,7 +851,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith('M999') and not self.doSmoothie:
             self._logger.debug('Sending Soft Reset')
             _bgs.add_to_notify_queue(self, ["Machine has been reset"])
-            queue_cmds_and_send(self, ["?"])
+            _bgs.queue_cmds_and_send(self, ["?"])
             return ("\x18",)
 
         # grbl version info
