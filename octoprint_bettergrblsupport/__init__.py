@@ -531,7 +531,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Disconnecting & Disconnected
         if event in (Events.DISCONNECTING, Events.DISCONNECTED):
             self.connectionState = event
-            self.grblState = None
+            self.grblState = "N/A"
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="N/A"))
+
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
