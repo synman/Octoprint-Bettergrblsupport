@@ -655,10 +655,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     # go to sleep if autosleep and now - last > interval
                     if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
-                        if self.grblState != "Sleep" and self._printer.is_operational():
+                        if self.grblState.upper().strip != "SLEEP" and self._printer.is_operational():
                             self._printer.commands("$SLP")
                         else:
                             self.autoSleepTimer = time.time()
+
+                    # suppress status updates if sleeping
+                    if self.grblState.upper().startswith("SLEEP"):
+                        return (None,)
 
                     return (self.statusCommand, )
 
@@ -847,6 +851,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith('M999') and not self.doSmoothie:
             self._logger.debug('Sending Soft Reset')
             _bgs.add_to_notify_queue(self, ["Machine has been reset"])
+            queue_cmds_and_send(self, ["?"])
             return ("\x18",)
 
         # grbl version info
@@ -1027,11 +1032,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             power=self.grblPowerLevel))
 
             # odd edge case where a machine could be asleep or holding while connecting
-            if not self._printer.is_operational() and ("SLEEP" in self.grblState.upper() or "HOLD" in self.grblState.upper()):
+            if not self._printer.is_operational() and self.grblState.upper().strip() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
                 self._printer.commands("M999", force=True)
 
-            # pop any queued commands if state is IDLE or HOLD:0 or Check
-            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK"):
+            # pop any queued commands if state is IDLE or HOLD:0, Check, or SLEEP
+            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK", "SLEEP"):
                 self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
                 self._printer.commands(self.grblCmdQueue[0])
                 self.grblCmdQueue.pop(0)
