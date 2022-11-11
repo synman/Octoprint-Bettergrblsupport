@@ -578,7 +578,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.autoCooldown:
                 _bgs.activate_auto_cooldown(self)
 
-            return
+            return 
 
         # Print ended (finished / failed / cancelled)
         if event == Events.PRINT_CANCELLED or event == Events.PRINT_DONE or event == Events.PRINT_FAILED:
