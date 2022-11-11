@@ -1570,6 +1570,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         useDevChannel = self._settings.get_boolean(["useDevChannel"])
         checkout_folder = os.path.dirname(os.path.realpath(sys.executable))
 
+        # dev channel check
         if useDevChannel:
             return dict(bettergrblsupport=dict(
                 displayName='Better Grbl Support (Development Branch)',
