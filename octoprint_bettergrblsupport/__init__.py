@@ -575,6 +575,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.is_printing = True
             self._settings.set_boolean(["is_printing"], self.is_printing)
 
+            if self.autoCooldown:
+                _bgs.activate_auto_cooldown(self)
+
             return
 
         # Print ended (finished / failed / cancelled)
