@@ -126,6 +126,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.autoSleepTimer = time.time()
 
+        self.autoCooldown = False
+        self.autoCooldownFrequency = 60
+        self.autoCooldownDuration = 15
+
         self.invertX = 1
         self.invertY = 1
         self.invertZ = 1
@@ -195,6 +199,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             zprobeCalc = "MIN",
             autoSleep = False,
             autoSleepInterval = 20,
+            autoCooldown = False,
+            autoCooldownFrequency = 60,
+            autoCooldownDuration = 15,
             zProbeConfirmActions = True,
             wizard_version = 1,
             invertX = False,
@@ -273,6 +280,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.autoSleep = self._settings.get_boolean(["autoSleep"])
         self.autoSleepInterval = round(float(self._settings.get(["autoSleepInterval"])))
+
+        self.autoCooldown = self._settings.get_boolean(["autoCooldown"])
+        self.autoCooldownFrequency = round(float(self._settings.get(["autoCooldownFrequency"])))
+        self.autoCooldownDuration = round(float(self._settings.get(["autoCooldownDuration"])))
 
         self.invertX = -1 if self._settings.get_boolean(["invertX"]) else 1
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1

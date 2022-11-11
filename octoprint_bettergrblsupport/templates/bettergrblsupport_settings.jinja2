@@ -131,9 +131,8 @@
 			<br>
 
 	 		<label class="checkbox">
-	  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Sleep automatically
+	  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Automatic Sleep
 			</label>
-		</div>
 
 		<!-- ko if: settings.plugins.bettergrblsupport.autoSleep -->
 
@@ -142,7 +141,30 @@
 				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
 		</div>
 
+		<br>
+
 		<!-- /ko -->
+
+		<label class="checkbox">
+				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoCooldown"> Automatic Cooldown
+		</label>
+
+		<!-- ko if: settings.plugins.bettergrblsupport.autoCooldown -->
+
+		<label class="control-label">Cooldown Frequency</label>
+		<div class="controls">
+			<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownFrequency, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+		</div>
+
+		<label class="control-label">Cooldown Duration</label>
+		<div class="controls">
+			<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownDuration, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+		</div>
+
+		<!-- /ko -->
+
+	</div>
+
 		<br>
 
 		<div class="controls">
