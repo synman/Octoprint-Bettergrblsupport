@@ -651,19 +651,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
             else:
                 if self.suppressM105:
-                    self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
-
                     # go to sleep if autosleep and now - last > interval
                     if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
                         if self.grblState.upper().strip != "SLEEP" and self._printer.is_operational():
-                            self._printer.commands("$SLP")
+                            queue_cmds_and_send(self, ["$SLP"])
                         else:
                             self.autoSleepTimer = time.time()
 
                     # suppress status updates if sleeping
                     if self.grblState.upper().startswith("SLEEP"):
+                        self._logger.debug('Ignoring %s', cmd)
                         return (None,)
 
+                    self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
                     return (self.statusCommand, )
 
         self.autoSleepTimer = time.time()
@@ -851,7 +851,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith('M999') and not self.doSmoothie:
             self._logger.debug('Sending Soft Reset')
             _bgs.add_to_notify_queue(self, ["Machine has been reset"])
+
             self.grblState = "Reset"
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Reset"))
+
             return ("\x18",)
 
         # grbl version info
@@ -1102,7 +1105,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif state.startswith("T"):
                     self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
 
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", speed=self.grblSpeed, power=self.grblPowerLevel, coord=self.grblCoordinateSystem))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                            speed=self.grblSpeed,
+                                                                            power=self.grblPowerLevel,
+                                                                            coord=self.grblCoordinateSystem))
 
             return self.pick_a_response(None)
 
