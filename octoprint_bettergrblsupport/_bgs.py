@@ -904,10 +904,11 @@ def add_to_notify_queue(_plugin, notifications):
     for notification in notifications:
         # limit notify queue depth to avoid spamming
         if len(_plugin.notifyQueue) >= 100:
-            _plugin._logger.debug("dropping notification [%s]", notification)
-        else:
-            _plugin.notifyQueue.append(notification)
-            _plugin._logger.debug("queued notification [%s] - depth [%d]", notification, len(_plugin.notifyQueue))
+            _plugin.notifyQueue.pop(0)
+            _plugin._logger.debug("dropping oldest notification")
+
+        _plugin._logger.debug("queuing notification [%s] - depth [%d]", notification, len(_plugin.notifyQueue) + 1)
+        _plugin.notifyQueue.append(notification)
 
 
 def generate_metadata_for_file(_plugin, filename, notify=False, force=False):

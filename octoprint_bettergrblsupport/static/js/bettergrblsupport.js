@@ -432,6 +432,17 @@ $(function() {
             self.settings.settings.plugins.bettergrblsupport.control_distance.subscribe(function(newValue) {
               self.distance(newValue);
             });
+
+            self.is_printing.subscribe(function(newValue) {
+              if (newValue == true) {
+                self.state("Run");
+              }
+            });
+            self.is_operational.subscribe(function(newValue) {
+              if (newValue == false) {
+                self.state("N/A");
+              }
+            });
         };
 
         self.coordinateSystemChanged = function (coordinate_system) {

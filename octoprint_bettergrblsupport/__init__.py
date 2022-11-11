@@ -526,6 +526,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('machine connected')
             self.connectionState = event
             self.autoSleepTimer = time.time()
+
+            self.is_operational = True
+            self._settings.set_boolean(["is_operational"], self.is_operational)
+
             self._printer.commands(["$I", "$G"])
 
         # Disconnecting & Disconnected
@@ -533,6 +537,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.connectionState = event
             self.grblState = "N/A"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="N/A"))
+
+            self.is_operational = False
+            self._settings.set_boolean(["is_operational"], self.is_operational)
 
 
         # 'PrintStarted'
@@ -554,12 +561,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblState = "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
+            self.is_printing = True
+            self._settings.set_boolean(["is_printing"], self.is_printing)
+
             return
 
         # Print ended (finished / failed / cancelled)
         if event == Events.PRINT_CANCELLED or event == Events.PRINT_DONE or event == Events.PRINT_FAILED:
             self.grblState = "Idle"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Idle"))
+
+            self.is_printing = False
+            self._settings.set_boolean(["is_printing"], self.is_printing)
+
             return
 
         # Print Cancelling
