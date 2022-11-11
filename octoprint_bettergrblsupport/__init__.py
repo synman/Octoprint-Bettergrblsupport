@@ -1577,9 +1577,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 user='synman',
                 repo='OctoPrint-Bettergrblsupport',
                 branch="devel",
-                method="update_script",
-                update_script="{python} -m pip --disable-pip-version-check install https://github.com/synman/Octoprint-Bettergrblsupport/archive/refs/heads/devel.zip --force-reinstall --no-deps --no-cache-dir",
-                checkout_folder=checkout_folder,
+                current="fd0b1bac7a23ba4b01f58353c7a19c6bc4ea219e",
+                method="pip",
+                pip='https://github.com/synman/Octoprint-Bettergrblsupport/archive/refs/heads/devel.zip',
                 restart='octoprint'))
         else:
             return dict(bettergrblsupport=dict(
