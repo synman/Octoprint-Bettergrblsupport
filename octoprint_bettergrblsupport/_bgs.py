@@ -902,8 +902,12 @@ def add_to_notify_queue(_plugin, notifications):
         xyProbe.notify(notifications)
 
     for notification in notifications:
-        _plugin._logger.debug("queuing notification [%s]", notification)
-        _plugin.notifyQueue.append(notification)
+        # limit notify queue depth to avoid spamming
+        if len(_plugin.notifyQueue) >= 100:
+            _plugin._logger.debug("dropping notification [%s]", notification)
+        else:
+            _plugin.notifyQueue.append(notification)
+            _plugin._logger.debug("queued notification [%s] - depth [%d]", notification, len(_plugin.notifyQueue))
 
 
 def generate_metadata_for_file(_plugin, filename, notify=False, force=False):
