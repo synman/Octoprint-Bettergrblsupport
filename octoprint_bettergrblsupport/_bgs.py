@@ -1045,7 +1045,7 @@ def is_grbl_one_dot_one(_plugin):
 
 def is_latin_encoding_available(_plugin):
     octoprintVersion = _plugin.octoprintVersion
-    latinEncoding = int(octoprintVersion.split(".")[0]) > 1 or int(octoprintVersion.split(".")[1]) >= 7
+    latinEncoding = int(octoprintVersion.split(".")[0]) > 1 or int(octoprintVersion.split(".")[1]) >= 8
     _plugin._logger.debug("_bgs: is_latin_encoding_available result=[{}]".format(latinEncoding))
     return latinEncoding
 
