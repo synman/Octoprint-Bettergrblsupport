@@ -876,7 +876,7 @@ def grbl_alarm_or_error_occurred(_plugin):
 
 
 def activate_auto_cooldown(_plugin):
-    threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin)).start()
+    threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin,)).start()
     _plugin._logger.debug("_bgs: activate_auto_cooldown")
 
 
@@ -891,7 +891,7 @@ def auto_cooldown_frequency_monitor(_plugin):
 
     if _plugin._printer.is_printing():
         _plugin._printer.pause_print()
-        threading.Thread(target=auto_cooldown_duration_monitor, args=(_plugin)).start()
+        threading.Thread(target=auto_cooldown_duration_monitor, args=(_plugin,)).start()
 
 
 def auto_cooldown_duration_monitor(_plugin):

@@ -472,7 +472,10 @@ $(function() {
             self.is_operational(data.flags.operational);
             self.isLoading(data.flags.loading);
 
-            console.log("printing=" + self.is_printing());
+            if (self.is_printing()) {
+              self.state("Run");
+              console.log("_processStateData is printing");
+            }
         };
 
 
@@ -505,7 +508,7 @@ $(function() {
                 }
 
                 if (data.coord != undefined) self.coordinate_system(data.coord);
-                // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
+                console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
             }
 
