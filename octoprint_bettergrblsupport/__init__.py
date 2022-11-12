@@ -604,7 +604,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
         # Print PAUSING
-        if payload.state_id == "PAUSING":
+        if payload["state_id"] == "PAUSING":
             _bgs.do_fake_ack(self._printer, self._logger)
             self._printer.commands(["M5", "?"], force=True)
 
