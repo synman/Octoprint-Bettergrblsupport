@@ -515,7 +515,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN, Events.UPLOAD,
                             Events.CONNECTING, Events.CONNECTED, Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
 
-        if event not in subscribed_events and payload["state_id"] != "PAUSING":
+        if event not in subscribed_events and payload is not None and payload.get("state_id") != "PAUSING":
             # self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
             return
 
@@ -604,7 +604,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
         # Print PAUSING
-        if payload["state_id"] == "PAUSING":
+        if payload is not None and payload.get("state_id") == "PAUSING":
             _bgs.do_fake_ack(self._printer, self._logger)
             self._printer.commands(["M5", "?"], force=True)
 
