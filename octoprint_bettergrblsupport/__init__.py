@@ -60,7 +60,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.hideGCodeTab = True
         self.helloCommand = "$$"
         self.statusCommand = "?"
-        self.dwellCommand = "G4 P0.01"
+        self.dwellCommand = "G4 P0.001"
         self.positionCommand = "?"
         self.suppressM114 = True
         self.suppressM400 = True
@@ -137,7 +137,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.connectionState = None
         self.pausedPower = 0
 
-        self.settingsVersion = 5
+        self.settingsVersion = 6
         self.wizardVersion = 9
 
         self.octoprintVersion = octoprint.server.VERSION
@@ -155,7 +155,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             hideGCodeTab = True,
             hello = "$$",
             statusCommand = "?",
-            dwellCommand = "G4 P0.01",
+            dwellCommand = "G4 P0.001",
             positionCommand = "?",
             suppressM114 = True,
             suppressM400 = True,
@@ -433,6 +433,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.set(["statusCommand"], "?")
                 self.statusCommand = "?"
 
+            self._settings.set(["dwellCommand"], "G4 P0.001")
+            self.dwellCommand = "G4 P0.001"
+
             self._settings.remove(["showZ"])
             self._settings.remove(["distance"])
             self._settings.remove(["customControls"])
@@ -509,16 +512,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         subscribed_events = (Events.FILE_SELECTED, Events.FILE_ADDED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
-                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.UPLOAD, Events.CONNECTING, Events.CONNECTED,
-                            Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
+                            Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN, Events.UPLOAD,
+                            Events.CONNECTING, Events.CONNECTED, Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
 
-        if event not in subscribed_events:
+        if event not in subscribed_events and payload.state_id != "PAUSING":
             # self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
             return
 
         # our plugin is being uninstalled
-        if event == Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN and payload["id"] == self._identifier:
-            self._logger.debug('we are being uninstalled :(')
+        if event in (Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN) and payload["id"] == self._identifier:
+            self._logger.debug('we are being uninstalled/disabled :(')
             _bgs.cleanup_due_to_uninstall(self)
             self._logger.debug('uninstall cleanup completed (this house is clean)')
             return
@@ -599,6 +602,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 self._printer.commands(["M400", "M999", "$G"], force=True)
 
+
+        # Print PAUSING
+        if payload.state_id == "PAUSING":
+            _bgs.do_fake_ack(self._printer, self._logger)
+            self._printer.commands(["M5", "?"], force=True)
+
         # Print Paused
         if event == Events.PRINT_PAUSED:
             self._logger.debug("pausing job")
@@ -606,7 +615,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.pausedPower = self.grblPowerLevel
             # self._printer.commands(["S0", "!", "?"], force=True)
 
-            self._printer.commands(["M5", "G4 P1", "!", "?"], force=True)
+            self._printer.commands(["!", "?"], force=True)
 
         # Print Resumed
         if event == Events.PRINT_RESUMED:
