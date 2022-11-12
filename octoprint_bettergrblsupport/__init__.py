@@ -605,17 +605,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # Print PAUSING
         if payload is not None and payload.get("state_id") == "PAUSING":
+            self._logger.debug("pausing job")
             _bgs.do_fake_ack(self._printer, self._logger)
             self._printer.commands(["M5", "?"], force=True)
 
         # Print Paused
         if event == Events.PRINT_PAUSED:
-            self._logger.debug("pausing job")
+            self._logger.debug("paused job")
 
             self.pausedPower = self.grblPowerLevel
             # self._printer.commands(["S0", "!", "?"], force=True)
 
-            self._printer.commands(["!", "?"], force=True)
+            self._printer.commands(["M5", "?", "!", "?"], force=True)
 
         # Print Resumed
         if event == Events.PRINT_RESUMED:
