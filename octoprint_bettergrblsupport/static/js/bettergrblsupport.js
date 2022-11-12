@@ -432,12 +432,6 @@ $(function() {
             self.settings.settings.plugins.bettergrblsupport.control_distance.subscribe(function(newValue) {
               self.distance(newValue);
             });
-
-            self.is_operational.subscribe(function(newValue) {
-              if (newValue == false) {
-                self.state("N/A");
-              }
-            });
         };
 
         self.coordinateSystemChanged = function (coordinate_system) {
@@ -468,7 +462,10 @@ $(function() {
 
             if (self.is_printing()) {
               self.state("Run");
-              console.log("_processStateData is printing");
+            }
+
+            if (!self.is_operational()) {
+              self.state("N/A");
             }
         };
 
@@ -476,11 +473,13 @@ $(function() {
         self.onDataUpdaterPluginMessage = function(plugin, data) {
             if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
                 if (data.mode != undefined) self.mode(data.mode);
+
                 if (data.state != undefined) {
                   if (!(self.is_printing() && data.state == "Idle")) {
                     self.state(data.state);
                   }
                 }
+
                 if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
                 if (data.y != undefined) self.yPos(Number.parseFloat(data.y).toFixed(2));
                 if (data.z != undefined) self.zPos(Number.parseFloat(data.z).toFixed(2));
@@ -506,7 +505,7 @@ $(function() {
                 }
 
                 if (data.coord != undefined) self.coordinate_system(data.coord);
-                console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
+                // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
             }
 

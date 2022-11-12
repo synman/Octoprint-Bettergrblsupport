@@ -886,7 +886,7 @@ def auto_cooldown_frequency_monitor(_plugin):
     frequency = _plugin.autoCooldownFrequency * 60
     startTime = time.time()
 
-    _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor startTime=[{}] frequency=[{}]".format(startTime, frequency))
+    _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor printing=[{}] startTime=[{}] frequency=[{}]".format(_plugin._printer.is_printing(), startTime, frequency))
 
     while _plugin._printer.is_printing() and time.time < startTime + frequency:
         _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor WHILE")
