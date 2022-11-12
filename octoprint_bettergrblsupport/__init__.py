@@ -1334,7 +1334,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             notifications = notification + "\r\n" + notifications
             self.notifyQueue.pop(0)
 
-        if notifications.endswith("\r\n") notifications = notifications.replace "\r\n", "")
+        if notifications.endswith("\r\n"): notifications = notifications.replace("\r\n", "")
         self._logger.debug('sending queued notification [%s] - depth [%d]', notifications, entryCount)
 
         if entryCount > 0:
