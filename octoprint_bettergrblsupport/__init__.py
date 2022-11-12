@@ -598,9 +598,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug("cancelling job")
 
             if "HOLD" in self.grblState.upper():
-                self._printer.commands(["~", "M999", "$G"], force=True)
+                self._printer.commands(["~", "$G"], force=True)
             else:
-                self._printer.commands(["M400", "M999", "$G"], force=True)
+                self._printer.commands(["$G"], force=True)
 
 
         # Print PAUSING
