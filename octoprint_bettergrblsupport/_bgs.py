@@ -876,8 +876,8 @@ def grbl_alarm_or_error_occurred(_plugin):
 
 
 def activate_auto_cooldown(_plugin):
-    threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin,)).start()
     _plugin._logger.debug("_bgs: activate_auto_cooldown")
+    threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin,)).start()
 
 
 def auto_cooldown_frequency_monitor(_plugin):
@@ -886,26 +886,33 @@ def auto_cooldown_frequency_monitor(_plugin):
     frequency = _plugin.autoCooldownFrequency * 60
     startTime = time.time()
 
+    _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor startTime=[{}] frequency=[{}]".format(startTime, frequency))
+
     while _plugin._printer.is_printing() and time.time < startTime + frequency:
+        _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor WHILE")
         time.sleep(1)
 
     if _plugin._printer.is_printing():
         _plugin._printer.pause_print()
         threading.Thread(target=auto_cooldown_duration_monitor, args=(_plugin,)).start()
 
+    _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor DYING")
 
 def auto_cooldown_duration_monitor(_plugin):
     _plugin._logger.debug("_bgs: auto_cooldown_duration_monitor")
 
-    # duration = _plugin.autoCooldownDuration * 60
-    # startTime = time.time()
-    #
-    # while (_plugin._printer.is_pausing() or _plugin._printer.is_paused()) and time.time < startTime + duration:
-    #     time.sleep(1)
-    #
-    # if _plugin._printer.is_paused():
-    #     _plugin._printer.resume_print()
-    #     threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin)).start()
+    duration = _plugin.autoCooldownDuration * 60
+    startTime = time.time()
+
+    while (_plugin._printer.is_pausing() or _plugin._printer.is_paused()) and time.time < startTime + duration:
+        _plugin._logger.debug("_bgs: auto_cooldown_duration_monitor WHILE")
+        time.sleep(1)
+
+    if _plugin._printer.is_paused():
+        _plugin._printer.resume_print()
+        threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin)).start()
+
+    _plugin._logger.debug("_bgs: auto_cooldown_duration_monitor DYING")
 
 
 def queue_cmds_and_send(_plugin, cmds, wait=False):

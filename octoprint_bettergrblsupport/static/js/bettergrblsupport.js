@@ -433,12 +433,6 @@ $(function() {
               self.distance(newValue);
             });
 
-            self.is_printing.subscribe(function(newValue) {
-              if (newValue == true) {
-                self.state("Run");
-                console.log("subscribe is printing");
-              }
-            });
             self.is_operational.subscribe(function(newValue) {
               if (newValue == false) {
                 self.state("N/A");
@@ -482,7 +476,11 @@ $(function() {
         self.onDataUpdaterPluginMessage = function(plugin, data) {
             if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
                 if (data.mode != undefined) self.mode(data.mode);
-                if (data.state != undefined) self.state(data.state);
+                if (data.state != undefined) {
+                  if (!(self.is_printing() && data.state == "Idle")) {
+                    self.state(data.state);
+                  }
+                }
                 if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
                 if (data.y != undefined) self.yPos(Number.parseFloat(data.y).toFixed(2));
                 if (data.z != undefined) self.zPos(Number.parseFloat(data.z).toFixed(2));
