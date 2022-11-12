@@ -603,11 +603,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands(["$G"], force=True)
 
 
-        # Print PAUSING
+        # Print Pausing
         if payload is not None and payload.get("state_id") == "PAUSING":
             self._logger.debug("pausing job")
             _bgs.do_fake_ack(self._printer, self._logger)
-            self._printer.commands(["M5", "?"], force=True)
+            self._printer.commands(["M5", "?", "$G"], force=True)
 
         # Print Paused
         if event == Events.PRINT_PAUSED:
@@ -1315,19 +1315,30 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._logger.debug("__init__: pick_a_response firstChoice=[{}]".format(firstChoice.replace("\n", "<lf>").replace("\r", "<cr>") if not firstChoice is None else "{None}"))
 
         # pop any queued notifications
-        if len(self.notifyQueue) > 0:
+        notifications = str("")
+        entryCount = 0
+
+        while len(self.notifyQueue) > 0:
             notification = self.notifyQueue[0]
+
+            if notification is None:
+                self.notifyQueue.pop(0)
+                continue
+
+            entryCount = entryCount + 1
+
             if notification in ("Pgm Begin", "Z-Probe Initiated"):
                 self.grblState = "Run"
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
-            self._logger.debug('sending queued notification [%s] - depth [%d]', notification, len(self.notifyQueue))
+            notifications = notification + "\r\n" + notifications
             self.notifyQueue.pop(0)
 
-            if notification is None:
-                return firstChoice
+        if notifications.endswith("\r\n") notifications = notifications.replace "\r\n", "")
+        self._logger.debug('sending queued notification [%s] - depth [%d]', notifications, entryCount)
 
-            return "//action:notification " + notification
+        if entryCount > 0:
+            return "//action:notification " + notifications
 
         if firstChoice is None:
             return
