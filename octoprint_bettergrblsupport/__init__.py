@@ -578,7 +578,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.autoCooldown:
                 _bgs.activate_auto_cooldown(self)
 
-            return 
+            return
 
         # Print ended (finished / failed / cancelled)
         if event == Events.PRINT_CANCELLED or event == Events.PRINT_DONE or event == Events.PRINT_FAILED:
@@ -1305,6 +1305,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self._logger.debug('sending queued notification [%s] - depth [%d]', notification, len(self.notifyQueue))
             self.notifyQueue.pop(0)
+
+            if notification is None:
+                return firstChoice
 
             return "//action:notification " + notification
 

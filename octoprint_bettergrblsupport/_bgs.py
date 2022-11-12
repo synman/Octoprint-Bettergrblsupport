@@ -876,8 +876,8 @@ def grbl_alarm_or_error_occurred(_plugin):
 
 
 def activate_auto_cooldown(_plugin):
-    _plugin._logger.debug("_bgs: activate_auto_cooldown")
     threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin)).start()
+    _plugin._logger.debug("_bgs: activate_auto_cooldown")
 
 
 def auto_cooldown_frequency_monitor(_plugin):
