@@ -877,42 +877,44 @@ def grbl_alarm_or_error_occurred(_plugin):
 
 def activate_auto_cooldown(_plugin):
     _plugin._logger.debug("_bgs: activate_auto_cooldown")
-    threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin,)).start()
+    threading.Thread(target=auto_cooldown_monitor, args=(_plugin,)).start()
 
 
-def auto_cooldown_frequency_monitor(_plugin):
-    _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor")
+def auto_cooldown_monitor(_plugin):
+    _plugin._logger.debug("_bgs: auto_cooldown_monitor")
 
     frequency = _plugin.autoCooldownFrequency * 60
-    startTime = time.time()
-
-    _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor printing=[{}] startTime=[{}] frequency=[{}]".format(_plugin._printer.is_printing(), startTime, frequency))
-
-    while _plugin._printer.is_printing() and time.time() < startTime + frequency:
-        _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor WHILE")
-        time.sleep(1)
-
-    if _plugin._printer.is_printing():
-        _plugin._printer.pause_print()
-        threading.Thread(target=auto_cooldown_duration_monitor, args=(_plugin,)).start()
-
-    _plugin._logger.debug("_bgs: auto_cooldown_frequency_monitor DYING")
-
-def auto_cooldown_duration_monitor(_plugin):
-    _plugin._logger.debug("_bgs: auto_cooldown_duration_monitor")
-
     duration = _plugin.autoCooldownDuration * 60
-    startTime = time.time()
 
-    while (_plugin._printer.is_pausing() or _plugin._printer.is_paused()) and time.time() < startTime + duration:
-        _plugin._logger.debug("_bgs: auto_cooldown_duration_monitor WHILE")
-        time.sleep(1)
+    while _plugin._printer.is_printing():
+        _plugin._logger.debug("auto cooldown loop started")
 
-    if _plugin._printer.is_paused():
-        _plugin._printer.resume_print()
-        threading.Thread(target=auto_cooldown_frequency_monitor, args=(_plugin)).start()
+        startTime = time.time()
 
-    _plugin._logger.debug("_bgs: auto_cooldown_duration_monitor DYING")
+        while _plugin._printer.is_printing() and time.time() < startTime + frequency:
+            time.sleep(1)
+
+        if _plugin._printer.is_printing():
+            _plugin._logger.debug("auto cooldown pausing job")
+            _plugin._printer.pause_print()
+        else:
+            _plugin._logger.debug("job appears to have unexpectedly ended while waiting for cooldown frequency")
+            break
+
+        startTime = time.time()
+
+        while (_plugin._printer.is_pausing() or _plugin._printer.is_paused()) and time.time() < startTime + duration:
+            time.sleep(1)
+
+        if _plugin._printer.is_paused():
+            _plugin._logger.debug("auto cooldown resuming job")
+            _plugin._printer.resume_print()
+        else:
+            _plugin._logger.debug("job appears to have unexpectedly ended while waiting for cooldown duration")
+            continue
+
+        _plugin._logger.debug("auto cooldown loop complete")
+    _plugin._logger.debug("auto cooldown monitor shutting down")
 
 
 def queue_cmds_and_send(_plugin, cmds, wait=False):
@@ -928,8 +930,10 @@ def queue_cmds_and_send(_plugin, cmds, wait=False):
 
 def wait_for_empty_cmd_queue(_plugin):
     _plugin._logger.debug("_bgs: wait_for_empty_cmd_queue")
+
     while len(_plugin.grblCmdQueue) > 0:
         time.sleep(.001)
+
     _plugin._logger.debug("done waiting for command queue to drain")
 
 
