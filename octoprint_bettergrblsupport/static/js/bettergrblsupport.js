@@ -436,6 +436,7 @@ $(function() {
             self.is_printing.subscribe(function(newValue) {
               if (newValue == true) {
                 self.state("Run");
+                console.log("subscribe is printing");
               }
             });
             self.is_operational.subscribe(function(newValue) {
@@ -470,6 +471,8 @@ $(function() {
             self.is_printing(data.flags.printing);
             self.is_operational(data.flags.operational);
             self.isLoading(data.flags.loading);
+
+            console.log("printing=" + self.is_printing());
         };
 
 
