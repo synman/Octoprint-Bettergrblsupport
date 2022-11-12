@@ -515,7 +515,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN, Events.UPLOAD,
                             Events.CONNECTING, Events.CONNECTED, Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
 
-        if event not in subscribed_events and payload.state_id != "PAUSING":
+        if event not in subscribed_events and payload["state_id"] != "PAUSING":
             # self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
             return
 
