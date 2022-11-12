@@ -602,15 +602,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Print Paused
         if event == Events.PRINT_PAUSED:
             self._logger.debug("pausing job")
+
             self.pausedPower = self.grblPowerLevel
             # self._printer.commands(["S0", "!", "?"], force=True)
-            self._printer.commands(["M5", "G4 P10", "!", "?"], force=True)
+
+            self._printer.commands(["M5", "G4 P1", "!", "?"], force=True)
 
         # Print Resumed
         if event == Events.PRINT_RESUMED:
             self._logger.debug("resuming job")
             # self._printer.commands(["~", "S{}".format(self.pausedPower), "$G"], force=True)
-            self._printer.commands(["~", "M3", "G4 P10"], force=True)
+
+            if _bgs.is_laser_mode(self):
+                self._printer.commands(["~", "M3"], force=True)
+            else:
+                self._printer.commands(["~", "M3", "G4 P10"], force=True)
 
             self.grblState = "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
