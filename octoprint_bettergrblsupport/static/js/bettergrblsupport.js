@@ -51,6 +51,7 @@ $(function() {
         self.power = ko.observable("N/A");
         self.speed = ko.observable("N/A");
         self.positioning = ko.observable("N/A");
+        self.coolant = ko.observable("N/A");
 
         self.feedRate = ko.observable(undefined);
         self.plungeRate = ko.observable(undefined);
@@ -505,6 +506,14 @@ $(function() {
 
                 if (data.coord != undefined) self.coordinate_system(data.coord);
 
+                if (data.coolant != undefined) {
+                  if (data.coolant == "M7" || data.coolant == "M8") {
+                    self.coolant("On");
+                  } else {
+                    self.coolant("Off");
+                  }
+                }
+
                 if (data.positioning != undefined) {
                   if (data.positioning == 0) {
                     self.positioning("Absolute");
@@ -786,6 +795,26 @@ $(function() {
               OctoPrint.control.sendGcode(["$10=1", "?", "$$"]);
             } else {
               OctoPrint.control.sendGcode(["$10=0", "?", "$$"]);
+            }
+          }
+        }
+
+        self.moveClick = function() {
+          if (self.is_operational() && !self.is_printing() && self.state() == "Idle") {
+            if (self.positioning() == "Absolute") {
+              OctoPrint.control.sendGcode(["G91"]);
+            } else {
+              OctoPrint.control.sendGcode(["G90"]);
+            }
+          }
+        }
+
+        self.coolClick = function() {
+          if (self.is_operational()) {
+            if (self.coolant() == "Off") {
+              OctoPrint.control.sendGcode(["M8"]);
+            } else {
+              OctoPrint.control.sendGcode(["M9"]);
             }
           }
         }

@@ -91,6 +91,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
         self.positioning = 0
+        self.coolant = "M9"
         self.grblCoordinateSystem = "G54"
 
         self.timeRef = 0
@@ -758,17 +759,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coord=self.grblCoordinateSystem))
 
         # M8 (air assist on) processing - work in progress
-        if cmd.upper().strip() == "M8" and self.overrideM8:
-            self._logger.debug('Turning ON Air Assist')
-            subprocess.call(self.m8Command, shell=True)
+        if cmd.upper().strip() in ("M7", "M8"):
+            self.coolant = cmd.upper().strip()
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
+
+            if self.overrideM8 and cmd.upper().strip() == "M8":
+                self._logger.debug('Turning ON Air Assist')
+                subprocess.call(self.m8Command, shell=True)
+
             return (None,)
 
         # M9 (air assist off) processing - work in progress
-        if cmd.upper().strip() == "M9" and self.overrideM9:
-            self._logger.debug('Turning OFF Air Assist')
-            subprocess.call(self.m9Command, shell=True)
-            return (None,)
+        if cmd.upper().strip() == "M9":
+            self.coolant = cmd.upper().strip()
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
 
+            if self.overrideM9:
+                self._logger.debug('Turning OFF Air Assist')
+                subprocess.call(self.m9Command, shell=True)
+
+            return (None,)
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
@@ -1048,7 +1058,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 y=self.grblY,
                                                                                 z=self.grblZ,
                                                                                 speed=self.grblSpeed,
-                                                                                power=self.grblPowerLevel))
+                                                                                power=self.grblPowerLevel,
+                                                                                positioning=self.positioning,
+                                                                                coolant=self.coolant))
                 self.timeRef = currentTime
 
         return (command, )
@@ -1101,6 +1113,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel,
                                                                             coord=self.grblCoordinateSystem,
+                                                                            coolant=self.coolant,
                                                                             positioning=self.positioning))
 
             # odd edge case where a machine could be asleep or holding while connecting
@@ -1163,8 +1176,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif state in ("M3", "M4", "M5"):
                     self._logger.debug("parser state indicates [%s] spindle state", state)
                 elif state in ("M7", "M8", "M9"):
+                    self.coolant = state
                     self._logger.debug("parser state indicates [%s] coolant state", state)
-
                 elif state.startswith("F"):
                     self.grblSpeed = round(float(state.replace("F", "")))
                     self._logger.debug("parser state indicates feed rate of [%d]", self.grblSpeed)
@@ -1178,6 +1191,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel,
                                                                             coord=self.grblCoordinateSystem,
+                                                                            coolant=self.coolant,
                                                                             positioning=self.positioning))
 
             return self.pick_a_response(None)

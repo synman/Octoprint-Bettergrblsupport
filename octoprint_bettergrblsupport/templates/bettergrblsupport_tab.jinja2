@@ -61,7 +61,11 @@
            <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Speed</td>
            <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: speed()"></strong></td>
         </tr>
-        <tr>
+        <tr style="cursor: pointer;" data-bind="click: function() { coolClick(); }">
+           <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Cool</td>
+           <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: coolant()"></strong></td>
+        </tr>
+        <tr style="cursor: pointer;" data-bind="click: function() { moveClick(); }">
            <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Move</td>
            <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: positioning()"></strong></td>
         </tr>
