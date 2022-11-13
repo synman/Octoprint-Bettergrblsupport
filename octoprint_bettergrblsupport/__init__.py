@@ -691,7 +691,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return None
 
         # suppress temperature if machine is printing
-        if cmd.upper().startswith('M105'):
+        if "M105" in cmd.upper():
             if self.disablePolling and self._printer.is_printing():
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
@@ -699,9 +699,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if self.suppressM105:
                     # go to sleep if autosleep and now - last > interval
                     if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
-                        if self.grblState.upper().strip != "SLEEP" and self._printer.is_operational():
+                        if self.grblState.upper().strip() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
                             queue_cmds_and_send(self, ["$SLP"])
                         else:
+                            self._logger.debug("resetting autosleep timer")
                             self.autoSleepTimer = time.time()
 
                     # suppress status updates if sleeping
@@ -712,6 +713,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
                     return (self.statusCommand, )
 
+        self._logger.debug("resetting autosleep timer")
         self.autoSleepTimer = time.time()
 
         # hack for unacknowledged grbl commmands
