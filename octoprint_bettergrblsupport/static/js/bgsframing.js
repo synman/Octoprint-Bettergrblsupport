@@ -119,20 +119,24 @@ $(function () {
             self.width(width);
             self.length(length);
 
-            new PNotify({
-              title: "Frame Size Computed",
-              text: "Dimensions are " + length + "L x " + width + "W",
-              hide: true,
-              animation: "fade",
-              animateSpeed: "slow",
-              mouseReset: true,
-              delay: 10000,
-              buttons: {
-                sticker: true,
-                closer: true
-              },
-              type: "success"
-            });
+            doNotify = self.settings.settings.plugins.bettergrblsupport.notifyFrameSize();
+
+            if (doNotify) {
+              new PNotify({
+                title: "Frame Size Computed",
+                text: "Dimensions are " + length + "L x " + width + "W",
+                hide: true,
+                animation: "fade",
+                animateSpeed: "slow",
+                mouseReset: true,
+                delay: 10000,
+                buttons: {
+                  sticker: true,
+                  closer: true
+                },
+                type: "success"
+              });
+            }
 
             console.log("frame length=" + data.length + " width=" + data.width);
             return

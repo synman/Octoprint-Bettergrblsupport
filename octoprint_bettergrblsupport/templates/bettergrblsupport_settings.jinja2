@@ -1,169 +1,206 @@
+<style>
+	.body {
+	  padding: 0;
+	  margin: 0;
+	}
+
+	.wrapper {
+	  display: flex;
+	  flex-direction: column;
+	  height: 100vh;
+	}
+
+	.header {
+	  position:relative;
+	  flex: 0 0 auto;
+	}
+
+	.content {
+	  overflow-y:scroll;
+	  flex: 0 1 auto;
+	}
+</style>
+
 <form class="form-horizontal">
-	<h4>Plugin Options</h4>
-	<hr>
-		<div class="controls">
-			<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
-			</label>
+<div class="wrapper">
+	<div class="header">
+		<h4>Better Grbl Support</h4>
+		<hr>
+	</div>
+	<div class="content">
+		<h5><b>User Interface</b></h5>
+
+			<div class="controls">
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderSidebar"> Material Framing is always at top of sidebar *
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
 				</label>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderSidebar"> Material Framing is always at top of sidebar *
+					</label>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
+					</label>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
+					</label>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
+					</label>
+			</div>
+
+			<h5><b>Probing</b></h5>
+
+			<div class="controls">
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions"> Confirm all Probe actions
 				</label>
-				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
-				</label>
-				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
-				</label>
-		</div>
-
-		<h5><b>Probing</b></h5>
-
-		<div class="controls">
-			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions"> Confirm all Probe actions
-			</label>
-		</div>
-
-		<br>
-
-		<label class="control-label">Z-Probe Method</label>
-    <div class="controls">
-        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeMethod">
-            <option value="SIMPLE">Single point Z-Probe</option>
-            <option value="MULTI">Multi point Z-Probe</option>
-        </select>
-    </div>
-
-		<br>
-
-<!-- ko if: isMultiPoint() -->
-		<label class="control-label">Multipoint Calculation</label>
-    <div class="controls">
-        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeCalc">
-						<option value="MIN">Highest</option>
-						<option value="MAX">Lowest</option>
-						<option value="MEAN">Mean distance</option>
-						<option value="AVG">Average distance</option>
-        </select>
-    </div>
-
-		<br>
-<!-- /ko -->
-
-		<label class="control-label">Touchplate Height (Z)</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-		</div>
-
-		<br>
-
-		<label class="control-label">Z Probe Distance</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = use machine Z limit)
-		</div>
-
-		<br>
-
-		<label class="control-label">Z Probe End Position</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-		</div>
-
-		<br>
-
-		<label class="control-label">Touchplate Width (X)</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
-		</div>
-
-		<br>
-
-		<label class="control-label">Touchplate Length (Y)</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.yProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
-		</div>
-
-		<br>
-
-		<label class="control-label">X/Y Probe Distance</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xyProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
-		</div>
-
-		<br>
-
-		<h5><b>Miscellaneous</b></h5>
-
-		<label class="control-label">Initial Jog Distance</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = min of x/y limit)
-		</div>
-
-		<br>
-		<label class="control-label">Framing Feed Rate</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">% of max
-		</div>
-
-		<br>
-
-		<label class="control-label">Weak Laser Intensity</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
-		</div>
-
-		<br>
-
-		<div class="controls">
-			<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertX"> Invert X Axis (jogging / framing / probing)
-			</label>
-			<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertY"> Invert Y Axis (jogging / framing / probing)
-			</label>
-			<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertZ"> Invert Z Axis (jogging / probing)
-			</label>
+			</div>
 
 			<br>
 
-	 		<label class="checkbox">
-	  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Automatic Sleep
+			<label class="control-label">Z-Probe Method</label>
+	    <div class="controls">
+	        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeMethod">
+	            <option value="SIMPLE">Single point Z-Probe</option>
+	            <option value="MULTI">Multi point Z-Probe</option>
+	        </select>
+	    </div>
+
+			<br>
+
+	<!-- ko if: isMultiPoint() -->
+			<label class="control-label">Multipoint Calculation</label>
+	    <div class="controls">
+	        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeCalc">
+							<option value="MIN">Highest</option>
+							<option value="MAX">Lowest</option>
+							<option value="MEAN">Mean distance</option>
+							<option value="AVG">Average distance</option>
+	        </select>
+	    </div>
+
+			<br>
+	<!-- /ko -->
+
+			<label class="control-label">Touchplate Height (Z)</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+			</div>
+
+			<br>
+
+			<label class="control-label">Z Probe Distance</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = use machine Z limit)
+			</div>
+
+			<br>
+
+			<label class="control-label">Z Probe End Position</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+			</div>
+
+			<br>
+
+			<label class="control-label">Touchplate Width (X)</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
+			</div>
+
+			<br>
+
+			<label class="control-label">Touchplate Length (Y)</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.yProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
+			</div>
+
+			<br>
+
+			<label class="control-label">X/Y Probe Distance</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xyProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+			</div>
+
+			<br>
+
+			<h5><b>Miscellaneous</b></h5>
+
+			<label class="control-label">Initial Jog Distance</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = min of x/y limit)
+			</div>
+
+			<br>
+			<label class="control-label">Framing Feed Rate</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">% of max
+			</div>
+
+			<br>
+
+			<label class="control-label">Weak Laser Intensity</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+			</div>
+
+			<br>
+
+			<div class="controls">
+				<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertX"> Invert X Axis (jogging / framing / probing)
+				</label>
+				<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertY"> Invert Y Axis (jogging / framing / probing)
+				</label>
+				<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertZ"> Invert Z Axis (jogging / probing)
+				</label>
+
+				<br>
+
+		 		<label class="checkbox">
+		  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Automatic Sleep
+				</label>
+
+			<!-- ko if: settings.plugins.bettergrblsupport.autoSleep -->
+
+			<label class="control-label">Inactivity Time</label>
+			<div class="controls">
+					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+			</div>
+
+			<br>
+
+			<!-- /ko -->
+
+			<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoCooldown"> Automatic Cooldown
 			</label>
 
-		<!-- ko if: settings.plugins.bettergrblsupport.autoSleep -->
+			<!-- ko if: settings.plugins.bettergrblsupport.autoCooldown -->
 
-		<label class="control-label">Inactivity Time</label>
-		<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+			<label class="control-label">Cooldown Frequency</label>
+			<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownFrequency, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+			</div>
+
+			<label class="control-label">Cooldown Duration</label>
+			<div class="controls">
+				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownDuration, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+			</div>
+
+			<!-- /ko -->
+
 		</div>
 
 		<br>
 
-		<!-- /ko -->
-
-		<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoCooldown"> Automatic Cooldown
-		</label>
-
-		<!-- ko if: settings.plugins.bettergrblsupport.autoCooldown -->
-
-		<label class="control-label">Cooldown Frequency</label>
 		<div class="controls">
-			<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownFrequency, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+			<label class="checkbox">
+				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.notifyFrameSize"> Notify when Job Framing size is computed
+			</label>
 		</div>
-
-		<label class="control-label">Cooldown Duration</label>
-		<div class="controls">
-			<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownDuration, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
-		</div>
-
-		<!-- /ko -->
-
-	</div>
 
 		<br>
 
@@ -176,7 +213,7 @@
 		<br>
 		<h4>Grbl Options</h4>
 		<hr>
-    <label class="control-label">Air Assist Overrides</label>
+	  <label class="control-label">Air Assist Overrides</label>
 		<br>
 		<div class="controls">
 			<label class="checkbox">
@@ -289,7 +326,7 @@
 					</td>
 				</tr>
 			</table>
-
 		</center>
-
+	</div>
+</div>
 </form>
