@@ -143,6 +143,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.settingsVersion = 6
         self.wizardVersion = 9
 
+        self.whenConnected = time.time()
+
         self.octoprintVersion = octoprint.server.VERSION
 
         # load up our item/value pairs for errors, warnings, and settings
@@ -544,7 +546,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # - CONNECTED
         if event == Events.CONNECTED:
             self._logger.debug('machine connected')
+
             self.connectionState = event
+            self.whenConnected = time.time()
             self.autoSleepTimer = time.time()
 
             self.is_operational = True
@@ -671,7 +675,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
-            _bgs.generate_metadata_for_file(self, payload["path"], notify=self.notifyFrameSize)
+            _bgs.generate_metadata_for_file(self, payload["path"], notify=True)
             return
 
         if event == Events.FILE_DESELECTED:
@@ -1220,6 +1224,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if not match is None:
                 error = int(match.groups(1)[0])
+
+                # hack to suppress error:9 on connect
+                if time.time() - self.whenConnected < 5: return "ok "
+
                 desc = self.grblErrors.get(error)
                 if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
 
