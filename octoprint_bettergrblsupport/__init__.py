@@ -918,6 +918,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self.grblState = "Reset"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Reset"))
+            _bgs.queue_cmds_and_send(self, ["$G"])
 
             return ("\x18",)
 
