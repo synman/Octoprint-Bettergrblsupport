@@ -50,6 +50,7 @@ $(function() {
         self.zPos = ko.observable("N/A");
         self.power = ko.observable("N/A");
         self.speed = ko.observable("N/A");
+        self.positioning = ko.observable("N/A");
 
         self.feedRate = ko.observable(undefined);
         self.plungeRate = ko.observable(undefined);
@@ -503,6 +504,14 @@ $(function() {
                 }
 
                 if (data.coord != undefined) self.coordinate_system(data.coord);
+
+                if (data.positioning != undefined) {
+                  if (data.positioning == 0) {
+                    self.positioning("Absolute");
+                  } else {
+                    self.positioning("Relative");
+                  }
+                }
                 // console.log("mode=" + data.mode + " state=" + data.state + " x=" + data.x + " y=" + data.y + " z=" + data.z + " power=" + data.power + " speed=" + data.speed);
                 return
             }

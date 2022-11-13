@@ -950,11 +950,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if "G90" in cmd.upper():
             # absolute positioning
             self.positioning = 0
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
 
         # we need to track relative position mode for "RUN" position updates
         if "G91" in cmd.upper():
             # relative positioning
             self.positioning = 1
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
 
         # save our G command for shorthand post processors
         if cmd.upper().startswith("G"):
@@ -1096,7 +1098,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             y=self.grblY,
                                                                             z=self.grblZ,
                                                                             speed=self.grblSpeed,
-                                                                            power=self.grblPowerLevel))
+                                                                            power=self.grblPowerLevel,
+                                                                            coord=self.grblCoordinateSystem,
+                                                                            positioning=self.positioning))
 
             # odd edge case where a machine could be asleep or holding while connecting
             if not self._printer.is_operational() and self.grblState.upper().strip() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
@@ -1121,7 +1125,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             return self.pick_a_response(response)
 
-        if line.startswith('Grbl'):
+        if line.strip().startswith('Grbl'):
             # Hack to make Arduino based GRBL work.
             # When the serial port is opened, it resets and the "hello" command
             # is not processed.
@@ -1172,7 +1176,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel,
-                                                                            coord=self.grblCoordinateSystem))
+                                                                            coord=self.grblCoordinateSystem,
+                                                                            positioning=self.positioning))
 
             return self.pick_a_response(None)
 
