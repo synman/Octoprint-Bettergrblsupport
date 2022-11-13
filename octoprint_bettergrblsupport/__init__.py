@@ -1089,7 +1089,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("M999", force=True)
 
             # pop any queued commands if state is IDLE or HOLD:0 or Check
-            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK"):
+            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK", "ALARM"):
                 self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
                 self._printer.commands(self.grblCmdQueue[0])
                 self.grblCmdQueue.pop(0)
