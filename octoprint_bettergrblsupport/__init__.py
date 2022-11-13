@@ -545,6 +545,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set_boolean(["is_operational"], self.is_operational)
 
             self._printer.commands(["$I", "$G"])
+            self._printer.fake_ack()
 
         # Disconnecting & Disconnected
         if event in (Events.DISCONNECTING, Events.DISCONNECTED):
@@ -606,7 +607,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Print Pausing
         if payload is not None and payload.get("state_id") == "PAUSING":
             self._logger.debug("pausing job")
-            _bgs.do_fake_ack(self._printer, self._logger)
+            self._printer.fake_ack()
             self._printer.commands(["M5", "?", "$G"], force=True)
 
         # Print Paused
@@ -698,9 +699,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 if self.suppressM105:
                     # go to sleep if autosleep and now - last > interval
+                    self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.time(), time.time() - self.autoSleepTimer))
                     if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
                         if self.grblState.upper().strip() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
-                            queue_cmds_and_send(self, ["$SLP"])
+                            _bgs.queue_cmds_and_send(self, ["$SLP"])
                         else:
                             self._logger.debug("resetting autosleep timer")
                             self.autoSleepTimer = time.time()
