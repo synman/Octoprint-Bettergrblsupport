@@ -136,6 +136,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.connectionState = None
         self.pausedPower = 0
+        self.pausedPositioning = 0
 
         self.settingsVersion = 6
         self.wizardVersion = 9
@@ -607,27 +608,34 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Print Pausing
         if payload is not None and payload.get("state_id") == "PAUSING":
             self._logger.debug("pausing job")
+
+            self.pausedPower = self.grblPowerLevel
+            self.pausedPositioning = self.positioning
+
             self._printer.fake_ack()
-            self._printer.commands(["M5", "?", "$G"], force=True)
+
+            # retract Z 5 if not laser mode
+            if not _bgs.is_laser_mode(self):
+                self._printer.commands(["G91 G0 Z5"], force=True)
+
+            self._printer.commands(["M5", "?"], force=True)
 
         # Print Paused
         if event == Events.PRINT_PAUSED:
             self._logger.debug("paused job")
-
-            self.pausedPower = self.grblPowerLevel
-            # self._printer.commands(["S0", "!", "?"], force=True)
-
             self._printer.commands(["M5", "?", "!", "?"], force=True)
 
         # Print Resumed
         if event == Events.PRINT_RESUMED:
             self._logger.debug("resuming job")
-            # self._printer.commands(["~", "S{}".format(self.pausedPower), "$G"], force=True)
 
             if _bgs.is_laser_mode(self):
                 self._printer.commands(["~", "M3"], force=True)
             else:
-                self._printer.commands(["~", "M3", "G4 P10"], force=True)
+                self._printer.commands(["~", "M3", "G4 P10", "G91 G0 Z-5"], force=True)
+
+            # make sure we are using whatever positioning mode was active before we paused
+            self._printer.commands(["G91" if self.pausedPositioning == 1 else "G90"], force=True)
 
             self.grblState = "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
@@ -699,7 +707,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 if self.suppressM105:
                     # go to sleep if autosleep and now - last > interval
-                    self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.time(), time.time() - self.autoSleepTimer))
+                    # self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.time(), time.time() - self.autoSleepTimer))
                     if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
                         if self.grblState.upper().strip() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
                             _bgs.queue_cmds_and_send(self, ["$SLP"])
@@ -715,7 +723,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
                     return (self.statusCommand, )
 
-        self._logger.debug("resetting autosleep timer")
         self.autoSleepTimer = time.time()
 
         # hack for unacknowledged grbl commmands
@@ -1088,7 +1095,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if not self._printer.is_operational() and self.grblState.upper().strip() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
                 self._printer.commands("M999", force=True)
 
-            # pop any queued commands if state is IDLE or HOLD:0 or Check
+            # pop any queued commands if state is IDLE or HOLD:0, CHECK, or ALARM
             if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK", "ALARM"):
                 self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
                 self._printer.commands(self.grblCmdQueue[0])
