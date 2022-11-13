@@ -554,7 +554,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.is_operational = True
             self._settings.set_boolean(["is_operational"], self.is_operational)
 
-            _bgs.queue_cmds_and_send(self, ["$I", "$G"])
+            _bgs.queue_cmds_and_send(self, ["$$", "$I", "$G"])
             self._printer.fake_ack()
 
         # Disconnecting & Disconnected
@@ -885,7 +885,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 return "Cat /sd/config"
 
-            return self.helloCommand
+            # return self.helloCommand
+            return (None, )
 
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
@@ -1279,13 +1280,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         _bgs.add_to_notify_queue(self, [line])
                         self._printer.commands("?", force=True)
 
-            return
+            return "ok "
 
         # add a notification if we just z-probed
         # _bgs will pick this up if zProbe is active
         if "PRB:" in line.upper():
             _bgs.add_to_notify_queue(self, [line])
-            return
+            return "ok "
 
         # grbl settings
         if line.startswith("$"):
