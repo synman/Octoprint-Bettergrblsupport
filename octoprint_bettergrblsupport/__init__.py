@@ -671,7 +671,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
-            _bgs.generate_metadata_for_file(self, payload["path"], notify=True)
+            _bgs.generate_metadata_for_file(self, payload["path"], notify=self.notifyFrameSize)
             return
 
         if event == Events.FILE_DESELECTED:
