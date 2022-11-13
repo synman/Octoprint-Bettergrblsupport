@@ -130,6 +130,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.autoCooldownFrequency = 60
         self.autoCooldownDuration = 15
 
+        self.notifyFrameSize = True
+
         self.invertX = 1
         self.invertY = 1
         self.invertZ = 1
@@ -207,7 +209,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             wizard_version = 1,
             invertX = False,
             invertY = False,
-            invertZ = False
+            invertZ = False,
+            notifyFrameSize = True
         )
 
 
@@ -289,6 +292,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.invertX = -1 if self._settings.get_boolean(["invertX"]) else 1
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
         self.invertZ = -1 if self._settings.get_boolean(["invertZ"]) else 1
+
+        self.notifyFrameSize = self._settings.get_boolean(["notifyFrameSize"])
 
         self._logger.debug("axis inversion X=[{}] Y=[{}] Z=[{}]".format(self.invertX, self.invertY, self.invertZ))
 
@@ -524,7 +529,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if event in (Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN) and payload["id"] == self._identifier:
             self._logger.debug('we are being uninstalled/disabled :(')
             _bgs.cleanup_due_to_uninstall(self)
-            self._logger.debug('uninstall cleanup completed (this house is clean)')
+            self._logger.debug('plugin cleanup completed (this house is clean)')
             return
 
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
@@ -561,7 +566,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
             if "HOLD" in self.grblState.upper():
-                self._printer.commands(["~", "M999", "$G"], force=True)
+                self._printer.commands(["~"], force=True)
             elif not self.grblState.upper() in ("IDLE", "CHECK"):
                 # we have to stop This
                 self._printer.cancel_print()
@@ -586,7 +591,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # Print ended (finished / failed / cancelled)
-        if event == Events.PRINT_CANCELLED or event == Events.PRINT_DONE or event == Events.PRINT_FAILED:
+        if event in (Events.PRINT_CANCELLED, Events.PRINT_DONE, Events.PRINT_FAILED):
             self.grblState = "Idle"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Idle"))
 
@@ -600,10 +605,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug("cancelling job")
 
             if "HOLD" in self.grblState.upper():
-                self._printer.commands(["~", "$G"], force=True)
+                self._printer.commands(["~", "M5"], force=True)
             else:
-                self._printer.commands(["$G"], force=True)
-
+                self._printer.commands(["M5"], force=True)
 
         # Print Pausing
         if payload is not None and payload.get("state_id") == "PAUSING":
@@ -628,11 +632,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Print Resumed
         if event == Events.PRINT_RESUMED:
             self._logger.debug("resuming job")
+            self._printer.commands(["~", "M3"], force=True)
 
-            if _bgs.is_laser_mode(self):
-                self._printer.commands(["~", "M3"], force=True)
-            else:
-                self._printer.commands(["~", "M3", "G4 P10", "G91 G0 Z-5"], force=True)
+            # move our spindle back down 5
+            if not _bgs.is_laser_mode(self):
+                self._printer.commands(["G4 P10", "G91 G0 Z-5"], force=True)
 
             # make sure we are using whatever positioning mode was active before we paused
             self._printer.commands(["G91" if self.pausedPositioning == 1 else "G90"], force=True)
@@ -667,7 +671,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # 'FileSelected'
         if event == Events.FILE_SELECTED:
-            _bgs.generate_metadata_for_file(self, payload["path"], notify=True)
+            _bgs.generate_metadata_for_file(self, payload["path"], notify=self.notifyFrameSize)
             return
 
         if event == Events.FILE_DESELECTED:
