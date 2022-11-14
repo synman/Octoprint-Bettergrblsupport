@@ -767,7 +767,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.debug('Turning ON Air Assist')
                 subprocess.call(self.m8Command, shell=True)
 
-            return (None,)
+                return (None,)
 
         # M9 (air assist off) processing - work in progress
         if cmd.upper().strip() == "M9":
@@ -778,7 +778,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.debug('Turning OFF Air Assist')
                 subprocess.call(self.m9Command, shell=True)
 
-            return (None,)
+                return (None,)
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
