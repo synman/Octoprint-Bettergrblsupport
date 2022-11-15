@@ -119,6 +119,9 @@ $(function () {
             self.width(width);
             self.length(length);
 
+            var origin = document.getElementById(data.origin);
+            origin.checked = true;
+
             doNotify = self.settings.settings.plugins.bettergrblsupport.notifyFrameSize();
 
             if (doNotify) {
@@ -138,7 +141,7 @@ $(function () {
               });
             }
 
-            console.log("frame length=" + data.length + " width=" + data.width);
+            console.log("frame length=" + data.length + " width=" + data.width + " origin=" + origin.id);
             return
           }
         };

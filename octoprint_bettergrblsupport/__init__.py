@@ -656,7 +656,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # shutting down
         if event == Events.SHUTDOWN:
             self._logger.info("shutting down")
-            self._settings.save();
+            self._settings.save()
 
         # File uploaded
         if event == Events.UPLOAD:
@@ -1644,7 +1644,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
         if handled:
             self._settings.set(["wizard_version"], self.wizardVersion)
-            self._settings.save();
+            self._settings.save()
 
     def is_wizard_required(self):
         requiredVersion = self.wizardVersion
