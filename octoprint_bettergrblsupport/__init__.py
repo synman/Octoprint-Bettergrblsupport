@@ -145,6 +145,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.wizardVersion = 9
 
         self.whenConnected = time.time()
+        self.handshakeSent = False
 
         self.octoprintVersion = octoprint.server.VERSION
 
@@ -561,6 +562,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Disconnecting & Disconnected
         if event in (Events.DISCONNECTING, Events.DISCONNECTED):
             self.connectionState = event
+            self.handshakeSent = False
             self.grblState = "N/A"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="N/A"))
 
@@ -900,11 +902,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self.suppressM110 and cmd.upper().startswith('M110'):
             self._logger.debug('Ignoring %s', cmd)
 
-            if self.connectionState == Events.CONNECTING:
+            if self.connectionState == Events.CONNECTING and not self.handshakeSent:
                 self._logger.debug("sending initial handshake")
-                return ("\n\n ?", )
+                self.handshakeSent = True
+                return ("\n\n\x18", )
 
-            return ("?", )
+            return (None, )
 
         # suppress initialize SD - M21
         if cmd.upper().startswith('M21'):
@@ -1245,7 +1248,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 error = int(match.groups(1)[0])
 
                 # hack to suppress error:9 on connect
-                if time.time() - self.whenConnected < 5: return "ok "
+                if time.time() - self.whenConnected < 10: return "ok "
 
                 desc = self.grblErrors.get(error)
                 if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
