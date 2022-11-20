@@ -142,7 +142,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.pausedPositioning = 0
 
         self.settingsVersion = 6
-        self.wizardVersion = 9
+        self.wizardVersion = 10
 
         self.whenConnected = time.time()
         self.handshakeSent = False
