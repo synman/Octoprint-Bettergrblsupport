@@ -727,7 +727,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             self.autoSleepTimer = time.time()
 
                     # suppress status updates if sleeping
-                    if self.grblState.upper().startswith("SLEEP"):
+                    if not self.grblState is None and self.grblState.upper().startswith("SLEEP"):
                         self._logger.debug('Ignoring %s', cmd)
                         return (None,)
 
