@@ -896,7 +896,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 return "Cat /sd/config"
 
-            return "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand)
+            return "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
 
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):

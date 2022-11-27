@@ -1141,11 +1141,10 @@ def is_grbl_one_dot_one(_plugin):
     _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format(oneDotOne))
     return oneDotOne
 
-    def is_grbl_esp32(_plugin):
-        oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion and "VER:1.1" not in _plugin.grblVersion
-        _plugin._logger.debug("_bgs: is_grbl_esp32 result=[{}]".format(oneDotOne))
-        return oneDotOne
-
+def is_grbl_esp32(_plugin):
+    oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion and "VER:1.1" not in _plugin.grblVersion
+    _plugin._logger.debug("_bgs: is_grbl_esp32 result=[{}]".format(oneDotOne))
+    return oneDotOne
 
 
 def is_latin_encoding_available(_plugin):
