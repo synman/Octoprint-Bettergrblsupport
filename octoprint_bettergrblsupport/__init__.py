@@ -476,7 +476,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 self._printer.commands("Cat /sd/config")
             else:
-                self._printer.commands("$$")
+                self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
 
 
     # #~~ AssetPlugin mixin
@@ -896,7 +896,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 return "Cat /sd/config"
 
-            return self.helloCommand
+            return "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand)
 
         # suppress reset line #s
         if self.suppressM110 and cmd.upper().startswith('M110'):
@@ -1310,7 +1310,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # grbl settings
-        if line.startswith("$"):
+        if line.lstrip().startswith("$"):
             match = re.search(r'^[$](-?[\d\.]+)=(-?[\d\.]+)', line)
 
             if not match is None:
