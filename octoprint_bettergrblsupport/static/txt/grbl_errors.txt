@@ -34,3 +34,24 @@
 36 Invalid gcode ID:36 Unused value words found in block.
 37 Invalid gcode ID:37 G43.1 dynamic tool length offset is not assigned to configured tool length axis.
 38 Invalid gcode ID:38 Tool number greater than max supported value.
+39 P param max exceeded
+60 Failed to mount device
+61 Failed to read
+62 Failed to open directory
+63 Directory not found
+64 File empty
+65 File not found
+66 Failed to open file
+67 Device is busy
+68 Failed to delete directory
+69 Failed to delete file
+70 Bluetooth failed to start
+71 WiFi failed to start
+80 Number out of range for setting
+81 Invalid value for setting
+90 Failed to send message
+100 Failed to store setting
+101 Failed to get setting status
+110 Authentication failed!
+120 Another interface is busy
+130 Jog Cancelled

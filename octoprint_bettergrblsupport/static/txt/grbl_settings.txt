@@ -44,3 +44,27 @@
 133 A-axis maximum travel, millimeters
 134 B-axis maximum travel, millimeters
 135 C-axis maximum travel, millimeters
+140 $X/Current/Run
+141 $Y/Current/Run
+142 $Z/Current/Run
+143 $A/Current/Run
+144 $B/Current/Run
+145 $C/Current/Run
+150 $X/Current/Hold
+151 $Y/Current/Hold
+152 $Z/Current/Hold
+153 $A/Current/Hold
+154 $B/Current/Hold
+155 $C/Current/Hold
+160 $X/Microsteps
+161 $Y/Microsteps
+162 $Z/Microsteps
+163 $A/Microsteps
+164 $B/Microsteps
+165 $C/Microsteps
+170 $X/StallGuard
+171 $Y/StallGuard
+172 $Z/StallGuard
+173 $A/StallGuard
+174 $B/StallGuard
+175 $C/StallGuard
