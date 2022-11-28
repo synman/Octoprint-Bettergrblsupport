@@ -1158,3 +1158,11 @@ def do_fake_ack(printer, logger):
     time.sleep(1)
     printer.fake_ack()
     logger.debug("_bgs: do_fake_ack")
+
+
+def send_command_now(printer, logger, cmd):
+    try:
+        printer.commands(cmd, force=True)
+        logger.debug("_bgs: send_command")
+    except Exception as e:
+        logger.error("_bgs: send_command_now: %s" % e)

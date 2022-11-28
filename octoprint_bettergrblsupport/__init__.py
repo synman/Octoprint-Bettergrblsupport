@@ -518,16 +518,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
-        self._logger.debug("__init__: on_event event=[{}] payload=[{}]".format(event, payload))
-
         subscribed_events = (Events.FILE_SELECTED, Events.FILE_ADDED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
                             Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
                             Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN, Events.UPLOAD,
                             Events.CONNECTING, Events.CONNECTED, Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
 
-        if event not in subscribed_events and payload is not None and payload.get("state_id") != "PAUSING":
-            # self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
+        if event not in subscribed_events and payload is not None and payload.get("state_id") not in ("PAUSING", "STARTING"):
+            self._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
             return
+
+        self._logger.debug("__init__: on_event event=[{}] payload=[{}]".format(event, payload))
 
         # our plugin is being uninstalled
         if event in (Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN) and payload["id"] == self._identifier:
@@ -569,6 +569,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.is_operational = False
             self._settings.set_boolean(["is_operational"], self.is_operational)
 
+        # Print Starting
+        if payload is not None and payload.get("state_id") == "STARTING":
+            _bgs.add_to_notify_queue(self, ["Pgm Begin"])
+            # threading.Thread(target=_bgs.send_command_now, args=(self._printer, self._logger, "?")).start()
+            self._printer.commands("?", force=True)
+            return
 
         # 'PrintStarted'
         if event == Events.PRINT_STARTED:
@@ -583,8 +589,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.feedRate = 0
             self.plungeRate = 0
             self.powerRate = 0
-
-            _bgs.add_to_notify_queue(self, ["Pgm Begin"])
 
             self.grblState = "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
@@ -892,6 +896,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # rewrite M115 firmware as $$ (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
             self._logger.debug('Rewriting M115 as %s' % self.helloCommand)
+
+            # let's not be in too big of a rush
+            time.sleep(.5)
 
             if self.doSmoothie:
                 return "Cat /sd/config"
@@ -1299,7 +1306,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     if len(line.strip()) > 0:
                         _bgs.add_to_notify_queue(self, [line])
-                        if not self.connectionState == Events.CONNECTING: self._printer.commands("?", force=True)
 
             return
 
