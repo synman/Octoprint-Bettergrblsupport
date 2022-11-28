@@ -1299,7 +1299,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     if len(line.strip()) > 0:
                         _bgs.add_to_notify_queue(self, [line])
-                        self._printer.commands("?", force=True)
+                        if not self.connectionState == Events.CONNECTING: self._printer.commands("?", force=True)
 
             return
 
