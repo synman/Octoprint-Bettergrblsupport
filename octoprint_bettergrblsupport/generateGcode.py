@@ -115,8 +115,6 @@ def SideToSideAndOutAndBack():
 #         print("G1 Y{} F{}".format(length * -1, feed)
 #         print("G1 X{} F{}".format(width * -1, feed)
 
-
-
 plunge = 100
 feed = 2000
 
