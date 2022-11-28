@@ -20,6 +20,10 @@
 30 Maximum spindle speed, RPM
 31 Minimum spindle speed, RPM
 32 Laser-mode enable, boolean
+33 $Spindle/PWM/Frequency
+34 $Spindle/PWM/Off
+35 $Spindle/PWM/Min
+36 $Spindle/PWM/Max
 100 X-axis steps per millimeter
 101 Y-axis steps per millimeter
 102 Z-axis steps per millimeter
