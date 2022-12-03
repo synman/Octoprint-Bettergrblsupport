@@ -1144,8 +1144,25 @@ $(function() {
     // cute hack for changing printer to machine for the action notify sidebar plugin
     var x = document.getElementById("sidebar_plugin_action_command_notification_wrapper");
     if (x != undefined) {
-        x.firstElementChild.outerHTML = x.firstElementChild.outerHTML.replace("Printer", "");
+        x.outerHTML = x.outerHTML.replace("printer.", "machine.").replace("Printer ", "Machine ");
     }
+
+    // cute hack for changing printer to machine for the connection sidebar plugin
+    var y = document.getElementById("connection_wrapper");
+    if (y != undefined) {
+        y.outerHTML = y.outerHTML.replace("Printer ", "Machine ");
+    }
+
+    // cute hack for removing print from the state sidebar plugin
+    var z = document.getElementById("state_wrapper");
+    if (z != undefined) {
+        z.innerHTML = z.innerHTML.replaceAll(">Print ", ">Job ");
+        z.innerHTML = z.innerHTML.replaceAll(" print ", " ");
+        z.innerHTML = z.innerHTML.replaceAll(" Print ", " ");
+        z.innerHTML = z.innerHTML.replaceAll(">Printed", ">Bytes");
+        z.innerHTML = z.innerHTML.replaceAll(" printed ", " streamed ");
+    }
+
 
     function guid() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {

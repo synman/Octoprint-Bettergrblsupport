@@ -490,41 +490,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_settings_save(self, data):
         self._logger.debug("__init__: on_settings_save data=[{}]".format(data))
 
-        # terminalFilters=  [
-        #     {
-        #         "name": "Suppress temperature messages",
-        #         "regex": "(Send: (N\d+\s+)?M105)|(Recv:\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
-        #     },
-        #     {
-        #         "name": "Suppress SD status messages",
-        #         "regex": "(Send: (N\d+\s+)?M27)|(Recv: SD printing byte)|(Recv: Not SD printing)",
-        #     },
-        #     {
-        #         "name": "Suppress position messages",
-        #         "regex": "(Send:\s+(N\d+\s+)?M114)|(Recv:\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
-        #     },
-        #     {"name": "Suppress wait responses", "regex": "Recv: wait"},
-        #     {
-        #         "name": "Suppress processing responses",
-        #         "regex": "Recv: (echo:\s*)?busy:\s*processing",
-        #     },
-        # ],
-
-        # self._settings.global_set(["terminalFilters"], terminalFilters)
-
         self._logger.debug("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-
-        # let's bail if our only change is our frame dimensions
-        if "frame_width" in data or "frame_length" in data or "frame_origin" in data:
-            return
-
-        # reload our config
-        self.on_after_startup()
 
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return
+
+        # let's bail if our only changes are frame dimensions or activeFilters
+        if "frame_width" in data or "frame_length" in data or "frame_origin" in data or "activeFilters" in data:
+            return
+
+        # reload our config
+        self.on_after_startup()
 
         # refresh our grbl settings
         if not self._printer.is_printing():
