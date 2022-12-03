@@ -141,9 +141,38 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.pausedPower = 0
         self.pausedPositioning = 0
 
+        self.bgs_filters = [
+            {"name": "Suppress status report requests", "regex": "^Send: \\?$"},
+            {"name": "Suppress acknowledgement responses", "regex": "^Recv: ok$"},
+            {"name": "Suppress status report responses", "regex": "^Recv: <.*[\\x2c|][WM]Pos:.+"},
+            {"name": "Suppress blank responses", "regex": "^Recv: $"}
+        ]
+
+        self.octo_filters = [
+            {
+                "name": "Suppress temperature messages",
+                "regex": "(Send: (N\d+\s+)?M105)|(Recv:\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
+            },
+            {
+                "name": "Suppress SD status messages",
+                "regex": "(Send: (N\d+\s+)?M27)|(Recv: SD printing byte)|(Recv: Not SD printing)",
+            },
+            {
+                "name": "Suppress position messages",
+                "regex": "(Send:\s+(N\d+\s+)?M114)|(Recv:\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
+            },
+            {"name": "Suppress wait responses", "regex": "Recv: wait"},
+            {
+                "name": "Suppress processing responses",
+                "regex": "Recv: (echo:\s*)?busy:\s*processing",
+            }
+        ]
+
+        self.bgsFilters = self.bgs_filters
+
         self.settingsVersion = 6
         self.wizardVersion = 10
-
+        
         self.whenConnected = time.time()
         self.handshakeSent = False
 
@@ -214,7 +243,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             invertX = False,
             invertY = False,
             invertZ = False,
-            notifyFrameSize = True
+            notifyFrameSize = True,
+            bgsFilters = self.bgs_filters,
+            activeFilters = []
         )
 
 
@@ -416,6 +447,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
         self._settings.global_set(["serial", "encoding"], "latin_1")
 
+        self._settings.global_set(["terminalFilters"], self.bgsFilters)
+
         self._settings.save()
         _bgs.load_grbl_settings(self)
 
@@ -457,6 +490,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_settings_save(self, data):
         self._logger.debug("__init__: on_settings_save data=[{}]".format(data))
 
+        # terminalFilters=  [
+        #     {
+        #         "name": "Suppress temperature messages",
+        #         "regex": "(Send: (N\d+\s+)?M105)|(Recv:\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
+        #     },
+        #     {
+        #         "name": "Suppress SD status messages",
+        #         "regex": "(Send: (N\d+\s+)?M27)|(Recv: SD printing byte)|(Recv: Not SD printing)",
+        #     },
+        #     {
+        #         "name": "Suppress position messages",
+        #         "regex": "(Send:\s+(N\d+\s+)?M114)|(Recv:\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
+        #     },
+        #     {"name": "Suppress wait responses", "regex": "Recv: wait"},
+        #     {
+        #         "name": "Suppress processing responses",
+        #         "regex": "Recv: (echo:\s*)?busy:\s*processing",
+        #     },
+        # ],
+
+        # self._settings.global_set(["terminalFilters"], terminalFilters)
+
         self._logger.debug("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
@@ -485,9 +540,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgsframing.js', 'js/bettergrblsupport_wizard.js'],
-                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css', 'css/bgsframing.css'],
-                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less", "less/bgsframing.less"])
+        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgs_framing.js', 
+                        'js/bettergrblsupport_wizard.js', 'js/bgs_terminal.js'],
+                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css', 'css/bgs_framing.css'],
+                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less", "less/bgs_framing.less"])
 
 
     # #~~ TemplatePlugin mixin

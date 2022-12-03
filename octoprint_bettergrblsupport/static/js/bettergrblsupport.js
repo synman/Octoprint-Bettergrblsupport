@@ -15,6 +15,9 @@ $(function() {
         self.access = parameters[2];
 
         var $body = $('body');
+
+        var $container = $('webcam_container');
+
         var framingPanel = $('#framing_panel');
         var controlPanel = $('#control_panel');
         var overridesPanel = $('#overrides_panel');

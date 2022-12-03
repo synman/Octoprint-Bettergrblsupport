@@ -210,7 +210,8 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 5)
     _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
     _plugin._settings.global_set(["serial", "encoding"], "ascii")
-
+    _plugin._settings.global_set(["terminalFilters"], _plugin.octo_filters)
+    
     _plugin._settings.save()
 
 
