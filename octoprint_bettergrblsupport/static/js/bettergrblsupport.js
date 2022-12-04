@@ -1144,7 +1144,7 @@ $(function() {
     // cute hack for changing printer to machine for the action notify sidebar plugin
     var x = document.getElementById("sidebar_plugin_action_command_notification_wrapper");
     if (x != undefined) {
-        x.outerHTML = x.outerHTML.replace("printer.", "machine.").replace("Printer ", "Machine ");
+        x.outerHTML = x.outerHTML.replace("printer.", "machine.").replace("Printer ", "");
     }
 
     // cute hack for changing printer to machine for the connection sidebar plugin
