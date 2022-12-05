@@ -31,10 +31,12 @@ import time
 import math
 
 import re
-import requests
+# import requests
 import threading
 
 from timeit import default_timer as timer
+from octoprint.events import Events
+
 from .zprobe import ZProbe
 from .xyprobe import XyProbe
 
@@ -213,6 +215,180 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set(["terminalFilters"], _plugin.octo_filters)
     
     _plugin._settings.save()
+
+# #-- EventHandlerPlugin mix-in
+def on_event(_plugin, event, payload):
+    subscribed_events = (Events.FILE_SELECTED, Events.FILE_ADDED, Events.PRINT_STARTED, Events.PRINT_CANCELLED, Events.PRINT_CANCELLING,
+                        Events.PRINT_PAUSED, Events.PRINT_RESUMED, Events.PRINT_DONE, Events.PRINT_FAILED,
+                        Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN, Events.UPLOAD,
+                        Events.CONNECTING, Events.CONNECTED, Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
+
+    if event not in subscribed_events and payload is not None and payload.get("state_id") not in ("PAUSING", "STARTING"):
+        _plugin._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
+        return
+
+    _plugin._logger.debug("_bgs: on_event event=[{}] payload=[{}]".format(event, payload))
+
+    # our plugin is being uninstalled
+    if event in (Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN) and payload["id"] == _plugin._identifier:
+        _plugin._logger.debug('we are being uninstalled/disabled :(')
+        cleanup_due_to_uninstall(_plugin)
+        _plugin._logger.debug('plugin cleanup completed (this house is clean)')
+        return
+
+    if _plugin._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
+        return
+
+    # - CONNECTING
+    if event == Events.CONNECTING:
+        _plugin.connectionState = event
+        # let's make sure we don't have any commands queued up
+        _plugin.grblCmdQueue.clear()
+
+    # - CONNECTED
+    if event == Events.CONNECTED:
+        _plugin._logger.debug('machine connected')
+
+        _plugin.connectionState = event
+        _plugin.whenConnected = time.time()
+        _plugin.autoSleepTimer = time.time()
+
+        _plugin.is_operational = True
+        _plugin._settings.set_boolean(["is_operational"], _plugin.is_operational)
+
+        queue_cmds_and_send(_plugin, ["$I", "$G"])
+        _plugin._printer.fake_ack()
+
+    # Disconnecting & Disconnected
+    if event in (Events.DISCONNECTING, Events.DISCONNECTED):
+        _plugin.connectionState = event
+        _plugin.handshakeSent = False
+        _plugin.grblState = "N/A"
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="N/A"))
+
+        _plugin.is_operational = False
+        _plugin._settings.set_boolean(["is_operational"], _plugin.is_operational)
+
+    # Print Starting
+    if payload is not None and payload.get("state_id") == "STARTING":
+        add_to_notify_queue(_plugin, ["Pgm Begin"])
+        # threading.Thread(target=send_command_now, args=(_plugin._printer, _plugin._logger, "?")).start()
+        _plugin._printer.commands("?", force=True)
+        return
+
+    # 'PrintStarted'
+    if event == Events.PRINT_STARTED:
+        if "HOLD" in _plugin.grblState.upper():
+            _plugin._printer.commands(["~"], force=True)
+        elif not _plugin.grblState.upper() in ("IDLE", "CHECK"):
+            # we have to stop This
+            _plugin._printer.cancel_print()
+            return
+
+        # reset our rate overrides
+        _plugin.feedRate = 0
+        _plugin.plungeRate = 0
+        _plugin.powerRate = 0
+
+        _plugin.grblState = "Run"
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
+
+        _plugin.is_printing = True
+        _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
+
+        if _plugin.autoCooldown:
+            activate_auto_cooldown(_plugin)
+
+        return
+
+    # Print ended (finished / failed / cancelled)
+    if event in (Events.PRINT_CANCELLED, Events.PRINT_DONE, Events.PRINT_FAILED):
+        _plugin.grblState = "Idle"
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
+
+        _plugin.is_printing = False
+        _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
+
+        return
+
+    # Print Cancelling
+    if event == Events.PRINT_CANCELLING:
+        _plugin._logger.debug("cancelling job")
+
+        if "HOLD" in _plugin.grblState.upper():
+            _plugin._printer.commands(["~", "M5"], force=True)
+        else:
+            _plugin._printer.commands(["M5"], force=True)
+
+    # Print Pausing
+    if payload is not None and payload.get("state_id") == "PAUSING":
+        _plugin._logger.debug("pausing job")
+
+        _plugin.pausedPower = _plugin.grblPowerLevel
+        _plugin.pausedPositioning = _plugin.positioning
+
+        _plugin._printer.fake_ack()
+
+        # retract Z 5 if not laser mode
+        if not is_laser_mode(_plugin):
+            _plugin._printer.commands(["G91 G0 Z5"], force=True)
+
+        _plugin._printer.commands(["M5", "?"], force=True)
+
+    # Print Paused
+    if event == Events.PRINT_PAUSED:
+        _plugin._logger.debug("paused job")
+        _plugin._printer.commands(["M5", "?", "!", "?"], force=True)
+
+    # Print Resumed
+    if event == Events.PRINT_RESUMED:
+        _plugin._logger.debug("resuming job")
+        _plugin._printer.commands(["~", "M3"], force=True)
+
+        # move our spindle back down 5
+        if not is_laser_mode(_plugin):
+            _plugin._printer.commands(["G4 P10", "G91 G0 Z-5"], force=True)
+
+        # make sure we are using whatever positioning mode was active before we paused
+        _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"], force=True)
+
+        _plugin.grblState = "Run"
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
+
+    # starting up
+    if event == Events.STARTUP:
+        _plugin._logger.info("starting up")
+
+    # shutting down
+    if event == Events.SHUTDOWN:
+        _plugin._logger.info("shutting down")
+        _plugin._settings.save()
+
+    # File uploaded
+    if event == Events.UPLOAD:
+        if payload["path"].endswith(".gc") or payload["path"].endswith(".nc"):
+            renamed_file = payload["path"][:len(payload["path"]) - 2] + "gcode"
+
+            _plugin._logger.debug("renaming [%s] to [%s]", payload["path"], renamed_file)
+
+            _plugin._file_manager.remove_file(payload["target"], renamed_file)
+            _plugin._file_manager.move_file(payload["target"], payload["path"], renamed_file)
+
+            generate_metadata_for_file(_plugin, renamed_file, notify=False, force=True)
+
+    # 'FileAdded'
+    if event == Events.FILE_ADDED:
+        generate_metadata_for_file(_plugin, payload["path"], notify=False, force=True)
+
+    # 'FileSelected'
+    if event == Events.FILE_SELECTED:
+        generate_metadata_for_file(_plugin, payload["path"], notify=True)
+        return
+
+    if event == Events.FILE_DESELECTED:
+        return
+
+    return
 
 
 def do_framing(_plugin, data):
