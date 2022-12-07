@@ -1206,8 +1206,8 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
             else:
                 command = line.upper().strip()
 
-            # only G commands matter
-            if not command.upper().lstrip().startswith("G"):
+            # only G commands matter (except G53)
+            if not command.upper().lstrip().startswith("G") or "G53" in command.upper():
                 continue
 
             if "G90" in command.upper():
