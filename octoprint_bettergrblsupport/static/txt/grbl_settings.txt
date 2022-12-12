@@ -5,10 +5,19 @@
 4 Invert step enable pin, boolean
 5 Invert limit pins, boolean
 6 Invert probe pin, boolean
+7 Spindle PWM behavior (deprecated)
+8 Ganged Direction Invert mask
+9 Spindle PWM options
 10 Status report options, mask
 11 Junction deviation, millimeters
 12 Arc tolerance, millimeters
 13 Report in inches, boolean
+14 Invert control input signals
+15 Invert coolant output signals
+16 Invert spindle output signals
+17 Disable control signal pullup
+18 Disable limit signals pull up
+19 Disable probe pull up
 20 Soft limits enable, boolean
 21 Hard limits enable, boolean
 22 Homing cycle enable, boolean
@@ -17,6 +26,8 @@
 25 Homing search seek rate, mm/min
 26 Homing switch debounce delay, milliseconds
 27 Homing switch pull-off distance, millimeters
+28 Specifies G73 retract distance in mm
+29 Stepper pulse delay in microseconds
 30 Maximum spindle speed, RPM
 31 Minimum spindle speed, RPM
 32 Laser-mode enable, boolean
@@ -24,6 +35,47 @@
 34 $Spindle/PWM/Off
 35 $Spindle/PWM/Min
 36 $Spindle/PWM/Max
+37 Steppers to be deenergized when motion completes
+38 Spindle encoder pulses per revolution
+39 Enable printable realtime command characters
+40 Enable soft limits for jogging
+43 Number of homing locate cycles
+44 Homing Cycle 0
+45 Homing Cycle 1
+46 Homing Cycle 2
+47 Homing Cycle 3
+48 Homing Cycle 4
+49 Homing Cycle 5
+50 Jogging step speed in mm/min
+51 Jogging slow speed in mm/min
+52 Jogging fast speed in mm/min
+53 Jogging step distance in mm
+54 Jogging slow distance in mm
+55 Jogging fast distance in mm
+60 Restore default overrides when program ends
+61 Ignore safety door signal when idle
+62 Enable sleep function
+63 Disable laser during hold
+64 Force grbl to enter alarm mode on startup
+65 Allow feed rate override during probing
+70 Enabled network services (mask)
+71 Bluetooth device name
+72 Bluetooth service name
+73 Wifi Mode
+74 WiFi STA (Station) SSID
+75 WiFi STA (Station) password
+76 WiFi AP (Access Point) SSID
+77 WiFi AP (Access Point) password
+78 WiFi AP Country (Access Point)
+79 WiFi AP Channel (Access Point) password
+80 Spindle PID regulator proportional gain
+81 Spindle PID regulator integral gain
+82 Spindle PID regulator derivative gain
+84 Spindle PID max output error
+85 Spindle PID regulator max integral error
+90 Spindle synced motion PID regulator proportional gain
+91 Spindle synced motion PID regulator integral gain
+92 Spindle synced motion PID regulator derivative gain
 100 X-axis steps per millimeter
 101 Y-axis steps per millimeter
 102 Z-axis steps per millimeter
@@ -72,3 +124,27 @@
 173 $A/StallGuard
 174 $B/StallGuard
 175 $C/StallGuard
+302 Interface gateway address, default value driver dependent
+303 Interface netmask, default value driver dependent
+304 Interface netmask, default value 255.255.255.0
+305 Telnet port, default value 23. Range 1 - 65536
+306 HTTP port, default value 80. Range 1 - 65536
+307 Websocket port, default value 81. Range 1 - 65536
+312 Interface gateway address, default value driver dependent
+313 Interface netmask, default value driver dependent
+314 Interface netmask, default value 255.255.255.0
+315 Telnet port, default value 23. Range 1 - 65536
+316 HTTP port, default value 80. Range 1 - 65536
+317 Websocket port, default value 81. Range 1 - 65536
+322 Interface gateway address, default value driver dependent
+323 Interface netmask, default value driver dependent
+324 Interface netmask, default value 255.255.255.0
+325 Telnet port, default value 23. Range 1 - 65536
+326 HTTP port, default value 80. Range 1 - 65536
+327 Websocket port, default value 81. Range 1 - 65536
+340 Spindle at speed tolerance, default 0 percent
+341 Manual tool change mode, default value 0
+342 Probing distance, default 30 mm
+343 Probing slow feed rate, default 25 mm/min
+344 Probing seek feed rate, default 200 mm/min
+

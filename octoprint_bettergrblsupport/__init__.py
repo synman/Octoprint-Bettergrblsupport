@@ -88,6 +88,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblX = float(0)
         self.grblY = float(0)
         self.grblZ = float(0)
+        self.grblActivePins = ""
         self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
         self.positioning = 0
@@ -957,6 +958,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # match = re.search(r'[WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
             match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
+            # match = re.search(r"<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+).*\|Pn:([XYZPDHRS]+)", line)
 
             if match is None:
                 self._logger.warning('Bad data %s', line.rstrip())
@@ -973,6 +975,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblY = float(match.groups(1)[2])
             self.grblZ = float(match.groups(1)[3])
 
+            match = re.search(r'.*\|Pn:([XYZPDHRS]+)', line)
+            if not match is None:
+                self.grblActivePins = match.groups(1)[0]
+            else:
+                self.grblActivePins = "None"
+
             match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', line)
             if not match is None:
                 self.grblSpeed = round(float(match.groups(1)[0]))
@@ -984,6 +992,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             x=self.grblX,
                                                                             y=self.grblY,
                                                                             z=self.grblZ,
+                                                                            pins=self.grblActivePins,
                                                                             speed=self.grblSpeed,
                                                                             power=self.grblPowerLevel,
                                                                             coord=self.grblCoordinateSystem,
@@ -1119,7 +1128,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 error = int(match.groups(1)[0])
 
                 # hack to suppress error:9 on connect
-                if time.time() - self.whenConnected < 10: return "ok "
+                if time.time() - self.whenConnected < 20: return "ok "
 
                 desc = self.grblErrors.get(error)
                 if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
@@ -1212,18 +1221,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not line.rstrip().endswith('ok'):
             return
 
+        # I've never seen these
         if line.startswith('{'):
              # Regular ACKs
              # {0/0}ok
              # {5/16}ok
-            return 'ok'
+            return 'ok '
         elif '{' in line:
              # Ack with return data
              # F300S1000{0/0}ok
             (before, _, _) = line.partition('{')
             return 'ok ' + before
         else:
-            return 'ok'
+            return 'ok '
 
 
     def pick_a_response(self, firstChoice):

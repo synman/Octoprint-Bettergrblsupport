@@ -53,6 +53,7 @@ $(function() {
         self.zPos = ko.observable("N/A");
         self.power = ko.observable("N/A");
         self.speed = ko.observable("N/A");
+        self.pins = ko.observable("N/A")
         self.positioning = ko.observable("N/A");
         self.coolant = ko.observable("N/A");
 
@@ -487,6 +488,7 @@ $(function() {
                 if (data.y != undefined) self.yPos(Number.parseFloat(data.y).toFixed(2));
                 if (data.z != undefined) self.zPos(Number.parseFloat(data.z).toFixed(2));
                 if (data.speed != undefined) self.speed(Number.parseFloat(data.speed).toFixed(2));
+                if (data.pins != undefined) self.pins(data.pins);
 
                 if (data.power != undefined) {
                   var newPower = Number.parseFloat(data.power);
