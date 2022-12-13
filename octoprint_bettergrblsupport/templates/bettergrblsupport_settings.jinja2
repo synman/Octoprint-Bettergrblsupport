@@ -311,7 +311,7 @@
 					<tr>
 						<td align="center" data-bind="text: id"></td>
 						<td align="center">
-									<input type="text" class="input-min" style="width: 80px" data-bind="numeric, value: value, event: { change: $parent.updateSetting(id, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
+									<input type="text" class="input-min" style="width: 80px" data-bind="value: value, event: { change: $parent.updateSetting(id, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
 						</td>
 						<td align="left" data-bind="text: description"></td>
 					</tr>
