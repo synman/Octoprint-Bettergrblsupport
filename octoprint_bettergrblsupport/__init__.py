@@ -1229,6 +1229,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
         if len(self.lastRequest) > 0:
+            self._logger.debug("__init__: last request: [%s]" % self.lastRequest[0])
+            self._logger.debug("__init__: last response: [%s]" % self.lastResponse)
             lastRequest = self.lastRequest[0]
 
             if lastRequest == "$CD":
