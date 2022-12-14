@@ -587,11 +587,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         cmd = cmd.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
-        # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
-        if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
-            _bgs.multipoint_zprobe_move(self)
-            return (None, )
-
         # suppress temperature if machine is printing
         if "M105" in cmd.upper():
             if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0:
@@ -614,9 +609,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     #     return (None,)
 
                     self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
+                    self.lastRequest.append(self.statusCommand)
                     return (self.statusCommand, )
 
         self.autoSleepTimer = time.time()
+
+        # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
+        if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
+            _bgs.multipoint_zprobe_move(self)
+            return (None, )
 
         # hack for unacknowledged grbl commmands
         if "$H" in cmd.upper() or "G38.2" in cmd.upper():
@@ -639,9 +640,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.connectionState == Events.CONNECTING and not self.handshakeSent:
                 self._logger.debug("sending initial handshake")
                 self.handshakeSent = True
-                return ("\n\n\x18", )
-
-            return (None, )
+                cmd = "\n\n\x18"
+            else:
+                return (None, )
 
         # suppress initialize SD - M21
         if cmd.upper().startswith('M21'):
@@ -658,8 +659,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106", "N")):
             self._logger.debug("ignoring [%s]", cmd)
             return (None, )
-
-        self.lastRequest.append(cmd)
 
         # forward on coordinate system change
         if cmd.upper() in ("G54", "G55", "G56", "G57", "G58", "G59"):
@@ -695,7 +694,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SAFETYDOOR":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Triggering safety door ")
-                return ("? {} ?".format("\x84"), )
+                cmd = "? {} ?".format("\x84"), 
             else:
                 return (None, )
 
@@ -703,7 +702,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "CANCELJOG":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Cancelling jog")
-                return ("? {} ?".format("\x85"), )
+                cmd = "? {} ?".format("\x85"), 
             else:
                 return (None, )
 
@@ -711,7 +710,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDNORMAL":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting normal feed rate")
-                return ("? {} ?".format("\x90"), )
+                cmd = "? {} ?".format("\x90"), 
             else:
                 return (None, )
 
@@ -719,7 +718,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDPLUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate +10%")
-                return ("? {} ?".format("\x91"), )
+                cmd = "? {} ?".format("\x91"), 
             else:
                 return (None, )
 
@@ -727,7 +726,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDMINUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate -10%")
-                return ("? {} ?".format("\x92"), )
+                cmd = "? {} ?".format("\x92"), 
             else:
                 return (None, )
 
@@ -735,7 +734,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDPLUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate +1%")
-                return ("? {} ?".format("\x93"), )
+                cmd = "? {} ?".format("\x93"), 
             else:
                 return (None, )
 
@@ -743,7 +742,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDMINUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate -1%")
-                return ("? {} ?".format("\x94"), )
+                cmd = "? {} ?".format("\x94"), 
             else:
                 return (None, )
 
@@ -751,7 +750,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLENORMAL":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting normal spindle speed")
-                return ("? {} ?".format("\x99"), )
+                cmd = "? {} ?".format("\x99"), 
             else:
                 return (None, )
 
@@ -759,7 +758,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLEPLUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed +10%")
-                return ("? {} ?".format("\x9A"), )
+                cmd = "? {} ?".format("\x9a"), 
             else:
                 return (None, )
 
@@ -767,7 +766,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLEMINUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed -10%")
-                return ("? {} ?".format("\x9B"), )
+                cmd = "? {} ?".format("\x9B"), 
             else:
                 return (None, )
 
@@ -775,7 +774,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLEPLUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed +1%")
-                return ("? {} ?".format("\x9C"), )
+                cmd = "? {} ?".format("\x9C"), 
             else:
                 return (None, )
 
@@ -783,7 +782,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLEMINUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed -1%")
-                return ("? {} ?".format("\x9D"), )
+                cmd = "? {} ?".format("\x9D"), 
             else:
                 return (None, )
 
@@ -791,7 +790,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "TOGGLESPINDLE":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Toggling spindle stop")
-                return ("? {} ?".format("\x9E"), )
+                cmd = "? {} ?".format("\x9E"), 
             else:
                 return (None, )
 
@@ -803,19 +802,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             time.sleep(.5)
 
             if self.doSmoothie:
+                self.lastRequest.append("$$")
                 return "Cat /sd/config"
 
-            return "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
+            cmd = "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
 
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
             self._logger.debug('Rewriting M400 as %s' % self.dwellCommand)
-            return (self.dwellCommand, )
+            cmd =self.dwellCommand
 
         # rewrite M114 current position as ? (typically)
         if self.suppressM114 and cmd.upper().startswith('M114'):
             self._logger.debug('Rewriting M114 as %s' % self.positionCommand)
-            return (self.positionCommand, )
+            cmd = self.positionCommand
 
         # soft reset / resume (stolen from Marlin)
         if cmd.upper().startswith('M999') and not self.doSmoothie:
@@ -826,7 +826,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Reset"))
             _bgs.queue_cmds_and_send(self, ["$G"])
 
-            return ("\x18",)
+            cmd = "\x18"
 
         # grbl version info
         if cmd.upper().startswith("$I"):
@@ -938,6 +938,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 coolant=self.coolant))
                 self.timeRef = currentTime
 
+        self.lastRequest.append(cmd)
         return (cmd, )
 
 
@@ -1227,7 +1228,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # all that is left is an acknowledgement
         self.lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
-        if len(self.lastRequest) > 0 and len(self.lastResponse) > 0:
+        if len(self.lastRequest) > 0:
             lastRequest = self.lastRequest[0]
 
             if lastRequest == "$CD":
