@@ -516,7 +516,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 self._printer.commands("Cat /sd/config")
             else:
-                self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
+                self.lastRequest = "$+" if _bgs.is_grbl_esp32(self) else "$$"
+                self._printer.commands(self.lastRequest)
 
 
     # #~~ AssetPlugin mixin
@@ -594,7 +595,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if machine is printing
         if "M105" in cmd.upper():
-            if self.disablePolling and self._printer.is_printing():
+            if (self.disablePolling and self._printer.is_printing()) or not self.lastRequest is None:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
@@ -620,8 +621,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # hack for unacknowledged grbl commmands
         if "$H" in cmd.upper() or "G38.2" in cmd.upper():
-            threading.Thread(target=_bgs.do_fake_ack, args=(self._printer, self._logger)).start()
-            self._logger.debug("fake_ack submitted")
+            # threading.Thread(target=_bgs.do_fake_ack, args=(self._printer, self._logger)).start()
+            # self._logger.debug("fake_ack submitted")
 
             self.grblState = "Home" if "$H" in cmd.upper() else "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
@@ -658,9 +659,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106", "N")):
             self._logger.debug("ignoring [%s]", cmd)
             return (None, )
-
-        # capture this as our last request sent
-        self.lastRequest = cmd
 
         # forward on coordinate system change
         if cmd.upper() in ("G54", "G55", "G56", "G57", "G58", "G59"):
@@ -806,7 +804,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 return "Cat /sd/config"
 
-            return "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
+            self.lastRequest = "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
+            return self.lastRequest
 
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
@@ -1143,8 +1142,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", ""))
             self._settings.set(["grblVersion"], self.grblVersion)
             self._settings.save(trigger_event=True)
-            
-            if _bgs.is_grbl_fluidnc(self) and self.lastRequest != "$CD": _bgs.queue_cmds_and_send(self, ["$CD"])
+            if _bgs.is_grbl_fluidnc(self) and self.lastRequest != "$CD": 
+                self.lastRequest = "$CD"
+                self._printer.commands("$CD")
             return
 
         # $G response
@@ -1256,6 +1256,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self.lastRequest = None
             self.lastResponse = ""
+        else:
+            self._logger.warn("__init__: empty lastResponse - are we out of sync?")
 
         return "ok "
 
@@ -1339,7 +1341,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "reset":
             # force a fake ack in case something is holding up the send queue
-            self._printer.fake_ack()
+            # self._printer.fake_ack()
             self._printer.commands("M999", force=True)
             return
 

@@ -256,8 +256,8 @@ def on_event(_plugin, event, payload):
         _plugin.is_operational = True
         _plugin._settings.set_boolean(["is_operational"], _plugin.is_operational)
 
-        queue_cmds_and_send(_plugin, ["$I", "$G"])
-        _plugin._printer.fake_ack()
+        _plugin._printer.commands(["$I", "$G"])
+        # _plugin._printer.fake_ack()
 
     # Disconnecting & Disconnected
     if event in (Events.DISCONNECTING, Events.DISCONNECTED):
@@ -327,7 +327,7 @@ def on_event(_plugin, event, payload):
         _plugin.pausedPower = _plugin.grblPowerLevel
         _plugin.pausedPositioning = _plugin.positioning
 
-        _plugin._printer.fake_ack()
+        # _plugin._printer.fake_ack()
 
         # retract Z 5 if not laser mode
         if not is_laser_mode(_plugin):
