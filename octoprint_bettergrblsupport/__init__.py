@@ -1227,32 +1227,34 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # all that is left is an acknowledgement
         self.lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
-        if self.lastRequest == "$CD":
-            self.fluidConfig = self.lastResponse
-            self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
+        # are we out of sync?
+        if len(self.lastResponse) != 0:
+            if self.lastRequest == "$CD":
+                self.fluidConfig = self.lastResponse
+                self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
 
-        if self.lastRequest in ("$$", "$+", "M115"): 
-            self.grblConfig = self.lastResponse.split("\n")
-            self._logger.debug("__init__: grbl Config: %s" % self.grblConfig)
+            if self.lastRequest in ("$$", "$+", "M115"): 
+                self.grblConfig = self.lastResponse.split("\n")
+                self._logger.debug("__init__: grbl Config: %s" % self.grblConfig)
 
-            self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
-            self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
+                self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
+                self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
 
-            # lets populate our x,y,z limits
-            self.xLimit = float(self.grblSettings.get(130)[0])
-            self.yLimit = float(self.grblSettings.get(131)[0])
-            self.zLimit = float(self.grblSettings.get(132)[0])
+                # lets populate our x,y,z limits
+                self.xLimit = float(self.grblSettings.get(130)[0])
+                self.yLimit = float(self.grblSettings.get(131)[0])
+                self.zLimit = float(self.grblSettings.get(132)[0])
 
-            # assign our default distance if it is not already set to the lower of x,y limits
-            distance = self._settings.get(["distance"])
-            if distance == 0:
-                distance = float(min([self.xLimit, self.yLimit]))
-            self._settings.set(["control_distance"], distance)
+                # assign our default distance if it is not already set to the lower of x,y limits
+                distance = self._settings.get(["distance"])
+                if distance == 0:
+                    distance = float(min([self.xLimit, self.yLimit]))
+                self._settings.set(["control_distance"], distance)
 
-            self._settings.save(trigger_event=True)
+                self._settings.save(trigger_event=True)
 
-        self.lastRequest = None
-        self.lastResponse = ""
+            self.lastRequest = None
+            self.lastResponse = ""
 
         return "ok "
 
