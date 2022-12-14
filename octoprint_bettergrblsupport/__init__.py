@@ -1244,7 +1244,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if lastRequest == "$CD":
                 self.fluidConfig = self.lastResponse
                 self.fluidYaml = yaml.safe_load(self.lastResponse)
-                self._settings.set(["fluidYaml"], self.fluidYaml)
+                self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False))
                 self._settings.save(trigger_event=True)
                 self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
 
