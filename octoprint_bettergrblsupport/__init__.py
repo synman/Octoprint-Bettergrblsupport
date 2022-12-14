@@ -142,7 +142,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.pausedPower = 0
         self.pausedPositioning = 0
 
-        self.lastRequest = None
+        self.lastRequest = []
         self.lastResponse = ""
 
         self.grblConfig = None
@@ -516,8 +516,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 self._printer.commands("Cat /sd/config")
             else:
-                self.lastRequest = "$+" if _bgs.is_grbl_esp32(self) else "$$"
-                self._printer.commands(self.lastRequest)
+                self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
 
 
     # #~~ AssetPlugin mixin
@@ -595,7 +594,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if machine is printing
         if "M105" in cmd.upper():
-            if (self.disablePolling and self._printer.is_printing()) or not self.lastRequest is None:
+            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
@@ -659,6 +658,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106", "N")):
             self._logger.debug("ignoring [%s]", cmd)
             return (None, )
+
+        self.lastRequest.append(cmd)
 
         # forward on coordinate system change
         if cmd.upper() in ("G54", "G55", "G56", "G57", "G58", "G59"):
@@ -804,8 +805,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 return "Cat /sd/config"
 
-            self.lastRequest = "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
-            return self.lastRequest
+            return "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
 
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
@@ -1142,8 +1142,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", ""))
             self._settings.set(["grblVersion"], self.grblVersion)
             self._settings.save(trigger_event=True)
-            if _bgs.is_grbl_fluidnc(self) and self.lastRequest != "$CD": 
-                self.lastRequest = "$CD"
+            if _bgs.is_grbl_fluidnc(self) and "$CD" not in self.lastRequest:
                 self._printer.commands("$CD")
             return
 
@@ -1228,13 +1227,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # all that is left is an acknowledgement
         self.lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
-        # are we out of sync?
-        if len(self.lastResponse) != 0:
-            if self.lastRequest == "$CD":
+        if len(self.lastRequest) > 0:
+            lastRequest = self.lastRequest[0]
+
+            if lastRequest == "$CD":
                 self.fluidConfig = self.lastResponse
                 self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
 
-            if self.lastRequest in ("$$", "$+", "M115"): 
+            if lastRequest in ("$$", "$+", "M115"): 
                 self.grblConfig = self.lastResponse.split("\n")
                 self._logger.debug("__init__: grbl Config: %s" % self.grblConfig)
 
@@ -1254,10 +1254,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 self._settings.save(trigger_event=True)
 
-            self.lastRequest = None
+            self.lastRequest.pop(0)
             self.lastResponse = ""
-        else:
-            self._logger.warn("__init__: empty lastResponse - are we out of sync?")
 
         return "ok "
 
