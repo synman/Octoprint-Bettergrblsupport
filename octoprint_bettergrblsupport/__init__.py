@@ -44,6 +44,7 @@ import re
 import logging
 import json
 import flask
+import yaml
 
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
@@ -1115,7 +1116,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if "MSG:" in line.upper():
             ignoreList = ["[MSG:'$H'|'$X' to unlock]"]
 
-            if line not in ignoreList:
+            if not line.rstrip("\r").rstrip("\n").strip() in ignoreList:
                 # auto reset
                 if "reset to continue" in line.lower():
                     # automatically perform a soft reset if GRBL says we need one
@@ -1130,8 +1131,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     if len(line) > 0:
                         _bgs.add_to_notify_queue(self, [line])
+            else:
+                self.lastRequest = []
+                self.lastResponse = ""
 
-            return
+            return 
 
         # add to our lastResponse if this is not an acknowledgment
         if not "ok" in line.lower():
@@ -1143,7 +1147,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", ""))
             self._settings.set(["grblVersion"], self.grblVersion)
             self._settings.save(trigger_event=True)
-            if _bgs.is_grbl_fluidnc(self) and "$CD" not in self.lastRequest and self.fluidConfig is None:
+            if "$CD" not in self.lastRequest and self.fluidConfig is None and _bgs.is_grbl_fluidnc(self):
                 self._printer.commands("$CD")
             return
 
@@ -1209,7 +1213,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 return line
 
-        if not "ok" in line.lower():
+        if not line.lstrip().lower().startswith("ok"):
             return
 
         # I've never seen these
@@ -1229,13 +1233,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
         if len(self.lastRequest) > 0:
-            self._logger.debug("__init__: last request: [%s]" % self.lastRequest[0])
-            self._logger.debug("__init__: last response: [%s]" % self.lastResponse)
             lastRequest = self.lastRequest[0]
             self.lastRequest.pop(0)
 
             if lastRequest == "$CD":
-                self.fluidConfig = self.lastResponse
+                self.fluidConfig = yaml.safe_load(self.lastResponse)
                 self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
 
             if lastRequest in ("$$", "$+", "M115"): 
