@@ -148,6 +148,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblConfig = None
         self.fluidConfig = None
+        self.fluidYaml = None
 
         self.bgs_filters = [
             {"name": "Suppress status report requests", "regex": "^Send: \\?$"},
@@ -253,7 +254,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             invertZ = False,
             notifyFrameSize = True,
             bgsFilters = self.bgs_filters,
-            activeFilters = []
+            activeFilters = [],
+            fluidYaml = {}
         )
 
 
@@ -340,6 +342,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._logger.debug("axis inversion X=[{}] Y=[{}] Z=[{}]".format(self.invertX, self.invertY, self.invertZ))
 
+        self.fluidYaml = self._settings.get(["fluidYaml"])
+
+        self.fluidConfig = self._settings.get(["fluidConfig"])
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
 
@@ -1237,7 +1242,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.lastRequest.pop(0)
 
             if lastRequest == "$CD":
-                self.fluidConfig = yaml.safe_load(self.lastResponse)
+                self.fluidConfig = self.lastResponse
+                self.fluidYaml = yaml.safe_load(self.lastResponse)
+                self._settings.set(["fluidYaml"], self.fluidYaml)
+                self._settings.save(trigger_event=True)
                 self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
 
             if lastRequest in ("$$", "$+", "M115"): 
