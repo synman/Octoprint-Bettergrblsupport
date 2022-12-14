@@ -1323,6 +1323,11 @@ def is_grbl_esp32(_plugin):
     _plugin._logger.debug("_bgs: is_grbl_esp32 result=[{}]".format(oneDotOne))
     return oneDotOne
 
+def is_grbl_fluidnc(_plugin):
+    oneDotOne = " FLUIDNC " in _plugin.grblVersion.upper()
+    _plugin._logger.debug("_bgs: is_grbl_fluidnc result=[{}]".format(oneDotOne))
+    return oneDotOne
+
 
 def is_latin_encoding_available(_plugin):
     octoprintVersion = _plugin.octoprintVersion

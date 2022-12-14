@@ -142,6 +142,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.pausedPower = 0
         self.pausedPositioning = 0
 
+        self.lastRequest = None
+        self.lastResponse = ""
+
+        self.grblConfig = None
+        self.fluidConfig = None
+
         self.bgs_filters = [
             {"name": "Suppress status report requests", "regex": "^Send: \\?$"},
             {"name": "Suppress acknowledgement responses", "regex": "^Recv: ok$"},
@@ -579,6 +585,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return None
 
+        cmd = cmd.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
+
+        # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
+        if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
+            _bgs.multipoint_zprobe_move(self)
+            return (None, )
+
         # suppress temperature if machine is printing
         if "M105" in cmd.upper():
             if self.disablePolling and self._printer.is_printing():
@@ -589,7 +602,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     # go to sleep if autosleep and now - last > interval
                     # self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.time(), time.time() - self.autoSleepTimer))
                     if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
-                        if self.grblState.upper().strip() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
+                        if self.grblState.upper() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
                             _bgs.queue_cmds_and_send(self, ["$SLP"])
                         else:
                             self._logger.debug("resetting autosleep timer")
@@ -613,36 +626,61 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblState = "Home" if "$H" in cmd.upper() else "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
-        # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
-        if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
-            _bgs.multipoint_zprobe_move(self)
-            return (None, )
-
         # suppress comments and extraneous commands that may cause wayward
         # grbl instances to error out
-        if cmd.upper().lstrip().startswith((";", "(", "%")):
+        if cmd.upper().startswith((";", "(", "%")):
             self._logger.debug('Ignoring extraneous [%s]', cmd)
             return (None, )
 
+        # suppress reset line #s
+        if self.suppressM110 and cmd.upper().startswith('M110'):
+            self._logger.debug('Ignoring %s', cmd)
+
+            if self.connectionState == Events.CONNECTING and not self.handshakeSent:
+                self._logger.debug("sending initial handshake")
+                self.handshakeSent = True
+                return ("\n\n\x18", )
+
+            return (None, )
+
+        # suppress initialize SD - M21
+        if cmd.upper().startswith('M21'):
+            self._logger.debug('Ignoring %s', cmd)
+            return (None,)
+
+        # ignore all of these -- they do not apply to GRBL
+        # M108 (heater off)
+        # M84 (disable motors)
+        # M104 (set extruder temperature)
+        # M140 (set bed temperature)
+        # M106 (fan on/off)
+        # N -- suggests a line number and we don't roll like that
+        if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106", "N")):
+            self._logger.debug("ignoring [%s]", cmd)
+            return (None, )
+
+        # capture this as our last request sent
+        self.lastRequest = cmd
+
         # forward on coordinate system change
-        if cmd.upper().strip() in ("G54", "G55", "G56", "G57", "G58", "G59"):
-            self.grblCoordinateSystem = cmd.upper().strip()
+        if cmd.upper() in ("G54", "G55", "G56", "G57", "G58", "G59"):
+            self.grblCoordinateSystem = cmd.upper()
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coord=self.grblCoordinateSystem))
 
         # M8 (air assist on) processing - work in progress
-        if cmd.upper().strip() in ("M7", "M8"):
-            self.coolant = cmd.upper().strip()
+        if cmd.upper() in ("M7", "M8"):
+            self.coolant = cmd.upper()
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
 
-            if self.overrideM8 and cmd.upper().strip() == "M8":
+            if self.overrideM8 and cmd.upper() == "M8":
                 self._logger.debug('Turning ON Air Assist')
                 subprocess.call(self.m8Command, shell=True)
 
                 return (None,)
 
         # M9 (air assist off) processing - work in progress
-        if cmd.upper().strip() == "M9":
-            self.coolant = cmd.upper().strip()
+        if cmd.upper() == "M9":
+            self.coolant = cmd.upper()
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
 
             if self.overrideM9:
@@ -655,7 +693,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
 
         # safety door
-        if cmd.upper().strip() == "SAFETYDOOR":
+        if cmd.upper() == "SAFETYDOOR":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Triggering safety door ")
                 return ("? {} ?".format("\x84"), )
@@ -663,7 +701,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # cancel jog
-        if cmd.upper().strip() == "CANCELJOG":
+        if cmd.upper() == "CANCELJOG":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Cancelling jog")
                 return ("? {} ?".format("\x85"), )
@@ -671,7 +709,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # normal feed
-        if cmd.upper().strip() == "FEEDNORMAL":
+        if cmd.upper() == "FEEDNORMAL":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting normal feed rate")
                 return ("? {} ?".format("\x90"), )
@@ -679,7 +717,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # feed +10%
-        if cmd.upper().strip() == "FEEDPLUS10":
+        if cmd.upper() == "FEEDPLUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate +10%")
                 return ("? {} ?".format("\x91"), )
@@ -687,7 +725,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # feed -10%
-        if cmd.upper().strip() == "FEEDMINUS10":
+        if cmd.upper() == "FEEDMINUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate -10%")
                 return ("? {} ?".format("\x92"), )
@@ -695,7 +733,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # feed +1%
-        if cmd.upper().strip() == "FEEDPLUS1":
+        if cmd.upper() == "FEEDPLUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate +1%")
                 return ("? {} ?".format("\x93"), )
@@ -703,7 +741,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # feed -1%
-        if cmd.upper().strip() == "FEEDMINUS1":
+        if cmd.upper() == "FEEDMINUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate -1%")
                 return ("? {} ?".format("\x94"), )
@@ -711,7 +749,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # normal spindle
-        if cmd.upper().strip() == "SPINDLENORMAL":
+        if cmd.upper() == "SPINDLENORMAL":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting normal spindle speed")
                 return ("? {} ?".format("\x99"), )
@@ -719,7 +757,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # spindle +10%
-        if cmd.upper().strip() == "SPINDLEPLUS10":
+        if cmd.upper() == "SPINDLEPLUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed +10%")
                 return ("? {} ?".format("\x9A"), )
@@ -727,7 +765,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # spindle -10%
-        if cmd.upper().strip() == "SPINDLEMINUS10":
+        if cmd.upper() == "SPINDLEMINUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed -10%")
                 return ("? {} ?".format("\x9B"), )
@@ -735,7 +773,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # spindle +1%
-        if cmd.upper().strip() == "SPINDLEPLUS1":
+        if cmd.upper() == "SPINDLEPLUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed +1%")
                 return ("? {} ?".format("\x9C"), )
@@ -743,7 +781,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # spindle -1%
-        if cmd.upper().strip() == "SPINDLEMINUS1":
+        if cmd.upper() == "SPINDLEMINUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed -1%")
                 return ("? {} ?".format("\x9D"), )
@@ -751,7 +789,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (None, )
 
         # toggle spindle
-        if cmd.upper().strip() == "TOGGLESPINDLE":
+        if cmd.upper() == "TOGGLESPINDLE":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Toggling spindle stop")
                 return ("? {} ?".format("\x9E"), )
@@ -769,22 +807,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return "Cat /sd/config"
 
             return "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
-
-        # suppress reset line #s
-        if self.suppressM110 and cmd.upper().startswith('M110'):
-            self._logger.debug('Ignoring %s', cmd)
-
-            if self.connectionState == Events.CONNECTING and not self.handshakeSent:
-                self._logger.debug("sending initial handshake")
-                self.handshakeSent = True
-                return ("\n\n\x18", )
-
-            return (None, )
-
-        # suppress initialize SD - M21
-        if cmd.upper().startswith('M21'):
-            self._logger.debug('Ignoring %s', cmd)
-            return (None,)
 
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
@@ -813,25 +835,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set(["grblVersion"], self.grblVersion)
             self._settings.save(trigger_event=True)
 
-
-        # ignore all of these -- they do not apply to GRBL
-        # M108 (heater off)
-        # M84 (disable motors)
-        # M104 (set extruder temperature)
-        # M140 (set bed temperature)
-        # M106 (fan on/off)
-        # N -- suggests a line number and we don't roll like that
-        if cmd.upper().startswith(("M108", "M84", "M104", "M140", "M106", "N")):
-            self._logger.debug("ignoring [%s]", cmd)
-            return (None, )
-
-        # emergency stop
-        # if cmd.upper().startswith("M112"):
-        #     self._logger.debug('EMERGENCY STOP')
-        #     _bgs.add_to_notify_queue(self, ["EMERGENCY STOP"])
-        #     self._printer.commands(["M999", "$SLP"], force=True)
-        #     return ("!",)
-
         # we need to track absolute position mode for "RUN" position updates
         if "G90" in cmd.upper():
             # absolute positioning
@@ -849,36 +852,34 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.lastGCommand = cmd[:3] if cmd[2:3].isnumeric() else cmd[:2]
 
         # use our saved G command if our line starts with a coordinate
-        if cmd.upper().lstrip().startswith(("X", "Y", "Z")):
-            command = self.lastGCommand.upper() + " " + cmd.upper().strip()
-        else:
-            command = cmd.upper().strip()
+        if cmd.upper().startswith(("X", "Y", "Z")):
+            cmd = self.lastGCommand + " " + cmd
 
         # keep track of distance traveled
         found = False
         foundZ = False
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
         if not match is None:
             self.grblX = float(match.groups(1)[0]) if self.positioning == 0 else self.grblX + float(match.groups(1)[0])
             found = True
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Yy]\ *(-?[\d.]+).*", cmd)
         if not match is None:
             self.grblY = float(match.groups(1)[0]) if self.positioning == 0 else self.grblY + float(match.groups(1)[0])
             found = True
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Z]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
         if not match is None:
             self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
             found = True
             foundZ = True
 
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[F]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
         if not match is None:
             grblSpeed = float(match.groups(1)[0])
 
@@ -887,16 +888,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if self.feedRate != 0:
                     if not foundZ:
                         grblSpeed = grblSpeed * self.feedRate
-                        command = command.replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
-                        command = command.replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
+                        cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
+                        cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
                         # self._logger.debug("feed rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
 
                 # check if plunge rate is overridden
                 if self.plungeRate != 0:
                     if foundZ:
                         grblSpeed = grblSpeed * self.plungeRate
-                        command = command.replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
-                        command = command.replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
+                        cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
+                        cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
                         # self._logger.debug("plunge rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
 
             # make sure we post all speed on / off events
@@ -907,15 +908,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             found = True
 
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[S]\ *(-?[\d.]+).*", command)
+        match = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
         if not match is None:
             grblPowerLevel = float(match.groups(1)[0])
 
             # check if power rate is overridden
             if self.powerRate != 0 and grblPowerLevel != 0:
                 grblPowerLevel = grblPowerLevel * self.powerRate
-                command = command.replace("S" + match.groups(1)[0], "S{:.3f}".format(grblPowerLevel))
-                command = command.replace("S " + match.groups(1)[0], "S {:.3f}".format(grblPowerLevel))
+                cmd = cmd.upper().replace("S" + match.groups(1)[0], "S{:.3f}".format(grblPowerLevel))
+                cmd = cmd.upper().replace("S " + match.groups(1)[0], "S {:.3f}".format(grblPowerLevel))
                 # self._logger.debug("power rate modified from [{}] to [{}]".format(match.groups(1)[0], grblPowerLevel))
 
             # make sure we post all power on / off events
@@ -938,7 +939,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 coolant=self.coolant))
                 self.timeRef = currentTime
 
-        return (command, )
+        return (cmd, )
 
 
     # #-- gcode received hook (
@@ -1000,18 +1001,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                             positioning=self.positioning))
 
             # odd edge case where a machine could be asleep or holding while connecting
-            if not self._printer.is_operational() and self.grblState.upper().strip() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
+            if not self._printer.is_operational() and self.grblState.upper() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
                 self._printer.commands("M999", force=True)
 
             # pop any queued commands if state is IDLE or HOLD:0, CHECK, or ALARM
-            if len(self.grblCmdQueue) > 0 and self.grblState.upper().strip() in ("IDLE", "HOLD:0", "CHECK", "ALARM"):
+            if len(self.grblCmdQueue) > 0 and self.grblState.upper() in ("IDLE", "HOLD:0", "CHECK", "ALARM"):
                 self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
                 self._printer.commands(self.grblCmdQueue[0])
                 self.grblCmdQueue.pop(0)
                 return response
 
             # add a notification if we just homed
-            if self.grblState.upper().strip() == "HOME":
+            if self.grblState.upper() == "HOME":
                 _bgs.add_to_notify_queue(self, ["Machine has been homed"])
 
             # parse the line to see if we have any other useful data
@@ -1021,63 +1022,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             #         self.add_to_notify_queue(stat)
 
             return self.pick_a_response(response)
-
-        if line.strip().startswith('Grbl'):
-            # Hack to make Arduino based GRBL work.
-            # When the serial port is opened, it resets and the "hello" command
-            # is not processed.
-            # This makes Octoprint recognise the startup message as a successful connection.
-            return "ok " + line
-
-        # grbl version signatures
-        if line.startswith(("[VER:", "[OPT:", "[DEVELOPER:", "[CONFIG:", "[ORIGIN:", "[PRODUCER:", "[AUTHOR:", "[MODEL:", "[OLF:", "[OLH:", "[SN:", "[OLM:", "[DATE:")):
-            self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", "")).strip()
-            self._settings.set(["grblVersion"], self.grblVersion)
-            self._settings.save(trigger_event=True)
-            return
-
-        # $G response
-        if line.startswith("[GC:"):
-            parserState = line.replace("[", "").replace("]", "").replace("GC:", "")
-
-            for state in parserState.split(" "):
-                if state in ("G90", "G91"):
-                    self.positioning = int(state[2:3])
-                    self._logger.debug("parser state indicates [%s] distance mode", "absolute" if self.positioning == 0 else "relative")
-
-                elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
-                    self._logger.debug("parser state indicates [%s] motion mode", state)
-                elif state in ("G54", "G55", "G56", "G57", "G58", "G59"):
-                    self.grblCoordinateSystem = state
-                    self._logger.debug("parser state indicates [%s] coordinate system active", self.grblCoordinateSystem)
-                elif state in ("G17", "G18", "G19"):
-                    self._logger.debug("parser state indicates [%s] plane selected", state)
-                elif state in ("G20", "G21"):
-                    self._logger.debug("parser state indicates [%s] uom active", "metric" if state == "G21" else "imperial")
-                elif state in ("G93", "G94"):
-                    self._logger.debug("parser state indicates [%s] feed rate mode", state)
-                elif state in ("M3", "M4", "M5"):
-                    self._logger.debug("parser state indicates [%s] spindle state", state)
-                elif state in ("M7", "M8", "M9"):
-                    self.coolant = state
-                    self._logger.debug("parser state indicates [%s] coolant state", state)
-                elif state.startswith("F"):
-                    self.grblSpeed = round(float(state.replace("F", "")))
-                    self._logger.debug("parser state indicates feed rate of [%d]", self.grblSpeed)
-                elif state.startswith("S"):
-                    self.grblPowerLevel = float(state.replace("S", ""))
-                    self._logger.debug("parser state indicates spindle speed of [%f]", self.grblPowerLevel)
-                elif state.startswith("T"):
-                    self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
-
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
-                                                                            speed=self.grblSpeed,
-                                                                            power=self.grblPowerLevel,
-                                                                            coord=self.grblCoordinateSystem,
-                                                                            coolant=self.coolant,
-                                                                            positioning=self.positioning))
-
-            return self.pick_a_response(None)
 
         # look for an alarm
         if line.lower().startswith('alarm:'):
@@ -1159,12 +1103,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # don't tell octoprint because it will freak out
             return "ok " + desc
+            
+        if line.startswith('Grbl'):
+            # Hack to make Arduino based GRBL work.
+            # When the serial port is opened, it resets and the "hello" command
+            # is not processed.
+            # This makes Octoprint recognise the startup message as a successful connection.
+            return "ok " + line
 
         # forward any messages to the action notification plugin
         if "MSG:" in line.upper():
             ignoreList = ["[MSG:'$H'|'$X' to unlock]"]
 
-            if line.strip() not in ignoreList:
+            if line not in ignoreList:
                 # auto reset
                 if "reset to continue" in line.lower():
                     # automatically perform a soft reset if GRBL says we need one
@@ -1177,10 +1128,66 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     line = line.replace("[","").replace("]","").replace("MSG:","")
                     line = line.replace("\n", "").replace("\r", "")
 
-                    if len(line.strip()) > 0:
+                    if len(line) > 0:
                         _bgs.add_to_notify_queue(self, [line])
 
             return
+
+        # add to our lastResponse if this is not an acknowledgment
+        lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
+        if lastResponse.upper() != "OK":
+            self.lastResponse = self.lastResponse + lastResponse + "\n" 
+
+        # grbl version signatures
+        if line.startswith(("[VER:", "[OPT:", "[DEVELOPER:", "[CONFIG:", "[ORIGIN:", "[PRODUCER:", "[AUTHOR:", "[MODEL:", "[OLF:", "[OLH:", "[SN:", "[OLM:", "[DATE:")):
+            self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", ""))
+            self._settings.set(["grblVersion"], self.grblVersion)
+            self._settings.save(trigger_event=True)
+            if _bgs.is_grbl_fluidnc(self): _bgs.queue_cmds_and_send(self, ["$CD"])
+            return
+
+        # $G response
+        if line.startswith("[GC:"):
+            parserState = line.replace("[", "").replace("]", "").replace("GC:", "")
+
+            for state in parserState.split(" "):
+                if state in ("G90", "G91"):
+                    self.positioning = int(state[2:3])
+                    self._logger.debug("parser state indicates [%s] distance mode", "absolute" if self.positioning == 0 else "relative")
+
+                elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
+                    self._logger.debug("parser state indicates [%s] motion mode", state)
+                elif state in ("G54", "G55", "G56", "G57", "G58", "G59"):
+                    self.grblCoordinateSystem = state
+                    self._logger.debug("parser state indicates [%s] coordinate system active", self.grblCoordinateSystem)
+                elif state in ("G17", "G18", "G19"):
+                    self._logger.debug("parser state indicates [%s] plane selected", state)
+                elif state in ("G20", "G21"):
+                    self._logger.debug("parser state indicates [%s] uom active", "metric" if state == "G21" else "imperial")
+                elif state in ("G93", "G94"):
+                    self._logger.debug("parser state indicates [%s] feed rate mode", state)
+                elif state in ("M3", "M4", "M5"):
+                    self._logger.debug("parser state indicates [%s] spindle state", state)
+                elif state in ("M7", "M8", "M9"):
+                    self.coolant = state
+                    self._logger.debug("parser state indicates [%s] coolant state", state)
+                elif state.startswith("F"):
+                    self.grblSpeed = round(float(state.replace("F", "")))
+                    self._logger.debug("parser state indicates feed rate of [%d]", self.grblSpeed)
+                elif state.startswith("S"):
+                    self.grblPowerLevel = float(state.replace("S", ""))
+                    self._logger.debug("parser state indicates spindle speed of [%f]", self.grblPowerLevel)
+                elif state.startswith("T"):
+                    self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
+
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                            speed=self.grblSpeed,
+                                                                            power=self.grblPowerLevel,
+                                                                            coord=self.grblCoordinateSystem,
+                                                                            coolant=self.coolant,
+                                                                            positioning=self.positioning))
+
+            return self.pick_a_response(None)
 
         # add a notification if we just z-probed
         # _bgs will pick this up if zProbe is active
@@ -1199,41 +1206,55 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.grblSettings.update({settingsId: [settingsValue, self.grblSettingsNames.get(settingsId)]})
                 self._logger.debug("setting id=[{}] value=[{}] description=[{}]".format(settingsId, settingsValue, self.grblSettingsNames.get(settingsId)))
 
-                if settingsId >= 132:
-                    self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
-                    self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
-
-                    # lets populate our x,y,z limits
-                    self.xLimit = float(self.grblSettings.get(130)[0])
-                    self.yLimit = float(self.grblSettings.get(131)[0])
-                    self.zLimit = float(self.grblSettings.get(132)[0])
-
-                    # assign our default distance if it is not already set to the lower of x,y limits
-                    distance = self._settings.get(["distance"])
-                    if distance == 0:
-                        distance = float(min([self.xLimit, self.yLimit]))
-                    self._settings.set(["control_distance"], distance)
-
-                    self._settings.save(trigger_event=True)
-
                 return line
 
-        if not line.rstrip().endswith('ok'):
-            return
+        # if not line.rstrip().endswith('ok'):
+        #     return
 
         # I've never seen these
-        if line.startswith('{'):
-             # Regular ACKs
-             # {0/0}ok
-             # {5/16}ok
-            return 'ok '
-        elif '{' in line:
-             # Ack with return data
-             # F300S1000{0/0}ok
-            (before, _, _) = line.partition('{')
-            return 'ok ' + before
-        else:
-            return 'ok '
+        # if line.startswith('{'):
+        #      # Regular ACKs
+        #      # {0/0}ok
+        #      # {5/16}ok
+        #     return 'ok '
+        # elif '{' in line:
+        #      # Ack with return data
+        #      # F300S1000{0/0}ok
+        #     (before, _, _) = line.partition('{')
+        #     return 'ok ' + before
+        # else:
+
+        # all that is left is an acknowledgement
+        self.lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
+
+        if self.lastRequest == "$CD":
+            self.fluidConfig = self.lastResponse
+            self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
+
+        if self.lastRequest in ("$$", "$+", "M115"): 
+            self.grblConfig = self.lastResponse.split("\n")
+            self._logger.debug("__init__: grbl Config: %s" % self.grblConfig)
+
+            self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
+            self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
+
+            # lets populate our x,y,z limits
+            self.xLimit = float(self.grblSettings.get(130)[0])
+            self.yLimit = float(self.grblSettings.get(131)[0])
+            self.zLimit = float(self.grblSettings.get(132)[0])
+
+            # assign our default distance if it is not already set to the lower of x,y limits
+            distance = self._settings.get(["distance"])
+            if distance == 0:
+                distance = float(min([self.xLimit, self.yLimit]))
+            self._settings.set(["control_distance"], distance)
+
+            self._settings.save(trigger_event=True)
+
+        self.lastRequest = None
+        self.lastResponse = ""
+
+        return "ok "
 
 
     def pick_a_response(self, firstChoice):
@@ -1320,8 +1341,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "updateGrblSetting":
-            self._printer.commands("${}={}".format(data.get("id").strip(), data.get("value").strip()))
-            self.grblSettings.update({int(data.get("id")): [data.get("value").strip(), self.grblSettingsNames.get(int(data.get("id")))]})
+            self._printer.commands("${}={}".format(data.get("id"), data.get("value")))
+            self.grblSettings.update({int(data.get("id")): [data.get("value"), self.grblSettingsNames.get(int(data.get("id")))]})
             # self._printer.commands("$$")
             return
 
@@ -1333,11 +1354,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "restoreGrblSettings":
             settings = self._settings.get(["grblSettingsBackup"])
 
-            if settings is None or len(settings.strip()) == 0:
+            if settings is None or len(settings) == 0:
                 return
 
             for setting in settings.split("||"):
-                if len(setting.strip()) > 0:
+                if len(setting) > 0:
                     set = setting.split("|")
                     # self._logger.info("restoreGrblSettings: {}".format(set))
                     command = "${}={}".format(set[0], set[1])
@@ -1401,11 +1422,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             width = float(data.get("width"))
 
             # check distance against limits
-            if abs(length) > abs(self.yLimit):
-                return flask.abort(403, "Distance exceeds Y axis limit")
-            if abs(width) > abs(self.xLimit):
-                return flask.abort(400, "Distance exceeds X axis limit")
-
+            #TODO: apply fluid config axes limits
+            if not _bgs.is_grbl_fluidnc(self):
+                if abs(length) > abs(self.yLimit):
+                    return flask.abort(403, "Distance exceeds Y axis limit")
+                if abs(width) > abs(self.xLimit):
+                    return flask.abort(400, "Distance exceeds X axis limit")
+                    
             _bgs.do_framing(self, data)
             self._logger.debug("frame submitted l=[{}] w=[{}] o=[{}]".format(data.get("length"), data.get("width"), data.get("origin")))
             return
