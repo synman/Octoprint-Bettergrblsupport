@@ -1143,7 +1143,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", ""))
             self._settings.set(["grblVersion"], self.grblVersion)
             self._settings.save(trigger_event=True)
-            if _bgs.is_grbl_fluidnc(self): _bgs.queue_cmds_and_send(self, ["$CD"])
+            
+            if _bgs.is_grbl_fluidnc(self) and self.lastRequest != "$CD": _bgs.queue_cmds_and_send(self, ["$CD"])
             return
 
         # $G response
