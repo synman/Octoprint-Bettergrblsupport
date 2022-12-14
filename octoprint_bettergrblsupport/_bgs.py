@@ -256,6 +256,7 @@ def on_event(_plugin, event, payload):
         _plugin.is_operational = True
         _plugin._settings.set_boolean(["is_operational"], _plugin.is_operational)
 
+        _plugin.fluidConfig = None
         _plugin._printer.commands(["$I", "$G"])
         # _plugin._printer.fake_ack()
 
@@ -1309,8 +1310,12 @@ def wait_for_metadata_processing(_plugin, filename, notify):
 
 
 def is_laser_mode(_plugin):
-    _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
-    return int(float(_plugin.grblSettings.get(32)[0])) != 0
+    # TODO add fluidNC support here
+    if not is_grbl_fluidnc(_plugin):
+        _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
+        return int(float(_plugin.grblSettings.get(32)[0])) != 0
+    
+    return False
 
 
 def is_grbl_one_dot_one(_plugin):

@@ -342,9 +342,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._logger.debug("axis inversion X=[{}] Y=[{}] Z=[{}]".format(self.invertX, self.invertY, self.invertZ))
 
-        self.fluidYaml = self._settings.get(["fluidYaml"])
+        fluidYaml = self._settings.get(["fluidYaml"])
+        if not fluidYaml is None and len(fluidYaml) > 0:
+            self.fluidYaml = yaml.safe_load(fluidYaml)
 
-        self.fluidConfig = self._settings.get(["fluidConfig"])
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
 
