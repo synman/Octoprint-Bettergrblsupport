@@ -1134,8 +1134,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # add to our lastResponse if this is not an acknowledgment
-        lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
-        if lastResponse.upper() != "OK":
+        if not "ok" in line.lower():
+            lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
             self.lastResponse = self.lastResponse + lastResponse + "\n" 
 
         # grbl version signatures
@@ -1143,7 +1143,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", ""))
             self._settings.set(["grblVersion"], self.grblVersion)
             self._settings.save(trigger_event=True)
-            if _bgs.is_grbl_fluidnc(self) and "$CD" not in self.lastRequest:
+            if _bgs.is_grbl_fluidnc(self) and "$CD" not in self.lastRequest and self.fluidConfig is None:
                 self._printer.commands("$CD")
             return
 
@@ -1209,7 +1209,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 return line
 
-        if not line.rstrip().rstrip("\r").rstrip("\n").lower().endswith('ok'):
+        if not "ok" in line.lower():
             return
 
         # I've never seen these
