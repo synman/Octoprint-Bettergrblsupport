@@ -1209,8 +1209,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 return line
 
-        # if not line.rstrip().endswith('ok'):
-        #     return
+        if not line.rstrip().rstrip("\r").rstrip("\n").lower().endswith('ok'):
+            return
 
         # I've never seen these
         # if line.startswith('{'):
@@ -1232,6 +1232,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug("__init__: last request: [%s]" % self.lastRequest[0])
             self._logger.debug("__init__: last response: [%s]" % self.lastResponse)
             lastRequest = self.lastRequest[0]
+            self.lastRequest.pop(0)
 
             if lastRequest == "$CD":
                 self.fluidConfig = self.lastResponse
@@ -1257,7 +1258,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 self._settings.save(trigger_event=True)
 
-            self.lastRequest.pop(0)
             self.lastResponse = ""
 
         return "ok "
