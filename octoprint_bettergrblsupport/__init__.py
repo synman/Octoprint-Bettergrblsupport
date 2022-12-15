@@ -45,7 +45,6 @@ import logging
 import json
 import flask
 import yaml
-import requests
 
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
