@@ -20,6 +20,13 @@ $(function() {
 
       self.isMultiPoint = ko.observable(false);
 
+      self.fluidSettings = ko.observableArray([]);
+      self.updateFluid = function(key, value, oldvalue) {
+        if (value != oldvalue) {
+          self.settings.plugins.bettergrblsupport.fluidSettings[key](value);
+        }
+      };
+
       self.grblSettings = ko.observableArray([]);
       self.updateSetting = function(id, value, oldvalue) {
         if (self.is_printing()) {
@@ -207,6 +214,34 @@ $(function() {
               oldvalue: setting[1],
               description: setting[2]
           });
+        }
+      };
+
+    self.mapFluidToArray = function(fluid) {
+        var result = [];
+        for (var key in fluid) {
+          result.push({ key: key, value: fluid[key](), oldvalue: fluid[key]() }); 
+        }
+        
+        return result;
+    };
+
+      // establish our fluid settings state
+      self.onSettingsShown = function() {
+        if (self.settings.plugins.bettergrblsupport.fluidYaml()) {
+          self.fluidSettings(self.mapFluidToArray(self.settings.plugins.bettergrblsupport.fluidSettings));
+        }  
+      };
+
+      // move our updated fluid settings to our plugin settings
+      self.onSettingsBeforeSave = function () {
+        if (self.settings.plugins.bettergrblsupport.fluidYaml()) {
+          for (var i in self.fluidSettings()) {
+            if (self.fluidSettings()[i].value != self.fluidSettings()[i].oldvalue) {
+              console.log("updating key=" + self.fluidSettings()[i].key + " value=" + self.fluidSettings()[i].value + " oldvalue=" + self.fluidSettings()[i].oldvalue);
+              self.settings.plugins.bettergrblsupport.fluidSettings[self.fluidSettings()[i].key](self.fluidSettings()[i].value);
+            }
+          }
         }
       };
 

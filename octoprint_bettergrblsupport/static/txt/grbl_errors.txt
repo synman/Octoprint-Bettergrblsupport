@@ -35,6 +35,7 @@
 37 Invalid gcode ID:37 G43.1 dynamic tool length offset is not assigned to configured tool length axis.
 38 Invalid gcode ID:38 Tool number greater than max supported value.
 39 P param max exceeded
+40 Check control pins
 60 Failed to mount device
 61 Failed to read
 62 Failed to open directory
@@ -49,9 +50,17 @@
 71 WiFi failed to start
 80 Number out of range for setting
 81 Invalid value for setting
+82 Failed to create file
+83 Failed to format filesystem
 90 Failed to send message
 100 Failed to store setting
 101 Failed to get setting status
 110 Authentication failed!
+111 End of line
+112 End of file
 120 Another interface is busy
 130 Jog Cancelled
+150 Bad Pin Specification
+152 Configuration is invalid. Check boot messages for ERR's.
+160 File Upload Failed
+161 File Download Failed

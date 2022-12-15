@@ -1165,6 +1165,17 @@ $(function() {
         z.innerHTML = z.innerHTML.replaceAll(" printed ", " streamed ");
     }
 
+    // cute hack for removing Printer from the Settings Menu
+    setTimeout(checkSettings, 100);
+    function checkSettings() {
+        var a = document.getElementById("UICsettingsMenu");
+        if (a != undefined) {
+            a.outerHTML = a.outerHTML.replaceAll("Printer ", "Machine ");
+        } else {
+            setTimeout(checkSettings, 100);
+        }
+    }
+
 
     function guid() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {

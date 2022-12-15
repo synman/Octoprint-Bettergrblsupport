@@ -295,10 +295,38 @@
 		<br>
 		<p>* Server restart is required for this setting change to take effect</p>
 		<br>
+	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+		<h4>FluidNC Settings</h4>
+	<!-- /ko -->
+	<!-- ko ifnot: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
 		<h4>Grbl Settings</h4>
+	<!-- /ko -->
 		Signature: <span data-bind="text: settings.plugins.bettergrblsupport.grblVersion"></span>
 		<hr>
 		<center>
+	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+			<table border=0 cellpadding=3>
+				<thead>
+					<tr>
+						<th align="right" width=30%>Id</th>
+						<th align="center" width=70%>Value</th>
+					</tr>
+				</thead>
+				<tbody data-bind="foreach: fluidSettings">
+					<tr>
+						<td align="right" data-bind="text: key"></td>
+						<td align="center">
+							<input type="text" class="input-min" style="width: 200px" data-bind="value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<br>
+			<b><span data-bind="text: settings.plugins.bettergrblsupport.fluidSettings['Config/Filename']"></span></b>
+			<br>
+			<textarea style="width: 90%; font-family:Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace;" spellcheck="false" rows="25" type="text" data-bind="value: settings.plugins.bettergrblsupport.fluidYaml"></textarea>
+	<!-- /ko -->
+	<!-- ko ifnot: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
 			<table width=90% border=0 cellpadding=3>
 				<thead>
 					<tr>
@@ -326,7 +354,13 @@
 					</td>
 				</tr>
 			</table>
+	<!-- /ko -->
 		</center>
+	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+		<br>
+		<p>* You must upload a new config file via ESP3D if you are making PIN changes</p>
+	<!-- /ko -->
+
 	</div>
 </div>
 </form>

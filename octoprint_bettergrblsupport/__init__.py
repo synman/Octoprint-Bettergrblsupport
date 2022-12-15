@@ -45,6 +45,7 @@ import logging
 import json
 import flask
 import yaml
+import requests
 
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
@@ -112,10 +113,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.grblVersion = "unknown"
 
-        self.xLimit = float(0)
-        self.yLimit = float(0)
-        self.zLimit = float(0)
-
         self.zProbeOffset = float(15.00)
         self.zProbeTravel = float(0.00)
         self.zProbeEndPos = float(5.00)
@@ -147,6 +144,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.lastResponse = ""
 
         self.grblConfig = None
+
+        self.fluidSettings = None
         self.fluidConfig = None
         self.fluidYaml = None
 
@@ -255,7 +254,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             notifyFrameSize = True,
             bgsFilters = self.bgs_filters,
             activeFilters = [],
-            fluidYaml = {}
+            fluidYaml = None,
+            fluidSettings = {}
         )
 
 
@@ -345,6 +345,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         fluidYaml = self._settings.get(["fluidYaml"])
         if not fluidYaml is None and len(fluidYaml) > 0:
             self.fluidYaml = yaml.safe_load(fluidYaml)
+
+        self.fluidSettings = self._settings.get(["fluidSettings"])
 
         if self.neverSendChecksum:
             self._settings.global_set(["serial", "checksumRequiringCommands"], [])
@@ -503,13 +505,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def on_settings_save(self, data):
         self._logger.debug("__init__: on_settings_save data=[{}]".format(data))
-
-        self._logger.debug("saving settings")
-        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return
+
+        self._logger.debug("saving settings")
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
         # let's bail if our only changes are frame dimensions or activeFilters
         if "frame_width" in data or "frame_length" in data or "frame_origin" in data or "activeFilters" in data:
@@ -517,6 +518,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # reload our config
         self.on_after_startup()
+
+        if "fluidYaml" in data:
+            self.fluidConfig = data.get("fluidYaml")
+            self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
+            _bgs.update_fluid_config(self)
+            return            
+
+        if "fluidSettings" in data:
+            for key, value in data.get("fluidSettings", {}).items():
+                self._printer.commands("${}={}".format(key, value))
 
         # refresh our grbl settings
         if not self._printer.is_printing():
@@ -701,7 +712,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SAFETYDOOR":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Triggering safety door ")
-                cmd = "? {} ?".format("\x84"), 
+                cmd = "? {} ?".format("\x84")
             else:
                 return (None, )
 
@@ -709,7 +720,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "CANCELJOG":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Cancelling jog")
-                cmd = "? {} ?".format("\x85"), 
+                cmd = "? {} ?".format("\x85")
             else:
                 return (None, )
 
@@ -717,7 +728,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDNORMAL":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting normal feed rate")
-                cmd = "? {} ?".format("\x90"), 
+                cmd = "? {} ?".format("\x90")
             else:
                 return (None, )
 
@@ -725,7 +736,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDPLUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate +10%")
-                cmd = "? {} ?".format("\x91"), 
+                cmd = "? {} ?".format("\x91")
             else:
                 return (None, )
 
@@ -733,7 +744,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDMINUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate -10%")
-                cmd = "? {} ?".format("\x92"), 
+                cmd = "? {} ?".format("\x92")
             else:
                 return (None, )
 
@@ -741,7 +752,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDPLUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate +1%")
-                cmd = "? {} ?".format("\x93"), 
+                cmd = "? {} ?".format("\x93")
             else:
                 return (None, )
 
@@ -749,7 +760,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "FEEDMINUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting feed rate -1%")
-                cmd = "? {} ?".format("\x94"), 
+                cmd = "? {} ?".format("\x94")
             else:
                 return (None, )
 
@@ -757,7 +768,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLENORMAL":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting normal spindle speed")
-                cmd = "? {} ?".format("\x99"), 
+                cmd = "? {} ?".format("\x99")
             else:
                 return (None, )
 
@@ -765,7 +776,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLEPLUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed +10%")
-                cmd = "? {} ?".format("\x9a"), 
+                cmd = "? {} ?".format("\x9a") 
             else:
                 return (None, )
 
@@ -773,7 +784,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLEMINUS10":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed -10%")
-                cmd = "? {} ?".format("\x9B"), 
+                cmd = "? {} ?".format("\x9B")
             else:
                 return (None, )
 
@@ -781,7 +792,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLEPLUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed +1%")
-                cmd = "? {} ?".format("\x9C"), 
+                cmd = "? {} ?".format("\x9C")
             else:
                 return (None, )
 
@@ -789,7 +800,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "SPINDLEMINUS1":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Setting spindle speed -1%")
-                cmd = "? {} ?".format("\x9D"), 
+                cmd = "? {} ?".format("\x9D")
             else:
                 return (None, )
 
@@ -797,7 +808,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() == "TOGGLESPINDLE":
             if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Toggling spindle stop")
-                cmd = "? {} ?".format("\x9E"), 
+                cmd = "? {} ?".format("\x9E")
             else:
                 return (None, )
 
@@ -838,7 +849,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # grbl version info
         if cmd.upper().startswith("$I"):
             self.grblVersion = ""
+            self.fluidYaml = ""
             self._settings.set(["grblVersion"], self.grblVersion)
+            self._settings.set(["fluidYaml"], self.fluidYaml)
             self._settings.save(trigger_event=True)
 
         # we need to track absolute position mode for "RUN" position updates
@@ -1100,6 +1113,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.debug("clearing %d commands from the command queue", len(self.grblCmdQueue))
                 self.grblCmdQueue.clear()
 
+            self.lastRequest = []
+            self.lastResponse = ""
+
             # put a message on our notification queue and force an inquiry
             _bgs.add_to_notify_queue(self, [desc])
             self._printer.commands("?")
@@ -1109,13 +1125,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.pause_print()
 
             # don't tell octoprint because it will freak out
-            return "ok " + desc
+            return "ok "
             
         if line.startswith('Grbl'):
             # Hack to make Arduino based GRBL work.
             # When the serial port is opened, it resets and the "hello" command
             # is not processed.
             # This makes Octoprint recognise the startup message as a successful connection.
+            self.lastRequest = []
+            self.lastResponse = ""
             return "ok " + line
 
         # forward any messages to the action notification plugin
@@ -1147,15 +1165,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not "ok" in line.lower():
             lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
             self.lastResponse = self.lastResponse + lastResponse + "\n" 
-
-        # grbl version signatures
-        if line.startswith(("[VER:", "[OPT:", "[DEVELOPER:", "[CONFIG:", "[ORIGIN:", "[PRODUCER:", "[AUTHOR:", "[MODEL:", "[OLF:", "[OLH:", "[SN:", "[OLM:", "[DATE:")):
-            self.grblVersion = (self.grblVersion + " " + line.replace("\n", "").replace("\r", ""))
-            self._settings.set(["grblVersion"], self.grblVersion)
-            self._settings.save(trigger_event=True)
-            if "$CD" not in self.lastRequest and self.fluidConfig is None and _bgs.is_grbl_fluidnc(self):
-                self._printer.commands("$CD")
-            return
 
         # $G response
         if line.startswith("[GC:"):
@@ -1242,6 +1251,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             lastRequest = self.lastRequest[0]
             self.lastRequest.pop(0)
 
+            # fluidnc config downloaded
             if lastRequest == "$CD":
                 self.fluidConfig = self.lastResponse
                 self.fluidYaml = yaml.safe_load(self.lastResponse)
@@ -1249,6 +1259,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.save(trigger_event=True)
                 self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
 
+                # lets populate our x,y,z limits (namely set distance)
+                _bgs.get_axes_limits(self)
+                # retreive the fluid settings out of config yaml 
+                self._printer.commands("$S")
+
+            # grbl settings received
             if lastRequest in ("$$", "$+", "M115"): 
                 self.grblConfig = self.lastResponse.split("\n")
                 self._logger.debug("__init__: grbl Config: %s" % self.grblConfig)
@@ -1256,18 +1272,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
 
-                # lets populate our x,y,z limits
-                self.xLimit = float(self.grblSettings.get(130)[0])
-                self.yLimit = float(self.grblSettings.get(131)[0])
-                self.zLimit = float(self.grblSettings.get(132)[0])
+                # lets populate our x,y,z limits (namely set distance)
+                if all(id in self.grblSettings for id in (130, 131, 132)):
+                    _bgs.get_axes_limits(self)
 
-                # assign our default distance if it is not already set to the lower of x,y limits
-                distance = self._settings.get(["distance"])
-                if distance == 0:
-                    distance = float(min([self.xLimit, self.yLimit]))
-                self._settings.set(["control_distance"], distance)
+            # grbl version signatures
+            if lastRequest == "$I":
+                self.grblVersion = self.lastResponse.replace("\n", " ").replace("\r", "")
+                self._logger.debug("__init__: grbl Signature: %s" % self.grblVersion)
 
+                self._settings.set(["grblVersion"], self.grblVersion)
                 self._settings.save(trigger_event=True)
+
+                # trigger a fluidnc config download if fluid is detected
+                if self.fluidConfig is None and _bgs.is_grbl_fluidnc(self):
+                    self._printer.commands("$CD")
+
+            # fluid settings outside of config yaml
+            if lastRequest == "$S":
+                self.fluidSettings = json.loads("{" + self.lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
+                self._settings.set(["fluidSettings"], self.fluidSettings)
+                self._settings.save(trigger_event=True)
+                self._logger.debug("__init__: fluid settings: {}".format(self.fluidSettings))
 
             self.lastResponse = ""
 
@@ -1334,6 +1360,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def on_api_command(self, command, data):
         self._logger.debug("__init__: on_api_command data=[{}]".format(data))
+
+        # get our max rates and limits
+        xf, yf, zf = _bgs.get_axes_max_rates(self)
+        xl, yl, zl = _bgs.get_axes_limits(self)
 
         if command == "cancelProbe":
             _bgs.grbl_alarm_or_error_occurred(self)
@@ -1429,7 +1459,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info("power rate overriden by %.0f%%", powerRate)
             return
 
-        # catch-all (should revisit state management) for validating printer State
+        # catch-all (TODO: should revisit state management) for validating printer State
         if not self._printer.is_ready() or not self.grblState in ("Idle", "Jog", "Check"):
             self._logger.debug("ignoring move related command - printer is not available")
             return
@@ -1439,12 +1469,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             width = float(data.get("width"))
 
             # check distance against limits
-            #TODO: apply fluid config axes limits
-            if not _bgs.is_grbl_fluidnc(self):
-                if abs(length) > abs(self.yLimit):
-                    return flask.abort(403, "Distance exceeds Y axis limit")
-                if abs(width) > abs(self.xLimit):
-                    return flask.abort(400, "Distance exceeds X axis limit")
+            if abs(length) > abs(yl):
+                return flask.abort(403, "Distance exceeds Y axis limit")
+            if abs(width) > abs(xl):
+                return flask.abort(400, "Distance exceeds X axis limit")
                     
             _bgs.do_framing(self, data)
             self._logger.debug("frame submitted l=[{}] w=[{}] o=[{}]".format(data.get("length"), data.get("width"), data.get("origin")))
@@ -1458,14 +1486,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             distance = float(data.get("distance"))
             axis = data.get("axis")
 
-            # max X feed rate
-            xf = int(float(self.grblSettings.get(110)[0]))
-            # max Y feed rate
-            yf = int(float(self.grblSettings.get(111)[0]))
-            # max Z feed rate
-            zf = int(float(self.grblSettings.get(112)[0]))
-
-            self._logger.debug("move direction=[{}] distance=[{}] axis=[{}] xlimit=[{}] ylimit=[{}] zlimit=[{}]".format(direction, distance, axis, self.xLimit, self.yLimit, self.zLimit))
+            self._logger.debug("move direction=[{}] distance=[{}] axis=[{}] xlimit=[{}] ylimit=[{}] zlimit=[{}]".format(direction, distance, axis, xl, yl, zl))
 
             if direction == "home":
                 if axis == "X":
@@ -1500,11 +1521,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             # check distance against limits
-            if ("west" in direction or "east" in direction) and abs(distance) > abs(self.xLimit):
+            if ("west" in direction or "east" in direction) and abs(distance) > abs(xl):
                 return flask.jsonify({'res' : "Distance exceeds X axis limit"})
-            if ("north" in direction or "south" in direction) and abs(distance) > abs(self.yLimit):
+            if ("north" in direction or "south" in direction) and abs(distance) > abs(yl):
                 return flask.jsonify({'res' : "Distance exceeds Y axis limit"})
-            if ("up" in direction or "down" in direction) and abs(distance) > abs(self.zLimit):
+            if ("up" in direction or "down" in direction) and abs(distance) > abs(zl):
                 return flask.jsonify({'res' : "Distance exceeds Z axis limit"})
 
             if direction == "northwest":

@@ -189,7 +189,7 @@
         <br>
         <br>
       <!-- /ko -->
-      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Machine Home</button>
+      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Home Machine</button>
       <br>
       <br>
       <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>

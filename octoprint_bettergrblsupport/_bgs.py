@@ -434,7 +434,7 @@ def do_framing(_plugin, data):
 def send_frame_init_gcode(_plugin):
     _plugin._logger.debug("_bgs: send_frame_init_gcode")
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     # cancel jog if grbl 1.1+is_grbl_one_dot_one
     if is_grbl_one_dot_one(_plugin) and is_latin_encoding_available(_plugin):
@@ -461,7 +461,7 @@ def send_frame_end_gcode(_plugin):
 def send_bounding_box_upper_left(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_upper_left y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ",x, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
@@ -472,7 +472,7 @@ def send_bounding_box_upper_left(_plugin, y, x):
 def send_bounding_box_upper_center(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_upper_center y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
@@ -484,7 +484,7 @@ def send_bounding_box_upper_center(_plugin, y, x):
 def send_bounding_box_upper_right(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_upper_right y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
@@ -495,7 +495,7 @@ def send_bounding_box_upper_right(_plugin, y, x):
 def send_bounding_box_center_left(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_center_left y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
@@ -507,7 +507,7 @@ def send_bounding_box_center_left(_plugin, y, x):
 def send_bounding_box_center(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_center y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2 * -1, y / 2, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
@@ -520,7 +520,7 @@ def send_bounding_box_center(_plugin, y, x):
 def send_bounding_box_center_right(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_center_right y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2 * -1, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
@@ -532,7 +532,7 @@ def send_bounding_box_center_right(_plugin, y, x):
 def send_bounding_box_lower_left(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_lower_left y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
@@ -543,7 +543,7 @@ def send_bounding_box_lower_left(_plugin, y, x):
 def send_bounding_box_lower_center(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_lower_center y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2 * -1, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
@@ -555,7 +555,7 @@ def send_bounding_box_lower_center(_plugin, y, x):
 def send_bounding_box_lower_right(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_lower_right y=[{}] x=[{}]".format(y, x))
 
-    f = int(float(_plugin.grblSettings.get(110)[0]) * (float(_plugin.framingPercentOfMaxSpeed) * .01))
+    f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
@@ -570,7 +570,7 @@ def toggle_weak(_plugin):
     if not is_laser_mode(_plugin):
         return
 
-    f = int(float(_plugin.grblSettings.get(110)[0]))
+    f = max(get_axes_max_rates(_plugin))
 
     if _plugin.grblPowerLevel == 0:
         # turn on laser in weak mode
@@ -624,8 +624,10 @@ def do_xy_probe(_plugin, axes, sessionId):
         if axes == "Y": xyProbe._step = 0
 
     xyProbeTravel = float(_plugin._settings.get(["xyProbeTravel"]))
-    xyf = float(_plugin.grblSettings.get(110 + xyProbe._step + 1)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
-    zf = float(_plugin.grblSettings.get(112)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+
+    xf, yf, zf = get_axes_max_rates(_plugin)
+    xyf = min([xf, yf]) * (_plugin.framingPercentOfMaxSpeed * .01)
+    zf = zf * (_plugin.framingPercentOfMaxSpeed * .01)
 
     originInvert = -1 if "Left" in frameOrigin else 1
     distance = xyProbeTravel * _plugin.invertX * originInvert
@@ -653,7 +655,6 @@ def do_xy_probe(_plugin, axes, sessionId):
     elif len(xyProbe._results) > 1 or (len(xyProbe._results) > 0 and axis in ("X", "Y")):
         if axes == "XY":
             text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
-            xyf = float(_plugin.grblSettings.get(110)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
             _plugin._printer.commands(["G0 G90 X0 Y0 F{}".format(xyf), "G91"])
         else:
             text = "{} Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>]]".format(axes, xyProbe._results[0])
@@ -709,8 +710,9 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
     wait_for_empty_cmd_queue(_plugin)
     if xyProbe == None: return
 
-    xyf = float(_plugin.grblSettings.get(110 + xyProbe._step)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
-    zf = float(_plugin.grblSettings.get(112)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+    xf, yf, zf = get_axes_max_rates(_plugin)
+    xyf = min([xf, yf]) * (_plugin.framingPercentOfMaxSpeed * .01)
+    zf = zf * (_plugin.framingPercentOfMaxSpeed * .01)
 
     frameOrigin = _plugin._settings.get(["frame_origin"])
     originInvert = -1 if "Left" in frameOrigin else 1
@@ -745,7 +747,8 @@ def do_simple_zprobe(_plugin, sessionId):
 
     zProbe = ZProbe(_plugin, simple_zprobe_hook, sessionId)
 
-    zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
+    xl, yl, zl = get_axes_limits(_plugin)
+    zTravel = zl if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
     zTravel = zTravel * -1 * _plugin.invertZ
 
     gcode = "G91 G21 G38.2 Z{} F100".format(zTravel)
@@ -821,10 +824,12 @@ def do_multipoint_zprobe(_plugin, sessionId):
         length = float(_plugin._settings.get(["frame_length"])) * _plugin.invertY
         preamble = "$J=" if is_grbl_one_dot_one(_plugin) else "G1 "
 
-        zTravel = _plugin.zLimit if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
+        xl, yl, zl = get_axes_limits(_plugin)
+        zTravel = zl if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
         zTravel = zTravel * -1 * _plugin.invertZ
 
-        feedrate = float(_plugin.grblSettings.get(110)[0]) * (_plugin.framingPercentOfMaxSpeed * .01)
+        xf, yf, zf = get_axes_max_rates(_plugin)
+        feedrate = min([xf, yf]) * (_plugin.framingPercentOfMaxSpeed * .01)
 
         if origin == "grblTopLeft":
             zProbe._locations = [
@@ -1011,7 +1016,8 @@ def multipoint_zprobe_hook(_plugin, result, position):
         add_to_notify_queue(_plugin, [notification])
 
         # max z feed rate -- we'll do 50% of it
-        zf = round(float(_plugin.grblSettings.get(112)[0]) * .5)
+        xf, yf, zf = get_axes_max_rates(_plugin)
+        zf = round(zf * .5)
         _plugin._printer.commands("{}G91 G21 Z{} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G0 ", _plugin.zProbeEndPos, zf))
 
     # defer setup of the next step
@@ -1310,11 +1316,15 @@ def wait_for_metadata_processing(_plugin, filename, notify):
 
 
 def is_laser_mode(_plugin):
-    # TODO add fluidNC support here
-    if not is_grbl_fluidnc(_plugin):
-        _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
-        return int(float(_plugin.grblSettings.get(32)[0])) != 0
-    
+    try:
+        if not is_grbl_fluidnc(_plugin):
+            _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
+            return int(float(_plugin.grblSettings.get(32)[0])) != 0
+        else:
+            return not (_plugin.fluidYaml.get("laser") is None and _plugin.fluidYaml.get("Laser") is None and _plugin.fluidYaml.get("LASER") is None)
+    except Exception as e:
+        _plugin._logger.warn("_bgs: is_laser_mode: {}".format(e))
+
     return False
 
 
@@ -1353,3 +1363,79 @@ def send_command_now(printer, logger, cmd):
         logger.debug("_bgs: send_command")
     except Exception as e:
         logger.error("_bgs: send_command_now: %s" % e)
+
+
+def update_fluid_config(_plugin):
+    _plugin._logger.debug("_bgs: update_fluid_config")
+
+    for key, value in _plugin.fluidYaml.items():
+        process_fluid_config_item(_plugin, key, value)
+
+    configName = _plugin.fluidSettings.get("Config/Filename", "config.yaml")
+    queue_cmds_and_send(_plugin, ["$LocalFS/Delete={}".format(configName), "$CD={}".format(configName), "$CD"])
+
+def process_fluid_config_item(_plugin, key, value, path=""):
+    if isinstance(value, dict):
+        path = "{}{}/".format(path, key)
+        for child_key, child_value in value.items():
+            process_fluid_config_item(_plugin, child_key, child_value, path)
+    else:
+        if not value is None:
+            _plugin._printer.commands("$/{}{}={}".format(path, key, value))
+
+
+def get_axes_max_rates(_plugin):
+    _plugin._logger.debug("_bgs: get_axes_max_rates")
+    
+    # seed with defaults
+    xf = 1000.0
+    yf = 1000.0
+    zf = 300.0
+
+    try:
+        if is_grbl_fluidnc(_plugin):
+            xf = float(_plugin.fluidYaml.get("axes", {}).get("x", {}).get("max_rate_mm_per_min"))
+            yf = float(_plugin.fluidYaml.get("axes", {}).get("y", {}).get("max_rate_mm_per_min"))
+            zf = float(_plugin.fluidYaml.get("axes", {}).get("z", {}).get("max_rate_mm_per_min"))
+        else:
+            xf = float(_plugin.grblSettings.get(110)[0])
+            yf = float(_plugin.grblSettings.get(111)[0])
+            zf = float(_plugin.grblSettings.get(112)[0])
+    except Exception as e:
+        _plugin._logger.warn("_bgs: get_axes_max_rates: {}".format(e))
+
+    _plugin._logger.debug("_bgs: get_axes_max_rates x={} y={} z={}".format(xf, yf, zf))
+    return xf, yf, zf
+
+
+def get_axes_limits(_plugin):
+    _plugin._logger.debug("_bgs: get_axes_limits")
+
+    # seed with defaults
+    xl = 200.0
+    yl = 200.0
+    zl = 50.0
+
+    try:
+        if is_grbl_fluidnc(_plugin):
+            xl = float(_plugin.fluidYaml.get("axes", {}).get("x", {}).get("max_travel_mm"))
+            yl = float(_plugin.fluidYaml.get("axes", {}).get("y", {}).get("max_travel_mm"))
+            zl = float(_plugin.fluidYaml.get("axes", {}).get("z", {}).get("max_travel_mm"))
+        else:
+            xl = float(_plugin.grblSettings.get(130)[0])
+            yl = float(_plugin.grblSettings.get(131)[0])
+            zl = float(_plugin.grblSettings.get(132)[0])
+
+        # assign our default distance if it is not already set to the lower of x,y limits
+        distance = _plugin._settings.get(["distance"])
+
+        if distance == 0 or distance > min([xl, yl]):
+            distance = float(min([xl, yl]))
+
+        _plugin._settings.set(["control_distance"], distance)
+        _plugin._settings.save(trigger_event=True)
+    except Exception as e:
+        _plugin._logger.warn("_bgs: get_axes_limits: {}".format(e))
+
+    _plugin._logger.debug("_bgs: get_axes_limits x={} y={} z={} distance={}".format(xl, yl, zl, distance))
+    return xl, yl, zl
