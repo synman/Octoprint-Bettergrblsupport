@@ -534,7 +534,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         r = requests.post(url, files=files)
 
                         if not "fluidSettings" in data:
-                            _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
+                            self._printer.commands("$Config/Filename={}".format(self.fluidSettings.get("Config/Filename")))
                     except Exception as e:
                         self._logger.warn("__init__: on_after_startup unable to save fluid config: {}".format(e))
                         _bgs.update_fluid_config(self)
@@ -546,9 +546,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if "fluidSettings" in data:
                 for key, value in data.get("fluidSettings", {}).items():
                     self._printer.commands("${}={}".format(key, value))
-
-                if "fluidYaml" in data:
-                    _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
 
             # refresh our grbl settings
             if not _bgs.is_grbl_fluidnc(self):
