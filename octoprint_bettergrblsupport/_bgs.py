@@ -1626,6 +1626,8 @@ def get_axes_limits(_plugin):
     yl = 200.0
     zl = 50.0
 
+    distance = 1
+
     try:
         if is_grbl_fluidnc(_plugin):
             xl = float(_plugin.fluidYaml.get("axes", {}).get("x", {}).get("max_travel_mm"))
