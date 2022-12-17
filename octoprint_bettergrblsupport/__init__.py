@@ -1089,12 +1089,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # else:
 
         # all that is left is an acknowledgement
-        if len(self.lastRequest) > 0:
+        lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
+
+        if len(self.lastRequest) > 0 and len(lastResponse) > 0:
+            self.lastResponse = ""
             lastRequest = self.lastRequest[0]
             self.lastRequest.pop(0)
-
-            lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
-            self.lastResponse = ""
 
             self._logger.debug("tracked cmd: [{}] result: [{}]".format(lastRequest, lastResponse))
 
