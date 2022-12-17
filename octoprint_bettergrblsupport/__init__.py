@@ -862,6 +862,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Reset"))
             _bgs.queue_cmds_and_send(self, ["$G"])
 
+            # sanity check on reset
+            self.lastRequest = []
+            self.lastResponse = ""
+
             cmd = "\x18"
 
         # grbl version info
@@ -1006,14 +1010,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             
         if line.startswith('Grbl'):
             # it all starts here
-            self.lastRequest = []
-            self.lastResponse = ""
             return "ok " + line
 
         # forward any messages to the action notification plugin
         if "MSG:" in line.upper():
-            ignoreList = ["[MSG:'$H'|'$X' to unlock]"]
-
+            ignoreList = ("[MSG:'$H'|'$X' to unlock]", "[MSG:INFO: '$H'|'$X' to unlock]")
             if not line.rstrip("\r").rstrip("\n").strip() in ignoreList:
                 # auto reset
                 if "reset to continue" in line.lower():
@@ -1029,10 +1030,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                     if len(line) > 0:
                         _bgs.add_to_notify_queue(self, [line])
-            else:
-                # sanity check on reset
-                self.lastRequest = []
-                self.lastResponse = ""
             return 
 
         # $G response
