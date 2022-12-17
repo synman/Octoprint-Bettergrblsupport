@@ -687,11 +687,14 @@ def process_grbl_error(_plugin, msg):
     if not match is None:
         error = int(match.groups(1)[0])
 
-        # hack to suppress error:9 on connect
-        if time.time() - _plugin.whenConnected < 20: return "ok "
-
         desc = _plugin.grblErrors.get(error)
         if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
+
+    # hack to suppress errors on connect
+    if time.time() - _plugin.whenConnected < 20: return "ok "
+
+    # lets not deal with file not found
+    if error == 65: return "ok "
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                     title="Grbl Error #{} Received".format(error),
@@ -1577,13 +1580,15 @@ def send_command_now(printer, logger, cmd):
 
 def update_fluid_config(_plugin):
     _plugin._logger.debug("_bgs: update_fluid_config")
+    time.sleep(1)
 
     for key, value in _plugin.fluidYaml.items():
         process_fluid_config_item(_plugin, key, value)
 
     configName = _plugin.fluidSettings.get("Config/Filename", "config.yaml")
-    queue_cmds_and_send(_plugin, ["$LocalFS/Delete={}".format(configName), "$CD={}".format(configName), "$CD"])
-
+    queue_cmds_and_send(_plugin, ["$LocalFS/Delete={}".format(configName), "?", "$CD={}".format(configName), "$CD"])
+    time.sleep(1)
+    
 def process_fluid_config_item(_plugin, key, value, path=""):
     if isinstance(value, dict):
         path = "{}{}/".format(path, key)

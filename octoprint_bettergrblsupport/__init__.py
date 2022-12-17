@@ -151,6 +151,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.fluidConfig = None
         self.fluidYaml = None
 
+        self.noStatusRequests = False
+
         self.bgs_filters = [
             {"name": "Suppress status report requests", "regex": "^Send: \\?$"},
             {"name": "Suppress acknowledgement responses", "regex": "^Recv: ok$"},
@@ -521,6 +523,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # reload our config
         self.on_after_startup()
 
+        # pause status requests
+        self.noStatusRequests = True
+
         if not self._printer.is_printing(): 
             # save our fluid config
             if "fluidYaml" in data:
@@ -529,6 +534,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 if self.fluidSettings.get("HTTP/Enable").upper() == "ON":
                     try:
+                        self._printer.commands("$LocalFS/Delete={}".format(self.fluidSettings.get("Config/Filename")), force=True)
+                        # lets wait a second for fluid to process our request
+                        time.sleep(1)
+
                         url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
                         files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
                         r = requests.post(url, files=files)
@@ -555,6 +564,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._printer.commands("Cat /sd/config")
                 else:
                     self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
+
+        # resume status requests
+        self.noStatusRequests = False
 
 
     # #~~ AssetPlugin mixin
@@ -627,7 +639,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if machine is printing
         if "M105" in cmd.upper():
-            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0:
+            if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
             else:
