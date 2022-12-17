@@ -707,10 +707,10 @@ def process_grbl_error(_plugin, msg):
     # inform _bgs in case it has something going on (probing)
     grbl_alarm_or_error_occurred(_plugin)
 
-    # clear out any pending queued Commands
-    if len(_plugin.grblCmdQueue) > 0:
-        _plugin._logger.debug("clearing %d commands from the command queue", len(_plugin.grblCmdQueue))
-        _plugin.grblCmdQueue.clear()
+    # # clear out any pending queued Commands
+    # if len(_plugin.grblCmdQueue) > 0:
+    #     _plugin._logger.debug("clearing %d commands from the command queue", len(_plugin.grblCmdQueue))
+    #     _plugin.grblCmdQueue.clear()
 
     # our sync buffers are no longer reliable
     _plugin.lastRequest = []
@@ -718,7 +718,7 @@ def process_grbl_error(_plugin, msg):
 
     # put a message on our notification queue and force an inquiry
     add_to_notify_queue(_plugin, [desc])
-    _plugin._printer.commands("?")
+    # _plugin._printer.commands("?")
 
     # we need to pause if we are printing
     if _plugin._printer.is_printing():
