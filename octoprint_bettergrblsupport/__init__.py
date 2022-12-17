@@ -46,6 +46,8 @@ import json
 import flask
 import yaml
 
+import requests
+
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
                               octoprint.plugin.AssetPlugin,
@@ -139,6 +141,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.pausedPower = 0
         self.pausedPositioning = 0
 
+        self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "$SETTINGS/LIST", "$I", "$BUILD/INFO"]
         self.lastRequest = []
         self.lastResponse = ""
 
@@ -518,22 +521,41 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # reload our config
         self.on_after_startup()
 
-        if "fluidYaml" in data:
-            self.fluidConfig = data.get("fluidYaml")
-            self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
-            _bgs.update_fluid_config(self)
-            return            
+        if not self._printer.is_printing(): 
+            # save our fluid config
+            if "fluidYaml" in data:
+                self.fluidConfig = data.get("fluidYaml")
+                self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
 
-        if "fluidSettings" in data:
-            for key, value in data.get("fluidSettings", {}).items():
-                self._printer.commands("${}={}".format(key, value))
+                if self.fluidSettings.get("HTTP/Enable").upper() == "ON":
+                    try:
+                        url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
+                        files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
+                        r = requests.post(url, files=files)
 
-        # refresh our grbl settings
-        if not self._printer.is_printing():
-            if self.doSmoothie:
-                self._printer.commands("Cat /sd/config")
-            else:
-                self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
+                        if not "fluidSettings" in data:
+                            _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
+                    except Exception as e:
+                        self._logger.warn("__init__: on_after_startup unable to save fluid config: {}".format(e))
+                        _bgs.update_fluid_config(self)
+                else: 
+                    _bgs.update_fluid_config(self)
+                return            
+
+            # save our fluid settings
+            if "fluidSettings" in data:
+                for key, value in data.get("fluidSettings", {}).items():
+                    self._printer.commands("${}={}".format(key, value))
+
+                if "fluidYaml" in data:
+                    _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
+
+            # refresh our grbl settings
+            if not _bgs.is_grbl_fluidnc(self):
+                if self.doSmoothie:
+                    self._printer.commands("Cat /sd/config")
+                else:
+                    self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
 
 
     # #~~ AssetPlugin mixin
@@ -620,13 +642,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             self._logger.debug("resetting autosleep timer")
                             self.autoSleepTimer = time.time()
 
-                    # # suppress status updates if sleeping -- i really don't like this
-                    # if not self.grblState is None and self.grblState.upper().startswith("SLEEP"):
-                    #     self._logger.debug('Ignoring %s', cmd)
-                    #     return (None,)
-
                     self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
-                    self.lastRequest.append(self.statusCommand)
+
+                    # in the unlikely event our status command has been remapped
+                    if not self.statusCommand.upper() in self.trackedCmds:
+                        self.trackedCmds.append(self.statusCommand.upper())
+
+                    self.lastRequest.append(self.statusCommand.upper())
                     return (self.statusCommand, )
 
         self.autoSleepTimer = time.time()
@@ -640,7 +662,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if "$H" in cmd.upper() or "G38.2" in cmd.upper():
             # threading.Thread(target=_bgs.do_fake_ack, args=(self._printer, self._logger)).start()
             # self._logger.debug("fake_ack submitted")
-
             self.grblState = "Home" if "$H" in cmd.upper() else "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
@@ -827,7 +848,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
             self._logger.debug('Rewriting M400 as %s' % self.dwellCommand)
-            cmd =self.dwellCommand
+            cmd = self.dwellCommand
 
         # rewrite M114 current position as ? (typically)
         if self.suppressM114 and cmd.upper().startswith('M114'):
@@ -957,13 +978,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 coolant=self.coolant))
                 self.timeRef = currentTime
 
-        self.lastRequest.append(cmd)
+
+        # we only want to track requests we care about
+        if (cmd.upper() in ("$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "$SETTINGS/LIST", "$I", "$BUILD/INFO")):
+            self.lastRequest.append(cmd)
+
         return (cmd, )
 
 
-    # #-- gcode received hook (
-    # original author:  https://github.com/mic159
-    # source: https://github.com/mic159/octoprint-grbl-plugin)
+    # #-- gcode received hook 
     def hook_gcode_received(self, comm_instance, line, *args, **kwargs):
         self._logger.debug("__init__: hook_gcode_received line=[{}]".format(line.replace("\r", "<cr>").replace("\n", "<lf>")))
 
@@ -971,166 +994,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return None
 
-        # hack to force status updates
+        # look for a status message
         if 'MPos' in line or 'WPos' in line:
-             # <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000,RX:3,0/0>
-             # <Run|MPos:-17.380,-7.270,0.000|FS:1626,0>
-
-            # match = re.search(r'[WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
-            match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', line)
-            # match = re.search(r"<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+).*\|Pn:([XYZPDHRS]+)", line)
-
-            if match is None:
-                self._logger.warning('Bad data %s', line.rstrip())
-                return
-
-             # OctoPrint records positions in some instances.
-             # It needs a different format. Put both on the same line so the GRBL info is not lost
-             # and is accessible for "controls" to read.
-            response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=line)
-
-            self.grblMode = "MPos" if "MPos" in line else "WPos" if "WPos" in line else "N/A"
-            self.grblState = str(match.groups(1)[0])
-            self.grblX = float(match.groups(1)[1])
-            self.grblY = float(match.groups(1)[2])
-            self.grblZ = float(match.groups(1)[3])
-
-            match = re.search(r'.*\|Pn:([XYZPDHRS]+)', line)
-            if not match is None:
-                self.grblActivePins = match.groups(1)[0]
-            else:
-                self.grblActivePins = "None"
-
-            match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', line)
-            if not match is None:
-                self.grblSpeed = round(float(match.groups(1)[0]))
-                self.grblPowerLevel = float(match.groups(1)[1])
-
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
-                                                                            mode=self.grblMode,
-                                                                            state=self.grblState,
-                                                                            x=self.grblX,
-                                                                            y=self.grblY,
-                                                                            z=self.grblZ,
-                                                                            pins=self.grblActivePins,
-                                                                            speed=self.grblSpeed,
-                                                                            power=self.grblPowerLevel,
-                                                                            coord=self.grblCoordinateSystem,
-                                                                            coolant=self.coolant,
-                                                                            positioning=self.positioning))
-
-            # odd edge case where a machine could be asleep or holding while connecting
-            if not self._printer.is_operational() and self.grblState.upper() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
-                self._printer.commands("M999", force=True)
-
-            # pop any queued commands if state is IDLE or HOLD:0, CHECK, or ALARM
-            if len(self.grblCmdQueue) > 0 and self.grblState.upper() in ("IDLE", "HOLD:0", "CHECK", "ALARM"):
-                self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
-                self._printer.commands(self.grblCmdQueue[0])
-                self.grblCmdQueue.pop(0)
-                return response
-
-            # add a notification if we just homed
-            if self.grblState.upper() == "HOME":
-                _bgs.add_to_notify_queue(self, ["Machine has been homed"])
-
-            # parse the line to see if we have any other useful data
-            # for stat in line.replace("<", "").replace(">", "").split("|"):
-            #     # buffer stats and Pin stats
-            #     if stat.startswith("Bf:") or stat.startswith("Pn:"):
-            #         self.add_to_notify_queue(stat)
-
-            return self.pick_a_response(response)
+            return _bgs.pick_a_response(self, _bgs.process_grbl_status_msg(self, line))
 
         # look for an alarm
         if line.lower().startswith('alarm:'):
-            error = int(0)
-            desc = line
-
-            match = re.search(r'alarm:\ *(-?[\d.]+)', line.lower())
-            if not match is None:
-                error = int(match.groups(1)[0])
-                desc = self.grblAlarms.get(error)
-
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
-                                                                            title="Grbl Alarm #{} Received".format(error),
-                                                                            text=desc,
-                                                                            hide=True,
-                                                                            delay=10000,
-                                                                            notify_type="notice"))
-
-            self._logger.warning("alarm received: %d: %s", error, self.grblAlarms.get(error))
-
-            # inform _bgs in case it has something going on
-            _bgs.grbl_alarm_or_error_occurred(self)
-
-            # clear out any pending queued Commands
-            if len(self.grblCmdQueue) > 0:
-                self._logger.debug("clearing %d commands from the command queue", len(self.grblCmdQueue))
-                self.grblCmdQueue.clear()
-
-            # put a message on our notification queue and force an inquiry
-            _bgs.add_to_notify_queue(self, [desc])
-            self._printer.commands("?")
-
-            # we need to pause if we are printing
-            if self._printer.is_printing():
-                self._printer.pause_print()
-
-            # return 'Error: ' + desc
-            return "ok " + desc
+            return _bgs.process_grbl_alarm(self, line)
 
         # look for an error
         if not self.ignoreErrors and line.lower().startswith('error:'):
-            match = re.search(r'error:\ *(-?[\d.]+)', line.lower())
-
-            error = int(0)
-            desc = line
-
-            if not match is None:
-                error = int(match.groups(1)[0])
-
-                # hack to suppress error:9 on connect
-                if time.time() - self.whenConnected < 20: return "ok "
-
-                desc = self.grblErrors.get(error)
-                if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
-
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
-                                                                            title="Grbl Error #{} Received".format(error),
-                                                                            text=desc,
-                                                                            hide=True,
-                                                                            delay=10000,
-                                                                            notify_type="error"))
-            self._logger.warning("error received: %d: %s", error, desc)
-
-            # inform _bgs in case it has something going on
-            _bgs.grbl_alarm_or_error_occurred(self)
-
-            # clear out any pending queued Commands
-            if len(self.grblCmdQueue) > 0:
-                self._logger.debug("clearing %d commands from the command queue", len(self.grblCmdQueue))
-                self.grblCmdQueue.clear()
-
-            self.lastRequest = []
-            self.lastResponse = ""
-
-            # put a message on our notification queue and force an inquiry
-            _bgs.add_to_notify_queue(self, [desc])
-            self._printer.commands("?")
-
-            # we need to pause if we are printing
-            if self._printer.is_printing():
-                self._printer.pause_print()
-
-            # don't tell octoprint because it will freak out
-            return "ok "
+            return _bgs.process_grbl_error(self, line)
             
         if line.startswith('Grbl'):
-            # Hack to make Arduino based GRBL work.
-            # When the serial port is opened, it resets and the "hello" command
-            # is not processed.
-            # This makes Octoprint recognise the startup message as a successful connection.
+            # it all starts here
             self.lastRequest = []
             self.lastResponse = ""
             return "ok " + line
@@ -1155,64 +1032,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     if len(line) > 0:
                         _bgs.add_to_notify_queue(self, [line])
             else:
+                # sanity check on reset
                 self.lastRequest = []
                 self.lastResponse = ""
-
             return 
-
-        # add to our lastResponse if this is not an acknowledgment
-        if not "ok" in line.lower():
-            lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
-            self.lastResponse = self.lastResponse + lastResponse + "\n" 
 
         # $G response
         if line.startswith("[GC:"):
-            parserState = line.replace("[", "").replace("]", "").replace("GC:", "")
-
-            for state in parserState.split(" "):
-                if state in ("G90", "G91"):
-                    self.positioning = int(state[2:3])
-                    self._logger.debug("parser state indicates [%s] distance mode", "absolute" if self.positioning == 0 else "relative")
-
-                elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
-                    self._logger.debug("parser state indicates [%s] motion mode", state)
-                elif state in ("G54", "G55", "G56", "G57", "G58", "G59"):
-                    self.grblCoordinateSystem = state
-                    self._logger.debug("parser state indicates [%s] coordinate system active", self.grblCoordinateSystem)
-                elif state in ("G17", "G18", "G19"):
-                    self._logger.debug("parser state indicates [%s] plane selected", state)
-                elif state in ("G20", "G21"):
-                    self._logger.debug("parser state indicates [%s] uom active", "metric" if state == "G21" else "imperial")
-                elif state in ("G93", "G94"):
-                    self._logger.debug("parser state indicates [%s] feed rate mode", state)
-                elif state in ("M3", "M4", "M5"):
-                    self._logger.debug("parser state indicates [%s] spindle state", state)
-                elif state in ("M7", "M8", "M9"):
-                    self.coolant = state
-                    self._logger.debug("parser state indicates [%s] coolant state", state)
-                elif state.startswith("F"):
-                    self.grblSpeed = round(float(state.replace("F", "")))
-                    self._logger.debug("parser state indicates feed rate of [%d]", self.grblSpeed)
-                elif state.startswith("S"):
-                    self.grblPowerLevel = float(state.replace("S", ""))
-                    self._logger.debug("parser state indicates spindle speed of [%f]", self.grblPowerLevel)
-                elif state.startswith("T"):
-                    self._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
-
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
-                                                                            speed=self.grblSpeed,
-                                                                            power=self.grblPowerLevel,
-                                                                            coord=self.grblCoordinateSystem,
-                                                                            coolant=self.coolant,
-                                                                            positioning=self.positioning))
-
-            return self.pick_a_response(None)
+            _bgs.process_parser_status_msg(self, line)
+            return _bgs.pick_a_response(self, None)
 
         # add a notification if we just z-probed
         # _bgs will pick this up if zProbe is active
         if "PRB:" in line.upper():
             _bgs.add_to_notify_queue(self, [line])
             return
+
+        # add to our lastResponse if this is not an acknowledgment
+        if not "ok" in line.lower():
+            lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
+            self.lastResponse = self.lastResponse + lastResponse + "\n" 
 
         # grbl settings
         if line.lstrip().startswith("$"):
@@ -1251,10 +1090,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.lastRequest.pop(0)
 
             # fluidnc config downloaded
-            if lastRequest == "$CD":
+            if lastRequest.upper() in ("$CD", "$CONFIG/DUMP"):
                 self.fluidConfig = self.lastResponse
                 self.fluidYaml = yaml.safe_load(self.lastResponse)
                 self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False))
+                self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
                 self._settings.save(trigger_event=True)
                 self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
 
@@ -1264,7 +1104,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("$S")
 
             # grbl settings received
-            if lastRequest in ("$$", "$+", "M115"): 
+            if lastRequest.upper() in ("$$", "$+", "M115"): 
                 self.grblConfig = self.lastResponse.split("\n")
                 self._logger.debug("__init__: grbl Config: %s" % self.grblConfig)
 
@@ -1276,7 +1116,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     _bgs.get_axes_limits(self)
 
             # grbl version signatures
-            if lastRequest == "$I":
+            if lastRequest.upper() in ("$I", "$BUILD/INFO"):
                 self.grblVersion = self.lastResponse.replace("\n", " ").replace("\r", "")
                 self._logger.debug("__init__: grbl Signature: %s" % self.grblVersion)
 
@@ -1288,7 +1128,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._printer.commands("$CD")
 
             # fluid settings outside of config yaml
-            if lastRequest == "$S":
+            if lastRequest.upper() in ("$S", "$SETTINGS/LIST"):
                 self.fluidSettings = json.loads("{" + self.lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
                 self._settings.set(["fluidSettings"], self.fluidSettings)
                 self._settings.save(trigger_event=True)
@@ -1297,41 +1137,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.lastResponse = ""
 
         return "ok "
-
-
-    def pick_a_response(self, firstChoice):
-        self._logger.debug("__init__: pick_a_response firstChoice=[{}]".format(firstChoice.replace("\n", "<lf>").replace("\r", "<cr>") if not firstChoice is None else "{None}"))
-
-        # pop any queued notifications
-        notifications = str("")
-        entryCount = 0
-
-        while len(self.notifyQueue) > 0:
-            notification = self.notifyQueue[0]
-
-            if notification is None:
-                self.notifyQueue.pop(0)
-                continue
-
-            entryCount = entryCount + 1
-
-            if notification in ("Pgm Begin", "Z-Probe Initiated"):
-                self.grblState = "Run"
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
-
-            notifications = notification + " | " + notifications
-            self.notifyQueue.pop(0)
-
-        if entryCount > 0:
-            notifications = notifications[0:len(notifications) - 3]
-            self._logger.debug('sending queued notification [%s] - depth [%d]', notifications, entryCount)
-
-            return "//action:notification " + notifications
-
-        if firstChoice is None:
-            return
-
-        return firstChoice
 
 
     def get_api_commands(self):

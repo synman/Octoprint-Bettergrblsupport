@@ -430,7 +430,6 @@ def do_framing(_plugin, data):
 
     send_frame_end_gcode(_plugin)
 
-
 def send_frame_init_gcode(_plugin):
     _plugin._logger.debug("_bgs: send_frame_init_gcode")
 
@@ -450,13 +449,11 @@ def send_frame_init_gcode(_plugin):
     _plugin.grblState = "Jog"
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Jog"))
 
-
 def send_frame_end_gcode(_plugin):
     _plugin._logger.debug("_bgs: send_frame_end_gcode")
 
     queue_cmds_and_send(_plugin, ["?", "?", "?"])
     queue_cmds_and_send(_plugin, ["M5 S0 G0"])
-
 
 def send_bounding_box_upper_left(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_upper_left y=[{}] x=[{}]".format(y, x))
@@ -467,7 +464,6 @@ def send_bounding_box_upper_left(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
-
 
 def send_bounding_box_upper_center(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_upper_center y=[{}] x=[{}]".format(y, x))
@@ -480,7 +476,6 @@ def send_bounding_box_upper_center(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2, f))
 
-
 def send_bounding_box_upper_right(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_upper_right y=[{}] x=[{}]".format(y, x))
 
@@ -490,7 +485,6 @@ def send_bounding_box_upper_right(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
-
 
 def send_bounding_box_center_left(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_center_left y=[{}] x=[{}]".format(y, x))
@@ -502,7 +496,6 @@ def send_bounding_box_center_left(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2, f))
-
 
 def send_bounding_box_center(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_center y=[{}] x=[{}]".format(y, x))
@@ -516,7 +509,6 @@ def send_bounding_box_center(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
     _plugin._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2, y / 2 * -1, f))
 
-
 def send_bounding_box_center_right(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_center_right y=[{}] x=[{}]".format(y, x))
 
@@ -528,7 +520,6 @@ def send_bounding_box_center_right(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2 * -1, f))
 
-
 def send_bounding_box_lower_left(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_lower_left y=[{}] x=[{}]".format(y, x))
 
@@ -538,7 +529,6 @@ def send_bounding_box_lower_left(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
-
 
 def send_bounding_box_lower_center(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_lower_center y=[{}] x=[{}]".format(y, x))
@@ -550,7 +540,6 @@ def send_bounding_box_lower_center(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y * -1, f))
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2 * -1, f))
-
 
 def send_bounding_box_lower_right(_plugin, y, x):
     _plugin._logger.debug("_bgs: send_bounding_box_lower_right y=[{}] x=[{}]".format(y, x))
@@ -583,6 +572,233 @@ def toggle_weak(_plugin):
         res = "Weak Laser"
 
     return res
+
+
+def process_grbl_status_msg(_plugin, msg):
+    match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', msg)
+    if match is None:
+        _plugin._logger.warning('Bad data %s', msg.rstrip())
+        return None
+
+    response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=msg)
+
+    _plugin.grblMode = "MPos" if "MPos" in msg else "WPos" if "WPos" in msg else "N/A"
+    _plugin.grblState = str(match.groups(1)[0])
+    _plugin.grblX = float(match.groups(1)[1])
+    _plugin.grblY = float(match.groups(1)[2])
+    _plugin.grblZ = float(match.groups(1)[3])
+
+    match = re.search(r'.*\|Pn:([XYZPDHRS]+)', msg)
+    if not match is None:
+        _plugin.grblActivePins = match.groups(1)[0]
+    else:
+        _plugin.grblActivePins = "None"
+
+    match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', msg)
+    if not match is None:
+        _plugin.grblSpeed = round(float(match.groups(1)[0]))
+        _plugin.grblPowerLevel = float(match.groups(1)[1])
+
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
+                                                                    mode=_plugin.grblMode,
+                                                                    state=_plugin.grblState,
+                                                                    x=_plugin.grblX,
+                                                                    y=_plugin.grblY,
+                                                                    z=_plugin.grblZ,
+                                                                    pins=_plugin.grblActivePins,
+                                                                    speed=_plugin.grblSpeed,
+                                                                    power=_plugin.grblPowerLevel,
+                                                                    coord=_plugin.grblCoordinateSystem,
+                                                                    coolant=_plugin.coolant,
+                                                                    positioning=_plugin.positioning))
+
+    # odd edge case where a machine could be asleep or holding while connecting
+    # TODO: this may no longer be valid given refactoring
+    if not _plugin._printer.is_operational() and _plugin.grblState.upper() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
+        _plugin._printer.commands("M999", force=True)
+
+    # pop any queued commands if state is IDLE or HOLD:0, DOOR:0, CHECK, or ALARM
+    if len(_plugin.grblCmdQueue) > 0 and _plugin.grblState.upper() in ("IDLE", "HOLD:0", "DOOR:0", "CHECK", "ALARM"):
+        _plugin._logger.debug('sending queued command [%s] - depth [%d]', _plugin.grblCmdQueue[0], len(_plugin.grblCmdQueue))
+        _plugin._printer.commands(_plugin.grblCmdQueue[0])
+        _plugin.grblCmdQueue.pop(0)
+
+    # add a notification if we just homed
+    if _plugin.grblState.upper() == "HOME":
+        add_to_notify_queue(_plugin, ["Machine has been homed"])
+
+    # the only thing useful remaining is buffer stats
+    # and we currently don't do anything with it
+    # for stat in msg.replace("<", "").replace(">", "").split("|"):
+    #     # buffer stats and Pin stats
+    #     if stat.startswith("Bf:") or stat.startswith("Pn:"):
+    #         _plugin.add_to_notify_queue(stat)
+
+    return response
+
+
+def process_grbl_alarm(_plugin, msg):
+    error = int(0)
+    desc = msg
+
+    match = re.search(r'alarm:\ *(-?[\d.]+)', msg.lower())
+    if not match is None:
+        error = int(match.groups(1)[0])
+        desc = _plugin.grblAlarms.get(error)
+
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                    title="Grbl Alarm #{} Received".format(error),
+                                                                    text=desc,
+                                                                    hide=True,
+                                                                    delay=10000,
+                                                                    notify_type="notice"))
+
+    _plugin._logger.warning("alarm received: %d: %s", error, _plugin.grblAlarms.get(error))
+
+    # inform _bgs in case it has something going on (probing)
+    grbl_alarm_or_error_occurred(_plugin)
+
+    # clear out any pending queued Commands
+    if len(_plugin.grblCmdQueue) > 0:
+        _plugin._logger.debug("clearing %d commands from the command queue", len(_plugin.grblCmdQueue))
+        _plugin.grblCmdQueue.clear()
+
+    # put a message on our notification queue and force an inquiry
+    add_to_notify_queue(_plugin, [desc])
+    _plugin._printer.commands("?")
+
+    # we need to pause if we are printing
+    if _plugin._printer.is_printing():
+        _plugin._printer.pause_print()
+
+    # our sync buffers are no longer reliable
+    _plugin.lastRequest = []
+    _plugin.lastResponse = ""
+
+    # return 'Error: ' + desc
+    return "ok " + desc
+
+
+def process_grbl_error(_plugin, msg):
+    error = int(0)
+    desc = msg
+
+    match = re.search(r'error:\ *(-?[\d.]+)', msg.lower())
+    if not match is None:
+        error = int(match.groups(1)[0])
+
+        # hack to suppress error:9 on connect
+        if time.time() - _plugin.whenConnected < 20: return "ok "
+
+        desc = _plugin.grblErrors.get(error)
+        if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
+
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                    title="Grbl Error #{} Received".format(error),
+                                                                    text=desc,
+                                                                    hide=True,
+                                                                    delay=10000,
+                                                                    notify_type="error"))
+    _plugin._logger.warning("error received: %d: %s", error, desc)
+
+    # inform _bgs in case it has something going on (probing)
+    grbl_alarm_or_error_occurred(_plugin)
+
+    # clear out any pending queued Commands
+    if len(_plugin.grblCmdQueue) > 0:
+        _plugin._logger.debug("clearing %d commands from the command queue", len(_plugin.grblCmdQueue))
+        _plugin.grblCmdQueue.clear()
+
+    # our sync buffers are no longer reliable
+    _plugin.lastRequest = []
+    _plugin.lastResponse = ""
+
+    # put a message on our notification queue and force an inquiry
+    add_to_notify_queue(_plugin, [desc])
+    _plugin._printer.commands("?")
+
+    # we need to pause if we are printing
+    if _plugin._printer.is_printing():
+        _plugin._printer.pause_print()
+
+    # don't tell octoprint because it will freak out
+    return "ok "
+
+
+def process_parser_status_msg(_plugin, msg):
+    parserState = msg.replace("[", "").replace("]", "").replace("GC:", "")
+
+    for state in parserState.split(" "):
+        if state in ("G90", "G91"):
+            _plugin.positioning = int(state[2:3])
+            _plugin._logger.debug("parser state indicates [%s] distance mode", "absolute" if _plugin.positioning == 0 else "relative")
+
+        elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
+            _plugin._logger.debug("parser state indicates [%s] motion mode", state)
+        elif state in ("G54", "G55", "G56", "G57", "G58", "G59"):
+            _plugin.grblCoordinateSystem = state
+            _plugin._logger.debug("parser state indicates [%s] coordinate system active", _plugin.grblCoordinateSystem)
+        elif state in ("G17", "G18", "G19"):
+            _plugin._logger.debug("parser state indicates [%s] plane selected", state)
+        elif state in ("G20", "G21"):
+            _plugin._logger.debug("parser state indicates [%s] uom active", "metric" if state == "G21" else "imperial")
+        elif state in ("G93", "G94"):
+            _plugin._logger.debug("parser state indicates [%s] feed rate mode", state)
+        elif state in ("M3", "M4", "M5"):
+            _plugin._logger.debug("parser state indicates [%s] spindle state", state)
+        elif state in ("M7", "M8", "M9"):
+            _plugin.coolant = state
+            _plugin._logger.debug("parser state indicates [%s] coolant state", state)
+        elif state.startswith("F"):
+            _plugin.grblSpeed = round(float(state.replace("F", "")))
+            _plugin._logger.debug("parser state indicates feed rate of [%d]", _plugin.grblSpeed)
+        elif state.startswith("S"):
+            _plugin.grblPowerLevel = float(state.replace("S", ""))
+            _plugin._logger.debug("parser state indicates spindle speed of [%f]", _plugin.grblPowerLevel)
+        elif state.startswith("T"):
+            _plugin._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
+
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
+                                                                        speed=_plugin.grblSpeed,
+                                                                        power=_plugin.grblPowerLevel,
+                                                                        coord=_plugin.grblCoordinateSystem,
+                                                                        coolant=_plugin.coolant,
+                                                                        positioning=_plugin.positioning))
+
+
+def pick_a_response(_plugin, firstChoice):
+    _plugin._logger.debug("_bgs: pick_a_response firstChoice=[{}]".format(firstChoice.replace("\n", "<lf>").replace("\r", "<cr>") if not firstChoice is None else "{None}"))
+
+    # pop any queued notifications
+    notifications = str("")
+    entryCount = 0
+
+    while len(_plugin.notifyQueue) > 0:
+        notification = _plugin.notifyQueue[0]
+
+        if notification is None:
+            _plugin.notifyQueue.pop(0)
+            continue
+
+        entryCount = entryCount + 1
+
+        if notification in ("Pgm Begin", "Z-Probe Initiated"):
+            _plugin.grblState = "Run"
+            _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
+
+        notifications = notification + " | " + notifications
+        _plugin.notifyQueue.pop(0)
+
+    if entryCount > 0:
+        notifications = notifications[0:len(notifications) - 3]
+        _plugin._logger.debug('sending queued notification [%s] - depth [%d]', notifications, entryCount)
+
+        return "//action:notification " + notifications
+
+    if firstChoice is None:
+        return
+
+    return firstChoice
 
 
 def do_xyz_probe(_plugin, sessionId):
@@ -758,7 +974,6 @@ def do_simple_zprobe(_plugin, sessionId):
                                                                      sessionId=zProbe._sessionId,
                                                                          gcode=gcode))
 
-
 def simple_zprobe_hook(_plugin, result, position):
     global zProbe
     _plugin._logger.debug("_bgs: simple_zprobe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, zProbe._sessionId))
@@ -807,7 +1022,6 @@ def defer_simple_z_probe(_plugin, z0):
 
     zProbe.teardown()
     zProbe = None
-
 
 def do_multipoint_zprobe(_plugin, sessionId):
     global zProbe
@@ -1000,7 +1214,6 @@ def do_multipoint_zprobe(_plugin, sessionId):
                                                                      sessionId=zProbe._sessionId,
                                                                    instruction=zProbe.getCurrentLocation()))
 
-
 def multipoint_zprobe_hook(_plugin, result, position):
     global zProbe
     _plugin._logger.debug("_bgs: multipoint_zprobe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, zProbe._sessionId))
@@ -1023,7 +1236,6 @@ def multipoint_zprobe_hook(_plugin, result, position):
     # defer setup of the next step
     threading.Thread(target=defer_do_multipoint_zprobe, args=(_plugin, zProbe._sessionId)).start()
 
-
 def defer_do_multipoint_zprobe(_plugin, sessionId):
     global zProbe
     _plugin._logger.debug("_bgs: defer_do_multipoint_zprobe sessionId=[{}]".format(sessionId))
@@ -1034,7 +1246,6 @@ def defer_do_multipoint_zprobe(_plugin, sessionId):
 
     if zProbe != None:
         do_multipoint_zprobe(_plugin, sessionId)
-
 
 def multipoint_zprobe_move(_plugin):
     global zProbe
@@ -1291,7 +1502,6 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
     except BaseException as e:
         _plugin._logger.error("defer_generate_metadata_for_file: [{}]".format(str(e)))
 
-
 def wait_for_metadata_processing(_plugin, filename, notify):
     _plugin._logger.debug("_bgs: wait_for_metadata_processing filename=[{}] notify=[{}]".format(filename, notify))
 
@@ -1427,7 +1637,7 @@ def get_axes_limits(_plugin):
             zl = float(_plugin.grblSettings.get(132)[0])
 
         # assign our default distance if it is not already set to the lower of x,y limits
-        distance = _plugin._settings.get(["distance"])
+        distance = float(_plugin._settings.get(["distance"]))
 
         if distance == 0 or distance > min([xl, yl]):
             distance = float(min([xl, yl]))
