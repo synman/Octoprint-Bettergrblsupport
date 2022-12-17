@@ -546,7 +546,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 for key, value in data.get("fluidSettings", {}).items():
                     self._printer.commands("${}={}".format(key, value))
 
-                if "fuildYaml" in data:
+                if "fluidYaml" in data:
                     _bgs.queue_cmds_and_send(self, ["?", "$Bye"])
    
             # refresh our grbl settings
