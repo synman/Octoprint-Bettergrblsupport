@@ -1100,7 +1100,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # fluidnc config downloaded
             if lastRequest.upper() in ("$CD", "$CONFIG/DUMP"):
-                self.fluidConfig = self.lastResponse
+                self.fluidConfig = lastResponse
                 self.fluidYaml = yaml.safe_load(lastResponse)
                 self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
