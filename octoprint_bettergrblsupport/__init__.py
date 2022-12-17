@@ -141,7 +141,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.pausedPower = 0
         self.pausedPositioning = 0
 
-        self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "M115", "$SETTINGS/LIST", "$I", "$BUILD/INFO"]
+        self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "M115", "$SETTINGS/LIST", "$I", "$BUILD/INFO", "$G", "$GCODE/MODES"]
         self.lastRequest = []
         self.lastResponse = ""
 
@@ -1044,7 +1044,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # add to our lastResponse if this is not an acknowledgment
-        if not "ok" in line.lower():
+        if not "ok" in line.lower() and len(self.lastRequest) > 0:
             lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
             self.lastResponse = self.lastResponse + lastResponse + "\n" 
 
@@ -1078,16 +1078,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # else:
 
         # all that is left is an acknowledgement
-        self.lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
-
         if len(self.lastRequest) > 0:
             lastRequest = self.lastRequest[0]
             self.lastRequest.pop(0)
 
+            lastResponse = self.lastResponse.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
+            self.lastResponse = ""
+
+            self._logger.debug("tracked cmd: [{}] result: [{}]".format(lastRequest, lastResponse))
+
             # fluidnc config downloaded
             if lastRequest.upper() in ("$CD", "$CONFIG/DUMP"):
                 self.fluidConfig = self.lastResponse
-                self.fluidYaml = yaml.safe_load(self.lastResponse)
+                self.fluidYaml = yaml.safe_load(lastResponse)
                 self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
                 self._settings.save(trigger_event=True)
@@ -1100,8 +1103,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # grbl settings received
             if lastRequest.upper() in ("$$", "$+", "M115"): 
-                self.grblConfig = self.lastResponse.split("\n")
-                self._logger.debug("__init__: grbl Config: %s" % self.grblConfig)
+                self.grblConfig = lastResponse.split("\n")
 
                 self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
@@ -1112,8 +1114,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # grbl version signatures
             if lastRequest.upper() in ("$I", "$BUILD/INFO"):
-                self.grblVersion = self.lastResponse.replace("\n", " ").replace("\r", "")
-                self._logger.debug("__init__: grbl Signature: %s" % self.grblVersion)
+                self.grblVersion = lastResponse.replace("\n", " ").replace("\r", "")
 
                 self._settings.set(["grblVersion"], self.grblVersion)
                 self._settings.save(trigger_event=True)
@@ -1124,12 +1125,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # fluid settings outside of config yaml
             if lastRequest.upper() in ("$S", "$SETTINGS/LIST"):
-                self.fluidSettings = json.loads("{" + self.lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
+                self.fluidSettings = json.loads("{" + lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
                 self._settings.set(["fluidSettings"], self.fluidSettings)
                 self._settings.save(trigger_event=True)
                 self._logger.debug("__init__: fluid settings: {}".format(self.fluidSettings))
-
-            self.lastResponse = ""
 
         return "ok "
 
