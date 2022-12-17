@@ -141,7 +141,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.pausedPower = 0
         self.pausedPositioning = 0
 
-        self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "$SETTINGS/LIST", "$I", "$BUILD/INFO"]
+        self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "M115", "$SETTINGS/LIST", "$I", "$BUILD/INFO"]
         self.lastRequest = []
         self.lastResponse = ""
 
@@ -643,12 +643,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             self.autoSleepTimer = time.time()
 
                     self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
-
-                    # in the unlikely event our status command has been remapped
-                    if not self.statusCommand.upper() in self.trackedCmds:
-                        self.trackedCmds.append(self.statusCommand.upper())
-
-                    self.lastRequest.append(self.statusCommand.upper())
                     return (self.statusCommand, )
 
         self.autoSleepTimer = time.time()
@@ -845,6 +839,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             cmd = "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
 
+            # in the unlikely event our hello command has been remapped
+            if not cmd.upper() in self.trackedCmds:
+                self.trackedCmds.append(cmd.upper())
+
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
             self._logger.debug('Rewriting M400 as %s' % self.dwellCommand)
@@ -980,7 +978,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
 
         # we only want to track requests we care about
-        if (cmd.upper() in ("$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "$SETTINGS/LIST", "$I", "$BUILD/INFO")):
+        if cmd.upper() in self.trackedCmds:
             self.lastRequest.append(cmd)
 
         return (cmd, )

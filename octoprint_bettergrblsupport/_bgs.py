@@ -1531,7 +1531,7 @@ def is_laser_mode(_plugin):
             _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
             return int(float(_plugin.grblSettings.get(32)[0])) != 0
         else:
-            return not (_plugin.fluidYaml.get("laser") is None and _plugin.fluidYaml.get("Laser") is None and _plugin.fluidYaml.get("LASER") is None)
+            return not (_plugin.fluidYaml and _plugin.fluidYaml.get("laser") is None and _plugin.fluidYaml.get("Laser") is None and _plugin.fluidYaml.get("LASER") is None)
     except Exception as e:
         _plugin._logger.warn("_bgs: is_laser_mode: {}".format(e))
 
