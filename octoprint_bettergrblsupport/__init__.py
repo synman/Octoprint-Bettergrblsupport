@@ -1032,11 +1032,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         _bgs.add_to_notify_queue(self, [line])
             return 
 
-        # $G response
-        if line.startswith("[GC:"):
-            _bgs.process_parser_status_msg(self, line)
-            return _bgs.pick_a_response(self, None)
-
         # add a notification if we just z-probed
         # _bgs will pick this up if zProbe is active
         if "PRB:" in line.upper():
@@ -1047,6 +1042,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not "ok" in line.lower() and len(self.lastRequest) > 0:
             lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
             self.lastResponse = self.lastResponse + lastResponse + "\n" 
+
+        # $G response
+        if line.startswith("[GC:"):
+            _bgs.process_parser_status_msg(self, line)
+            return _bgs.pick_a_response(self, None)
 
         # grbl settings
         if line.lstrip().startswith("$"):
@@ -1094,7 +1094,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
                 self._settings.save(trigger_event=True)
-                self._logger.debug("__init__: fluid Config: [%s]" % self.fluidConfig)
 
                 # lets populate our x,y,z limits (namely set distance)
                 _bgs.get_axes_limits(self)
