@@ -540,7 +540,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         _bgs.update_fluid_config(self)
                 else: 
                     _bgs.update_fluid_config(self)
-                return            
 
             # save our fluid settings
             if "fluidSettings" in data:
