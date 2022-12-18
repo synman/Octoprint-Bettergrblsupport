@@ -528,7 +528,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if not self._printer.is_printing(): 
             # save our fluid config
-            if "fluidYaml" in data:
+            if "fluidYaml" in data or ("fluidSettings" in data and data.get("fluidSettings").get("Config/Filename")):
                 self.fluidConfig = data.get("fluidYaml")
                 self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
 
@@ -541,12 +541,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
                         params = {'action': 'delete', 'filename': self.fluidSettings.get("Config/Filename")}
                         r = requests.get(url, params)
-                        self._logger.debug("get result=[{}]".format(r))
+                        self._logger.debug("delete result=[{}]".format(r))
+                        r.close()
 
-                        files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
-                        self._logger.debug("post prep url=[{}] files=[{}]".format(url, files))
+                        configFile = open(self.fluidSettings.get("Config/Filename"), "w")
+                        configFile.write(self.fluidConfig)
+                        configFile.close()
+
+                        configFile = open(self.fluidSettings.get("Config/Filename"), "rb")
+                        files = {'file': (self.fluidSettings.get("Config/Filename"), configFile)}
                         r = requests.post(url, files=files)
                         self._logger.debug("post result=[{}]".format(r))
+                        r.close()
+                        configFile.close()
+
+                        os.remove(self.fluidSettings.get("Config/Filename"))
 
                         if not "fluidSettings" in data:
                             _bgs.queue_cmds_and_send(self, ["$Bye"])

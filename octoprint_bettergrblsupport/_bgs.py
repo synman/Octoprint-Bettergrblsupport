@@ -1595,9 +1595,9 @@ def process_fluid_config_item(_plugin, key, value, path=""):
         for child_key, child_value in value.items():
             process_fluid_config_item(_plugin, child_key, child_value, path)
     else:
-        if not value is None and not "_PIN" in key.upper():
+        if not value is None and not "PIN" in key.upper():
             _plugin._printer.commands("$/{}{}={}".format(path, key, value))
-            time.sleep(.1)
+            time.sleep(.2)
 
 
 def get_axes_max_rates(_plugin):
