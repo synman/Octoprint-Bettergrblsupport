@@ -544,7 +544,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
                             params = {'action': 'delete', 'filename': self.fluidSettings.get("Config/Filename")}
                             r = requests.get(url, params)
-                            self._logger.debug("delete result=[{}]".format(r))
                             r.close()
 
                             # lets wait a second for fluid to settle down
@@ -552,7 +551,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                             files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
                             r = requests.post(url, files=files)
-                            self._logger.debug("post result=[{}]".format(r))
                             r.close()
 
                             if not "fluidSettings" in data:
@@ -652,7 +650,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         cmd = cmd.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
         # suppress temperature if machine is printing
-        if "M105" in cmd.upper() or self.statusCommand.startswith(self.statusCommand):
+        if "M105" in cmd.upper() or cmd.startswith(self.statusCommand):
             if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
