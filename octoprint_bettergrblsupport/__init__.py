@@ -528,7 +528,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if not self._printer.is_printing(): 
             # save our fluid config
-            if "fluidYaml" in data or ("fluidSettings" in data and data.get("fluidSettings").get("Config/Filename")):
+            if "fluidYaml" in data:
                 self.fluidConfig = data.get("fluidYaml")
                 self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
 
@@ -544,18 +544,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         self._logger.debug("delete result=[{}]".format(r))
                         r.close()
 
-                        configFile = open(self.fluidSettings.get("Config/Filename"), "w")
-                        configFile.write(self.fluidConfig)
-                        configFile.close()
+                        # lets wait a second for fluid to process our request
+                        time.sleep(1)
+                        
+                        # configFile = open(self.fluidSettings.get("Config/Filename"), "w")
+                        # configFile.write(self.fluidConfig)
+                        # configFile.close()
 
-                        configFile = open(self.fluidSettings.get("Config/Filename"), "rb")
-                        files = {'file': (self.fluidSettings.get("Config/Filename"), configFile)}
+                        # configFile = open(self.fluidSettings.get("Config/Filename"), "rb")
+                        files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
                         r = requests.post(url, files=files)
                         self._logger.debug("post result=[{}]".format(r))
                         r.close()
-                        configFile.close()
-
-                        os.remove(self.fluidSettings.get("Config/Filename"))
+                        # configFile.close()
+                        # os.remove(self.fluidSettings.get("Config/Filename"))
 
                         if not "fluidSettings" in data:
                             _bgs.queue_cmds_and_send(self, ["$Bye"])
