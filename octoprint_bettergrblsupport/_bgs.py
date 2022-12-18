@@ -1597,6 +1597,7 @@ def process_fluid_config_item(_plugin, key, value, path=""):
     else:
         if not value is None and not "_PIN" in key.upper():
             _plugin._printer.commands("$/{}{}={}".format(path, key, value))
+            time.sleep(.1)
 
 
 def get_axes_max_rates(_plugin):
