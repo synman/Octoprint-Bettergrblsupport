@@ -563,6 +563,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 if "fluidYaml" in data:
                     _bgs.queue_cmds_and_send(self, ["$Bye"])
+                elif data.get("fluidSettings", {}).get("Config/Filename"):
+                    _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
    
             # refresh our grbl settings
             if not _bgs.is_grbl_fluidnc(self):
@@ -571,8 +573,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 else:
                     self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
 
-        # resume status requests (after 5 seconds)
-        threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 5)).start()
+        # resume status requests (after 10 seconds)
+        threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 10)).start()
 
     # #~~ AssetPlugin mixin
     def get_assets(self):
