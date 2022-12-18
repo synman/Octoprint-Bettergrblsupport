@@ -527,51 +527,58 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.on_after_startup()
 
         if not self._printer.is_printing(): 
-            # save our fluid config
-            if "fluidYaml" in data:
-                self.fluidConfig = data.get("fluidYaml")
-                self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
-
-                if self.fluidSettings.get("HTTP/Enable").upper() == "ON":
-                    try:
-                        url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
-                        params = {'action': 'delete', 'filename': self.fluidSettings.get("Config/Filename")}
-                        r = requests.get(url, params)
-                        self._logger.debug("delete result=[{}]".format(r))
-                        r.close()
-
-                        # lets wait a second for fluid to settle down
-                        time.sleep(1)
-
-                        files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
-                        r = requests.post(url, files=files)
-                        self._logger.debug("post result=[{}]".format(r))
-                        r.close()
-
-                        if not "fluidSettings" in data:
-                            _bgs.queue_cmds_and_send(self, ["$Bye"])
-                    except Exception as e:
-                        self._logger.warn("__init__: on_settings_save unable to save fluid config: {}".format(e))
-                        _bgs.update_fluid_config(self)
-                else: 
-                    _bgs.update_fluid_config(self)
-
-            # save our fluid settings
-            if "fluidSettings" in data:
-                for key, value in data.get("fluidSettings", {}).items():
-                    self._printer.commands("${}={}".format(key, value))
-
+            if "fluidYaml" in data or "fluidSettings" in data:
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
+                                                                        title="Finalizing FluidNC Changes",
+                                                                        text="Please wait while the FluidNC Configuration and Settings are finalized.",
+                                                                        hide=True,
+                                                                        delay=10000,
+                                                                notify_type="notice"))
+                # save our fluid config
                 if "fluidYaml" in data:
-                    _bgs.queue_cmds_and_send(self, ["$Bye"])
-                elif data.get("fluidSettings", {}).get("Config/Filename"):
-                    _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
-   
-            # refresh our grbl settings
-            if not _bgs.is_grbl_fluidnc(self):
-                if self.doSmoothie:
-                    self._printer.commands("Cat /sd/config")
-                else:
-                    self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
+                    self.fluidConfig = data.get("fluidYaml")
+                    self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
+
+                    if self.fluidSettings.get("HTTP/Enable").upper() == "ON":
+                        try:
+                            url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
+                            params = {'action': 'delete', 'filename': self.fluidSettings.get("Config/Filename")}
+                            r = requests.get(url, params)
+                            self._logger.debug("delete result=[{}]".format(r))
+                            r.close()
+
+                            # lets wait a second for fluid to settle down
+                            time.sleep(1)
+
+                            files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
+                            r = requests.post(url, files=files)
+                            self._logger.debug("post result=[{}]".format(r))
+                            r.close()
+
+                            if not "fluidSettings" in data:
+                                _bgs.queue_cmds_and_send(self, ["$Bye"])
+                        except Exception as e:
+                            self._logger.warn("__init__: on_settings_save unable to save fluid config: {}".format(e))
+                            _bgs.update_fluid_config(self)
+                    else: 
+                        _bgs.update_fluid_config(self)
+
+                # save our fluid settings
+                if "fluidSettings" in data:
+                    for key, value in data.get("fluidSettings", {}).items():
+                        self._printer.commands("${}={}".format(key, value))
+
+                    if "fluidYaml" in data:
+                        _bgs.queue_cmds_and_send(self, ["$Bye"])
+                    else:
+                        _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
+    
+                # refresh our grbl settings
+                if not _bgs.is_grbl_fluidnc(self):
+                    if self.doSmoothie:
+                        self._printer.commands("Cat /sd/config")
+                    else:
+                        self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
 
         # resume status requests (after 10 seconds)
         threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 10)).start()
@@ -645,7 +652,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         cmd = cmd.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
         # suppress temperature if machine is printing
-        if "M105" in cmd.upper():
+        if "M105" in cmd.upper() or self.statusCommand.startswith(self.statusCommand):
             if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
