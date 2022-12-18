@@ -1578,6 +1578,11 @@ def send_command_now(printer, logger, cmd):
         logger.error("_bgs: send_command_now: %s" % e)
 
 
+def defer_resuming_status_reports(_plugin, waitTime):
+    time.sleep(waitTime)
+    _plugin.noStatusRequests = False
+
+
 def update_fluid_config(_plugin):
     _plugin._logger.debug("_bgs: update_fluid_config")
 
@@ -1595,9 +1600,8 @@ def process_fluid_config_item(_plugin, key, value, path=""):
         for child_key, child_value in value.items():
             process_fluid_config_item(_plugin, child_key, child_value, path)
     else:
-        if not value is None and not "PIN" in key.upper():
+        if not value is None and not "PIN" in key.upper() and not "MOTOR" in path.upper() and not "PWM" in path.upper():
             _plugin._printer.commands("$/{}{}={}".format(path, key, value))
-            time.sleep(.5)
 
 
 def get_axes_max_rates(_plugin):

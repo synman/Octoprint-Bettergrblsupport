@@ -534,30 +534,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 if self.fluidSettings.get("HTTP/Enable").upper() == "ON":
                     try:
-                        # self._printer.commands("$LocalFS/Delete={}".format(self.fluidSettings.get("Config/Filename")), force=True)
-                        # lets wait a second for fluid to process our request
-                        # time.sleep(1)
-
                         url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
                         params = {'action': 'delete', 'filename': self.fluidSettings.get("Config/Filename")}
                         r = requests.get(url, params)
                         self._logger.debug("delete result=[{}]".format(r))
                         r.close()
 
-                        # lets wait a second for fluid to process our request
+                        # lets wait a second for fluid to settle down
                         time.sleep(1)
-                        
-                        # configFile = open(self.fluidSettings.get("Config/Filename"), "w")
-                        # configFile.write(self.fluidConfig)
-                        # configFile.close()
 
-                        # configFile = open(self.fluidSettings.get("Config/Filename"), "rb")
                         files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
                         r = requests.post(url, files=files)
                         self._logger.debug("post result=[{}]".format(r))
                         r.close()
-                        # configFile.close()
-                        # os.remove(self.fluidSettings.get("Config/Filename"))
 
                         if not "fluidSettings" in data:
                             _bgs.queue_cmds_and_send(self, ["$Bye"])
@@ -582,9 +571,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 else:
                     self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
 
-        # resume status requests
-        self.noStatusRequests = False
-
+        # resume status requests (after 5 seconds)
+        threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 5)).start()
 
     # #~~ AssetPlugin mixin
     def get_assets(self):
