@@ -543,14 +543,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         r = requests.get(url, params)
                         self._logger.debug("get result=[{}]".format(r))
 
-                        file = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
-                        r = requests.post(url, files=file)
+                        files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
+                        self._logger.debug("post prep url=[{}] files=[{}]".format(url, files))
+                        r = requests.post(url, files=files)
                         self._logger.debug("post result=[{}]".format(r))
 
                         if not "fluidSettings" in data:
                             _bgs.queue_cmds_and_send(self, ["$Bye"])
                     except Exception as e:
-                        self._logger.warn("__init__: on_after_startup unable to save fluid config: {}".format(e))
+                        self._logger.warn("__init__: on_settings_save unable to save fluid config: {}".format(e))
                         _bgs.update_fluid_config(self)
                 else: 
                     _bgs.update_fluid_config(self)
@@ -1100,7 +1101,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.lastResponse = ""
             lastRequest = self.lastRequest[0]
             self.lastRequest.pop(0)
-
             self._logger.debug("tracked cmd: [{}] result: [{}]".format(lastRequest, lastResponse))
 
             # fluidnc config downloaded
@@ -1110,7 +1110,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
                 self._settings.save(trigger_event=True)
-
                 # lets populate our x,y,z limits (namely set distance)
                 _bgs.get_axes_limits(self)
                 # retreive the fluid settings out of config yaml 
@@ -1119,10 +1118,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # grbl settings received
             if lastRequest.upper() in ("$$", "$+", "M115"): 
                 self.grblConfig = lastResponse.split("\n")
-
                 self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
-
                 # lets populate our x,y,z limits (namely set distance)
                 if all(id in self.grblSettings for id in (130, 131, 132)):
                     _bgs.get_axes_limits(self)
@@ -1130,10 +1127,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             # grbl version signatures
             if lastRequest.upper() in ("$I", "$BUILD/INFO"):
                 self.grblVersion = lastResponse.replace("\n", " ").replace("\r", "")
-
                 self._settings.set(["grblVersion"], self.grblVersion)
                 self._settings.save(trigger_event=True)
-
                 # trigger a fluidnc config download if fluid is detected
                 if self.fluidConfig is None and _bgs.is_grbl_fluidnc(self):
                     self._printer.commands("$CD")
@@ -1143,8 +1138,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.fluidSettings = json.loads("{" + lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
                 self._settings.set(["fluidSettings"], self.fluidSettings)
                 self._settings.save(trigger_event=True)
-                self._logger.debug("__init__: fluid settings: {}".format(self.fluidSettings))
-
         return "ok "
 
 
