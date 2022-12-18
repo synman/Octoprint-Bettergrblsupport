@@ -528,12 +528,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if not self._printer.is_printing(): 
             if "fluidYaml" in data or "fluidSettings" in data:
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="simple_notify",
-                                                                        title="Finalizing Changes. . .",
-                                                                        text="Please wait while the FluidNC Configuration and Settings are finalized.",
-                                                                        hide=True,
-                                                                        delay=15000,
-                                                                notify_type="notice"))
                 # save our fluid config
                 if "fluidYaml" in data:
                     self.fluidConfig = data.get("fluidYaml")

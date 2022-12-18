@@ -26,6 +26,7 @@
 # https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface#grbl-push-messages
 # https://reprap.org/wiki/G-codeimport os
 #
+from operator import truediv
 import os
 import time
 import math
@@ -1579,6 +1580,12 @@ def send_command_now(printer, logger, cmd):
 
 
 def defer_resuming_status_reports(_plugin, waitTime):
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                            title="Finalizing Changes. . .",
+                                                                text="Please wait while FluidNC's configuration and settings are finalized.",
+                                                                hide=True,
+                                                            delay=15000,
+                                                        notify_type="notice"))
     time.sleep(waitTime)
     _plugin.noStatusRequests = False
 
@@ -1600,10 +1607,43 @@ def process_fluid_config_item(_plugin, key, value, path=""):
         for child_key, child_value in value.items():
             process_fluid_config_item(_plugin, child_key, child_value, path)
     else:
-        if not value is None and not "PIN" in key.upper() and not "MOTOR" in path.upper() and not "PWM" in path.upper():
+        if not value is None and not "PIN" in key.upper() and not "MOTOR" in path.upper() and not is_spindle(path):
             _plugin._printer.commands("$/{}{}={}".format(path, key, value))
 
+def is_spindle(path):
+    path = path.upper()
+    if path == "10V":
+        return True
+    elif path == "BESC":
+        return True
+    elif path == "DAC":
+        return True
+    elif path == "H2A":
+        return True
+    elif path == "H100":
+        return True
+    elif path == "HBRIDGE":
+        return True
+    elif path == "HUANYANG":
+        return True
+    elif path == "LASER":
+        return True
+    elif path == "NOWFOREVER":
+        return True
+    elif path == "NOSPINDLE":
+        return True
+    elif path == "ONOFF":
+        return True
+    elif path == "PWM":
+        return True
+    elif path == "RELAY":
+        return True
+    elif path == "YL620":
+        return True
 
+    return False
+
+        
 def get_axes_max_rates(_plugin):
     _plugin._logger.debug("_bgs: get_axes_max_rates")
     
