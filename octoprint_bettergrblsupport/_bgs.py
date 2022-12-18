@@ -1580,14 +1580,14 @@ def send_command_now(printer, logger, cmd):
 
 def update_fluid_config(_plugin):
     _plugin._logger.debug("_bgs: update_fluid_config")
-    time.sleep(1)
+
+    configName = _plugin.fluidSettings.get("Config/Filename", "config.yaml")
+    _plugin._printer.commands("$LocalFS/Delete={}".format(configName))
 
     for key, value in _plugin.fluidYaml.items():
         process_fluid_config_item(_plugin, key, value)
 
-    configName = _plugin.fluidSettings.get("Config/Filename", "config.yaml")
-    queue_cmds_and_send(_plugin, ["$LocalFS/Delete={}".format(configName), "?", "$CD={}".format(configName), "$CD"])
-    time.sleep(1)
+    queue_cmds_and_send(_plugin, ["$CD={}".format(configName)])
     
 def process_fluid_config_item(_plugin, key, value, path=""):
     if isinstance(value, dict):
@@ -1595,7 +1595,7 @@ def process_fluid_config_item(_plugin, key, value, path=""):
         for child_key, child_value in value.items():
             process_fluid_config_item(_plugin, child_key, child_value, path)
     else:
-        if not value is None:
+        if not value is None and not "_PIN" in key.upper():
             _plugin._printer.commands("$/{}{}={}".format(path, key, value))
 
 
