@@ -32,11 +32,12 @@ import time
 import math
 
 import re
-# import requests
+import requests
 import threading
 
 from timeit import default_timer as timer
 from octoprint.events import Events
+from octoprint.access.permissions import Permissions
 
 from .zprobe import ZProbe
 from .xyprobe import XyProbe
@@ -1344,14 +1345,24 @@ def add_to_notify_queue(_plugin, notifications):
     if not xyProbe is None:
         xyProbe.notify(notifications)
 
-    for notification in notifications:
-        # limit notify queue depth to avoid spamming
-        if len(_plugin.notifyQueue) >= 100:
-            _plugin.notifyQueue.pop(0)
-            _plugin._logger.debug("dropping oldest notification")
+    threading.Thread(target=defer_add_to_notify_queue, args=(_plugin, notifications)).start()
 
-        _plugin._logger.debug("queuing notification [%s] - depth [%d]", notification, len(_plugin.notifyQueue) + 1)
-        _plugin.notifyQueue.append(notification)
+def defer_add_to_notify_queue(_plugin, notifications):
+    for notification in notifications:
+        if is_notification_api_available(_plugin):
+            headers = {"contentType": "application/json; charset=UTF-8", "X-Api-Key": _plugin._settings.global_get(["api", "key"])}
+            data = {"command": "add", "message": notification}
+            r = requests.post("http://localhost/api/plugin/action_command_notification", headers=headers, json=data)
+            _plugin._logger.debug("notify msg=[{}] response=[{}]".format(notification, r))
+            r.close()
+        else:
+            # limit notify queue depth to avoid spamming
+            if len(_plugin.notifyQueue) >= 100:
+                _plugin.notifyQueue.pop(0)
+                _plugin._logger.debug("dropping oldest notification")
+
+            _plugin._logger.debug("queuing notification [%s] - depth [%d]", notification, len(_plugin.notifyQueue) + 1)
+            _plugin.notifyQueue.append(notification)
 
 
 def generate_metadata_for_file(_plugin, filename, notify=False, force=False):
@@ -1541,7 +1552,6 @@ def is_laser_mode(_plugin):
 
     return False
 
-
 def is_grbl_one_dot_one(_plugin):
     oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion
     _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format(oneDotOne))
@@ -1557,12 +1567,16 @@ def is_grbl_fluidnc(_plugin):
     _plugin._logger.debug("_bgs: is_grbl_fluidnc result=[{}]".format(oneDotOne))
     return oneDotOne
 
-
 def is_latin_encoding_available(_plugin):
     octoprintVersion = _plugin.octoprintVersion
     latinEncoding = int(octoprintVersion.split(".")[0]) > 1 or int(octoprintVersion.split(".")[1]) >= 8
     _plugin._logger.debug("_bgs: is_latin_encoding_available result=[{}]".format(latinEncoding))
     return latinEncoding
+
+def is_notification_api_available(_plugin):
+    exists = not Permissions.find(Permissions.PLUGIN_ACTION_COMMAND_NOTIFICATION_ADD) is None
+    _plugin._logger.debug("_bgs: is_notification_api_available result=[{}]".format(exists))
+    return exists
 
 
 def do_fake_ack(printer, logger):
