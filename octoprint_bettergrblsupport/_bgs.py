@@ -214,9 +214,19 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 5)
     _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
     _plugin._settings.global_set(["serial", "encoding"], "ascii")
+    _plugin._settings.global_set_boolean(["serial", "sanityCheckTools"], True)
+
     _plugin._settings.global_set(["terminalFilters"], _plugin.octo_filters)
     
     _plugin._settings.save()
+
+    # remove scripts/gcode/afterPrintCancelled because it does stupid stuff with tools
+    oldCancelScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "oldAfterPrintCancelled"))
+    currentCancelScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "afterPrintCancelled"))
+
+    if os.path.exists(oldCancelScript) and not os.path.exists(currentCancelScript):
+        os.rename(oldCancelScript, currentCancelScript)
+
 
 # #-- EventHandlerPlugin mix-in
 def on_event(_plugin, event, payload):
@@ -1345,16 +1355,9 @@ def add_to_notify_queue(_plugin, notifications):
     if not xyProbe is None:
         xyProbe.notify(notifications)
 
-    threading.Thread(target=defer_add_to_notify_queue, args=(_plugin, notifications)).start()
-
-def defer_add_to_notify_queue(_plugin, notifications):
     for notification in notifications:
-        if is_notification_api_available(_plugin):
-            headers = {"contentType": "application/json; charset=UTF-8", "X-Api-Key": _plugin._settings.global_get(["api", "key"])}
-            data = {"command": "add", "message": notification}
-            r = requests.post("http://localhost/api/plugin/action_command_notification", headers=headers, json=data)
-            _plugin._logger.debug("notify msg=[{}] response=[{}]".format(notification, r))
-            r.close()
+        if not _plugin._add_notification is None:
+            _plugin._add_notification(notification)
         else:
             # limit notify queue depth to avoid spamming
             if len(_plugin.notifyQueue) >= 100:
@@ -1572,11 +1575,6 @@ def is_latin_encoding_available(_plugin):
     latinEncoding = int(octoprintVersion.split(".")[0]) > 1 or int(octoprintVersion.split(".")[1]) >= 8
     _plugin._logger.debug("_bgs: is_latin_encoding_available result=[{}]".format(latinEncoding))
     return latinEncoding
-
-def is_notification_api_available(_plugin):
-    exists = not Permissions.find(Permissions.PLUGIN_ACTION_COMMAND_NOTIFICATION_ADD) is None
-    _plugin._logger.debug("_bgs: is_notification_api_available result=[{}]".format(exists))
-    return exists
 
 
 def do_fake_ack(printer, logger):

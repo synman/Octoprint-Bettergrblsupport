@@ -27,6 +27,7 @@
 # https://reprap.org/wiki/G-code
 #
 from __future__ import absolute_import
+from pydoc import Helper
 from octoprint.events import Events
 from shutil import copyfile
 
@@ -466,10 +467,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set(["serial", "longRunningCommands"], longCmds)
         self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
         self._settings.global_set(["serial", "encoding"], "latin_1")
+        self._settings.global_set_boolean(["serial", "sanityCheckTools"], False)
 
         self._settings.global_set(["terminalFilters"], self.bgsFilters)
 
         self._settings.save()
+
+        # remove scripts/gcode/afterPrintCancelled because it does stupid stuff with tools
+        oldCancelScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "oldAfterPrintCancelled"))
+        currentCancelScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "afterPrintCancelled"))
+
+        if not os.path.exists(oldCancelScript) and os.path.exists(currentCancelScript):
+            os.rename(currentCancelScript, oldCancelScript)
+
+        # get a reference to the action_command_notification 
+        # plugin's add_notification helper 
+        helpers = self._plugin_manager.get_helpers("action_command_notification")
+        if helpers and "add_notification" in helpers:
+            self._add_notification = helpers["add_notification"]
+            self._logger.debug("action command notification plugin's add notification helper found")
+        else:
+            self._add_notification = None
+
         _bgs.load_grbl_settings(self)
 
 
