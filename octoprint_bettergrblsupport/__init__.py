@@ -480,15 +480,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not os.path.exists(oldCancelScript) and os.path.exists(currentCancelScript):
             os.rename(currentCancelScript, oldCancelScript)
 
-        # get a reference to the action_command_notification 
-        # plugin's add_notification helper 
-        helpers = self._plugin_manager.get_helpers("action_command_notification")
-        if helpers and "add_notification" in helpers:
-            self._add_notification = helpers["add_notification"]
-            self._logger.debug("action command notification plugin's add notification helper found")
-        else:
-            self._add_notification = None
-
         _bgs.load_grbl_settings(self)
 
 
