@@ -10,9 +10,12 @@ $(function() {
 
         self.sessionId = guid();
 
-        self.loginState = parameters[0];
-        self.settings = parameters[1];
+        self.settings = parameters[0];
+        self.loginState = parameters[1];
         self.access = parameters[2];
+        self.notifications = parameters[3];
+
+        self.my_notifications = ko.observableArray();
 
         var $body = $('body');
 
@@ -27,10 +30,6 @@ $(function() {
         self.webcamMjpgEnabled = ko.observable(false);
         self.webcamHlsEnabled = ko.observable(false);
         self.webcamError = ko.observable(false);
-
-        // assign the injected parameters, e.g.:
-        self.settings = parameters[0];
-        self.loginState = parameters[1];
 
         self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
         self.origin_axis = ko.observable("XY");
@@ -436,13 +435,43 @@ $(function() {
 
             self.distance(self.settings.settings.plugins.bettergrblsupport.control_distance());
             self.settings.settings.plugins.bettergrblsupport.control_distance.subscribe(function(newValue) {
-              self.distance(newValue);
+                self.distance(newValue);
             });
+
+            self.notifications.requestData = self.overrideRequestData;
+            self.notifications.onDataUpdaterPluginMessage = self.overrideOnDataUpdaterPluginMessage;
+        };
+
+        self.overrideRequestData = function() {
+            OctoPrint.simpleApiGet("bettergrblsupport").done(self.notifications.fromResponse);
+        };
+
+        self.overrideOnDataUpdaterPluginMessage = function(plugin, data) {
+            if (plugin !== "action_command_notification") {
+                return;
+            }
+
+            self.notifications.requestData();
+
+            if (data.message) {
+                if (self.settings.settings.plugins.action_command_notification.enable_popups()) {
+                    new PNotify({
+                        title: gettext("Machine Notification"),
+                        text: data.message,
+                        hide: false,
+                        icon: "fa fa-bell-o",
+                        buttons: {
+                            sticker: false,
+                            closer: true
+                        }
+                    });
+                }
+            }
         };
 
         self.coordinateSystemChanged = function (coordinate_system) {
           // self.coordinate_system(coordinate_system)
-          OctoPrint.control.sendGcode([coordinate_system, "?"]);
+            OctoPrint.control.sendGcode([coordinate_system, "?"]);
         };
 
         self.onAllBound = function (allViewModels) {
@@ -792,6 +821,10 @@ $(function() {
                   });
                 }
             }
+
+            if (plugin == "bettergrblsupport" && data.type == "notification") {
+                self.notifications.onDataUpdaterPluginMessage("action_command_notification", {message: data.message})                    
+            }
         }
 
         self.modeClick = function() {
@@ -824,7 +857,7 @@ $(function() {
           }
         }
 
-        self.fsClick = function() {
+        self.fsClick = function() {  
             $body.toggleClass('inlineFullscreen');
             $container.toggleClass("inline fullscreen");
             // streamImg.classList.toggle("fullscreen");
@@ -1330,7 +1363,7 @@ $(function() {
 
     OCTOPRINT_VIEWMODELS.push([
         BettergrblsupportViewModel,
-        ["settingsViewModel", "loginStateViewModel", "accessViewModel"],
+        ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel"],
         ["#tab_plugin_bettergrblsupport"]
     ]);
 });

@@ -284,7 +284,7 @@ def on_event(_plugin, event, payload):
 
     # Print Starting
     if payload is not None and payload.get("state_id") == "STARTING":
-        add_to_notify_queue(_plugin, ["Pgm Begin"])
+        add_notifications(_plugin, ["Pgm Begin"])
         # threading.Thread(target=send_command_now, args=(_plugin._printer, _plugin._logger, "?")).start()
         _plugin._printer.commands("?", force=True)
         return
@@ -576,11 +576,11 @@ def toggle_weak(_plugin):
     if _plugin.grblPowerLevel == 0:
         # turn on laser in weak mode
         _plugin._printer.commands("G1 F{} M3 S{:.2f}".format(f, _plugin.weakLaserValue))
-        add_to_notify_queue(_plugin, ["Weak laser enabled"])
+        add_notifications(_plugin, ["Weak laser enabled"])
         res = "Laser Off"
     else:
         _plugin._printer.commands(["M3 S0", "M5", "G0"])
-        add_to_notify_queue(_plugin, ["Weak laser disabled"])
+        add_notifications(_plugin, ["Weak laser disabled"])
         res = "Weak Laser"
 
     return res
@@ -637,7 +637,7 @@ def process_grbl_status_msg(_plugin, msg):
 
     # add a notification if we just homed
     if _plugin.grblState.upper() == "HOME":
-        add_to_notify_queue(_plugin, ["Machine has been homed"])
+        add_notifications(_plugin, ["Machine has been homed"])
 
     # the only thing useful remaining is buffer stats
     # and we currently don't do anything with it
@@ -676,7 +676,7 @@ def process_grbl_alarm(_plugin, msg):
         _plugin.grblCmdQueue.clear()
 
     # put a message on our notification queue and force an inquiry
-    add_to_notify_queue(_plugin, [desc])
+    add_notifications(_plugin, [desc])
     _plugin._printer.commands("?")
 
     # we need to pause if we are printing
@@ -729,7 +729,7 @@ def process_grbl_error(_plugin, msg):
     _plugin.lastResponse = ""
 
     # put a message on our notification queue and force an inquiry
-    add_to_notify_queue(_plugin, [desc])
+    add_notifications(_plugin, [desc])
     # _plugin._printer.commands("?")
 
     # we need to pause if we are printing
@@ -779,41 +779,6 @@ def process_parser_status_msg(_plugin, msg):
                                                                         coord=_plugin.grblCoordinateSystem,
                                                                         coolant=_plugin.coolant,
                                                                         positioning=_plugin.positioning))
-
-
-def pick_a_response(_plugin, firstChoice):
-    _plugin._logger.debug("_bgs: pick_a_response firstChoice=[{}]".format(firstChoice.replace("\n", "<lf>").replace("\r", "<cr>") if not firstChoice is None else "{None}"))
-
-    # pop any queued notifications
-    notifications = str("")
-    entryCount = 0
-
-    while len(_plugin.notifyQueue) > 0:
-        notification = _plugin.notifyQueue[0]
-
-        if notification is None:
-            _plugin.notifyQueue.pop(0)
-            continue
-
-        entryCount = entryCount + 1
-
-        if notification in ("Pgm Begin", "Z-Probe Initiated"):
-            _plugin.grblState = "Run"
-            _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
-
-        notifications = notification + " | " + notifications
-        _plugin.notifyQueue.pop(0)
-
-    if entryCount > 0:
-        notifications = notifications[0:len(notifications) - 3]
-        _plugin._logger.debug('sending queued notification [%s] - depth [%d]', notifications, entryCount)
-
-        return "//action:notification " + notifications
-
-    if firstChoice is None:
-        return
-
-    return firstChoice
 
 
 def do_xyz_probe(_plugin, sessionId):
@@ -899,7 +864,7 @@ def do_xy_probe(_plugin, axes, sessionId):
                                                                              delay=0,
                                                                        notify_type="info"))
 
-        add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
+        add_notifications(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
         xyProbe.teardown()
         xyProbe = None
@@ -927,7 +892,7 @@ def xy_probe_hook(_plugin, result, position, axis):
         return
 
     notification = "X/Y Probe: [{}] axis result [{:.3f}]".format(axis, position)
-    add_to_notify_queue(_plugin, [notification])
+    add_notifications(_plugin, [notification])
 
     # defer commands and setup of the next step
     threading.Thread(target=defer_do_xy_probe, args=(_plugin, position, axis, xyProbe._sessionId)).start()
@@ -1019,7 +984,7 @@ def simple_zprobe_hook(_plugin, result, position):
                                                                              delay=0,
                                                                        notify_type=notify_type))
 
-        add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
+        add_notifications(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
     _plugin._logger.debug("zprobe hook position: [%f] result: [%d]", position, result)
 
@@ -1219,7 +1184,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
                                                                                  delay=0,
                                                                            notify_type="info"))
 
-            add_to_notify_queue(_plugin, [text.replace("<B>", "").replace("</B>", "")])
+            add_notifications(_plugin, [text.replace("<B>", "").replace("</B>", "")])
 
             zProbe.teardown()
             zProbe = None
@@ -1241,7 +1206,7 @@ def multipoint_zprobe_hook(_plugin, result, position):
     else:
         location = zProbe.getCurrentLocation()['location']
         notification = "Z-Probe [{}] location result [{:.3f}]".format(location, position)
-        add_to_notify_queue(_plugin, [notification])
+        add_notifications(_plugin, [notification])
 
         # max z feed rate -- we'll do 50% of it
         xf, yf, zf = get_axes_max_rates(_plugin)
@@ -1347,8 +1312,8 @@ def wait_for_empty_cmd_queue(_plugin):
     _plugin._logger.debug("done waiting for command queue to drain")
 
 
-def add_to_notify_queue(_plugin, notifications):
-    _plugin._logger.debug("_bgs: add_to_notify_queue notifications=[{}]".format(notifications))
+def add_notifications(_plugin, notifications):
+    _plugin._logger.debug("_bgs: add_notifications notifications=[{}]".format(notifications))
 
     if not zProbe is None:
         zProbe.notify(notifications)
@@ -1356,16 +1321,8 @@ def add_to_notify_queue(_plugin, notifications):
         xyProbe.notify(notifications)
 
     for notification in notifications:
-        if not _plugin._add_notification is None:
-            _plugin._add_notification(notification)
-        else:
-            # limit notify queue depth to avoid spamming
-            if len(_plugin.notifyQueue) >= 100:
-                _plugin.notifyQueue.pop(0)
-                _plugin._logger.debug("dropping oldest notification")
-
-            _plugin._logger.debug("queuing notification [%s] - depth [%d]", notification, len(_plugin.notifyQueue) + 1)
-            _plugin.notifyQueue.append(notification)
+        _plugin.notifications.append((time.time(), notification))
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="notification", message=notification))
 
 
 def generate_metadata_for_file(_plugin, filename, notify=False, force=False):

@@ -111,7 +111,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.doSmoothie = False
 
         self.grblCmdQueue = []
-        self.notifyQueue = []
+        self.notifications = []
 
         self.grblVersion = "unknown"
 
@@ -892,7 +892,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # soft reset / resume (stolen from Marlin)
         if cmd.upper().startswith('M999') and not self.doSmoothie:
             self._logger.debug('Sending Soft Reset')
-            _bgs.add_to_notify_queue(self, ["Machine has been reset"])
+            _bgs.add_notifications(self, ["Machine has been reset"])
 
             self.grblState = "Reset"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Reset"))
@@ -1034,7 +1034,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # look for a status message
         if 'MPos' in line or 'WPos' in line:
-            return _bgs.pick_a_response(self, _bgs.process_grbl_status_msg(self, line))
+            return _bgs.process_grbl_status_msg(self, line)
 
         # look for an alarm
         if line.lower().startswith('alarm:'):
@@ -1065,13 +1065,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     line = line.replace("\n", "").replace("\r", "")
 
                     if len(line) > 0:
-                        _bgs.add_to_notify_queue(self, [line])
+                        _bgs.add_notifications(self, [line])
             return 
 
         # add a notification if we just z-probed
         # _bgs will pick this up if zProbe is active
         if "PRB:" in line.upper():
-            _bgs.add_to_notify_queue(self, [line])
+            _bgs.add_notifications(self, [line])
             return
 
         # add to our lastResponse if this is not an acknowledgment
@@ -1082,7 +1082,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # $G response
         if line.startswith("[GC:"):
             _bgs.process_parser_status_msg(self, line)
-            return _bgs.pick_a_response(self, None)
+            return 
 
         # grbl settings
         if line.lstrip().startswith("$"):
@@ -1180,6 +1180,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             plungeRate=[],
             powerRate=[],
             cancelProbe=[]
+        )
+
+
+    # ~ SimpleApiPlugin
+
+    def on_api_get(self, request):
+        return flask.jsonify(
+            notifications=[
+                {"timestamp": notification[0], "message": notification[1]}
+                for notification in self.notifications
+            ]
         )
 
 
@@ -1329,7 +1340,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 program = -53 + program
 
                 # add a notification if we just homed
-                _bgs.add_to_notify_queue(self, ["Moved to coordinate system {} home for {}".format(program, axis)])
+                _bgs.add_notifications(self, ["Moved to coordinate system {} home for {}".format(program, axis)])
                 return
 
             if direction == "probe":
@@ -1402,7 +1413,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 self._printer.commands("G91 G10 P{} L20 X0 Y0 Z0".format(program))
 
-            _bgs.add_to_notify_queue(self, ["Coordinate system {} home for {} set".format(program, axis)])
+            _bgs.add_notifications(self, ["Coordinate system {} home for {} set".format(program, axis)])
             return
 
         if command == "toggleWeak":
