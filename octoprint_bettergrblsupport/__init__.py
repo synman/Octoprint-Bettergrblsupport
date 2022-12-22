@@ -585,6 +585,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # resume status requests (after 10 seconds)
         threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 10)).start()
 
+
     # #~~ AssetPlugin mixin
     def get_assets(self):
         self._logger.debug("__init__: get_assets")
@@ -1151,6 +1152,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         return "ok "
 
 
+    # ~ SimpleApiPlugin
+    def on_api_get(self, request):
+        return flask.jsonify(
+            notifications=[
+                {"timestamp": notification[0], "message": notification[1]}
+                for notification in self.notifications
+            ]
+        )
+
+
     def get_api_commands(self):
         self._logger.debug("__init__: get_api_commands")
 
@@ -1174,17 +1185,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         )
 
 
-    # ~ SimpleApiPlugin
-
-    def on_api_get(self, request):
-        return flask.jsonify(
-            notifications=[
-                {"timestamp": notification[0], "message": notification[1]}
-                for notification in self.notifications
-            ]
-        )
-
-
     def on_api_command(self, command, data):
         self._logger.debug("__init__: on_api_command data=[{}]".format(data))
 
@@ -1205,7 +1205,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("M999")
             else:
                 self._printer.commands("$X")
-
             return
 
         if command == "reset":
