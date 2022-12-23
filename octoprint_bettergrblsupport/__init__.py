@@ -58,7 +58,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.WizardPlugin,
                               octoprint.plugin.RestartNeedingPlugin):
 
-    def __init__(self):
+    def __init__(self): 
         self.hideTempTab = True
         self.hideControlTab = True
         self.hideGCodeTab = True
@@ -184,7 +184,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.bgsFilters = self.bgs_filters
 
         self.settingsVersion = 6
-        self.wizardVersion = 13
+        self.wizardVersion = 14
         
         self.whenConnected = time.time()
         self.handshakeSent = False
@@ -583,7 +583,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         self._printer.commands("$+" if _bgs.is_grbl_esp32(self) else "$$")
 
         # resume status requests (after 10 seconds)
-        threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 10)).start()
+        threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 10, "fluidYaml" in data or "fluidSettings" in data)).start()
 
 
     # #~~ AssetPlugin mixin

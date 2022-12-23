@@ -1548,13 +1548,14 @@ def send_command_now(printer, logger, cmd):
         logger.error("_bgs: send_command_now: %s" % e)
 
 
-def defer_resuming_status_reports(_plugin, waitTime):
-    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
-                                                            title="Finalizing Changes. . .",
-                                                                text="Please wait while FluidNC's configuration and settings are finalized.",
-                                                                hide=True,
-                                                            delay=15000,
-                                                        notify_type="notice"))
+def defer_resuming_status_reports(_plugin, waitTime, showFinalize):
+    if showFinalize:
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                title="Finalizing Changes. . .",
+                                                                    text="Please wait while FluidNC's configuration and settings are finalized.",
+                                                                    hide=True,
+                                                                delay=15000,
+                                                            notify_type="notice"))
     time.sleep(waitTime)
     _plugin.noStatusRequests = False
 
