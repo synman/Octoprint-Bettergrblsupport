@@ -1286,6 +1286,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.info("power rate overriden by %.0f%%", powerRate)
             return
 
+        if command == "clearNotifications":
+            self.notifications = []
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="notification", message=""))
+            return 
+
         # catch-all (TODO: should revisit state management) for validating printer State
         if not self._printer.is_ready() or not self.grblState in ("Idle", "Jog", "Check"):
             self._logger.debug("ignoring move related command - printer is not available")
@@ -1410,10 +1415,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "toggleWeak":
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
 
-        if command == "clearNotifications":
-            self.notifications = []
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="notification", message=""))
-            return 
 
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
