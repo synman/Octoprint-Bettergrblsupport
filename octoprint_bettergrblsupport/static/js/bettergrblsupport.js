@@ -439,11 +439,16 @@ $(function() {
             });
 
             self.notifications.requestData = self.overrideRequestData;
+            self.notifications.clear = self.overrideClear;
             self.notifications.onDataUpdaterPluginMessage = self.overrideOnDataUpdaterPluginMessage;
         };
 
         self.overrideRequestData = function() {
             OctoPrint.simpleApiGet("bettergrblsupport").done(self.notifications.fromResponse);
+        };
+
+        self.overrideClear = function() {
+            OctoPrint.simpleApiCommand("bettergrblsupport", "clearNotifications");    
         };
 
         self.overrideOnDataUpdaterPluginMessage = function(plugin, data) {

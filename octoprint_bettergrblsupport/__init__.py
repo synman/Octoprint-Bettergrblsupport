@@ -1181,7 +1181,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             feedRate=[],
             plungeRate=[],
             powerRate=[],
-            cancelProbe=[]
+            cancelProbe=[],
+            clearNotifications=[]
         )
 
 
@@ -1409,6 +1410,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "toggleWeak":
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
 
+        if command == "clearNotifications":
+            self.notifications = []
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="notification", message=""))
+            return 
 
     def on_wizard_finish(self, handled):
         self._logger.debug("__init__: on_wizard_finish handled=[{}]".format(handled))
