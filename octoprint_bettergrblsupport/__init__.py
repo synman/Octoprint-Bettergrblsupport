@@ -1154,35 +1154,29 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     # ~ SimpleApiPlugin
     def on_api_get(self, request):
-        return flask.jsonify(
-            notifications=[
-                {"timestamp": notification[0], "message": notification[1]}
-                for notification in self.notifications
-            ]
-        )
-
+        return "this space intentionally left blank (for now)\n"
 
     def get_api_commands(self):
         self._logger.debug("__init__: get_api_commands")
 
         return dict(
-            frame=[],
-            toggleWeak=[],
-            originz=[],
-            origin=[],
-            move=[],
             sleep=[],
             reset=[],
             unlock=[],
             homing=[],
-            updateGrblSetting=[],
+            toggleWeak=[],
+            cancelProbe=[],
+            getNotifications=[],
+            clearNotifications=[],
             backupGrblSettings=[],
             restoreGrblSettings=[],
-            feedRate=[],
-            plungeRate=[],
-            powerRate=[],
-            cancelProbe=[],
-            clearNotifications=[]
+            frame=["length", "width"],
+            origin=["origin_axis"],
+            move=["sessionId", "direction", "distance", "axis"],
+            updateGrblSetting=["id", "value"],
+            feedRate=["feed_rate"],
+            plungeRate=["plunge_rate"],
+            powerRate=["power_rate"],
         )
 
 
@@ -1285,6 +1279,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self._logger.info("power rate overriden by %.0f%%", powerRate)
             return
+
+        if command == "getNotifications":
+            return flask.jsonify(
+                    notifications=[
+                        {"timestamp": notification[0], "message": notification[1]}
+                        for notification in self.notifications
+                    ]
+            )
 
         if command == "clearNotifications":
             self.notifications = []

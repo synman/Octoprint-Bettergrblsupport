@@ -234,31 +234,27 @@ $(function() {
         }
 
         self.toggleWeak = function() {
-            $.ajax({
-                url: API_BASEURL + "plugin/bettergrblsupport",
-                type: "POST",
-                dataType: "json",
-                data: JSON.stringify({
-                    command: "toggleWeak"
-                }),
-                contentType: "application/json; charset=UTF-8",
-                success: function(data) {
-                    var btn = document.getElementById("grblLaserButton");
-                    btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
-                },
-                error: function(data, status) {
-                    new PNotify({
-                        title: "Laser action failed!",
-                        text: data.responseText,
-                        hide: true,
-                        buttons: {
-                            sticker: false,
-                            closer: true
-                        },
-                        type: "error"
-                    });
-                }
-            });
+            OctoPrint.simpleApiCommand("bettergrblsupport", "toggleWeak")
+                .done(
+                    function(data) {
+                        var btn = document.getElementById("grblLaserButton");
+                        btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
+                    }
+                )
+                .fail(
+                    function(data, status) {
+                        new PNotify({
+                            title: "Laser action failed!",
+                            text: data.responseText,
+                            hide: true,
+                            buttons: {
+                                sticker: false,
+                                closer: true
+                            },
+                            type: "error"
+                        })
+                    }
+                );
         };
 
         self.distanceClicked = function(distance) {
@@ -303,24 +299,31 @@ $(function() {
         };
 
         self.moveHead = function(direction, distance) {
-          if (distance == undefined) distance = self.distance();
-            $.ajax({
-                url: API_BASEURL + "plugin/bettergrblsupport",
-                type: "POST",
-                dataType: "json",
-                data: JSON.stringify({
-                    command: "move",
-                    sessionId: self.sessionId,
-                    direction: direction,
-                    distance: distance,
-                    axis: self.origin_axis()
-                }),
-                contentType: "application/json; charset=UTF-8",
-                success: function(data) {
-                    if (data != undefined && data["res"] != undefined && data["res"].length > 0) {
+            if (distance == undefined) distance = self.distance();
+            OctoPrint.simpleApiCommand("bettergrblsupport", "move", { "sessionId": self.sessionId,
+                                                                      "direction": direction,
+                                                                      "distance": distance,
+                                                                      "axis": self.origin_axis() })
+                .done(
+                    function(data) {
+                        if (data != undefined && data["res"] != undefined && data["res"].length > 0) {
+                            new PNotify({
+                                title: "Unable to Move!",
+                                text: data["res"],
+                                hide: true,
+                                buttons: {
+                                    sticker: false,
+                                    closer: true
+                                },
+                                type: "error"
+                            });
+                        }
+                    })
+                .fail(
+                    function(data, status) {
                         new PNotify({
-                            title: "Unable to Move!",
-                            text: data["res"],
+                            title: "Move Head failed!",
+                            text: data.responseText,
                             hide: true,
                             buttons: {
                                 sticker: false,
@@ -328,21 +331,7 @@ $(function() {
                             },
                             type: "error"
                         });
-                    }
-                },
-                error: function(data, status) {
-                    new PNotify({
-                        title: "Move Head failed!",
-                        text: data.responseText,
-                        hide: true,
-                        buttons: {
-                            sticker: false,
-                            closer: true
-                        },
-                        type: "error"
-                    });
-                }
-            });
+                    })
         };
 
         self.sendCommand = function(command) {
@@ -361,27 +350,20 @@ $(function() {
                         buttons: [{
                                 text: "CONFIRM",
                                 click: function(notice) {
-                                    $.ajax({
-                                        url: API_BASEURL + "plugin/bettergrblsupport",
-                                        type: "POST",
-                                        dataType: "json",
-                                        data: JSON.stringify({
-                                            command: command
-                                        }),
-                                        contentType: "application/json; charset=UTF-8",
-                                        error: function(data, status) {
-                                            new PNotify({
-                                                title: "Unable to unlock machine!",
-                                                text: data.responseText,
-                                                hide: true,
-                                                buttons: {
-                                                    sticker: false,
-                                                    closer: true
-                                                },
-                                                type: "error"
+                                    OctoPrint.simpleApiCommand("bettergrblsupport", command)
+                                        .fail(
+                                            function(data, status) {
+                                                new PNotify({
+                                                    title: "Unable to unlock machine!",
+                                                    text: data.responseText,
+                                                    hide: true,
+                                                    buttons: {
+                                                        sticker: false,
+                                                        closer: true
+                                                    },
+                                                    type: "error"
+                                                });
                                             });
-                                        }
-                                    });
                                     notice.remove();
                                 }
                             },
@@ -397,36 +379,29 @@ $(function() {
                 return;
             }
 
-            $.ajax({
-                url: API_BASEURL + "plugin/bettergrblsupport",
-                type: "POST",
-                dataType: "json",
-                data: JSON.stringify({
-                    command: command,
-                    origin_axis: self.origin_axis(),
-                    feed_rate: self.feedRate(),
-                    plunge_rate: self.plungeRate(),
-                    power_rate: self.powerRate()
-                }),
-                contentType: "application/json; charset=UTF-8",
-                success: function(data) {
-                    if (command == "feedRate") self.feedRate(undefined);
-                    if (command == "plungeRate") self.plungeRate(undefined);
-                    if (command == "powerRate") self.powerRate(undefined);
-                },
-                error: function(data, status) {
-                    new PNotify({
-                        title: "Unable to send command: " + command,
-                        text: data.responseText,
-                        hide: true,
-                        buttons: {
-                            sticker: false,
-                            closer: true
-                        },
-                        type: "error"
+            OctoPrint.simpleApiCommand("bettergrblsupport", command, { "origin_axis": self.origin_axis(),
+                                                                       "feed_rate": self.feedRate(),
+                                                                       "plunge_rate": self.plungeRate(),
+                                                                       "power_rate": self.powerRate() })
+                .done(
+                    function(data) {
+                        if (command == "feedRate") self.feedRate(undefined);
+                        if (command == "plungeRate") self.plungeRate(undefined);
+                        if (command == "powerRate") self.powerRate(undefined);    
+                    })
+                .fail(
+                    function(data, status) {
+                        new PNotify({
+                            title: "Unable to send command: " + command,
+                            text: data.responseText,
+                            hide: true,
+                            buttons: {
+                                sticker: false,
+                                closer: true
+                            },
+                            type: "error"
+                        });
                     });
-                }
-            });
         };
 
         self.onBeforeBinding = function() {
@@ -444,7 +419,7 @@ $(function() {
         };
 
         self.overrideRequestData = function() {
-            OctoPrint.simpleApiGet("bettergrblsupport").done(self.notifications.fromResponse);
+            OctoPrint.simpleApiCommand("bettergrblsupport", "getNotifications").done(self.notifications.fromResponse);
         };
 
         self.overrideClear = function() {
@@ -565,23 +540,23 @@ $(function() {
             }
 
             if (plugin == 'bettergrblsupport' && data.type == 'simple_notify') {
-              if (data.sessionId == undefined || data.sessionId == self.sessionId) {
-                new PNotify({
-                    title: data.title,
-                    text: data.text,
-                    hide: data.hide,
-                    animation: "fade",
-                    animateSpeed: "slow",
-                    mouseReset: true,
-                    delay: data.delay,
-                    buttons: {
-                        sticker: true,
-                        closer: true
-                    },
-                    type: data.notify_type,
-                });
-              }
-              return
+                if (data.sessionId == undefined || data.sessionId == self.sessionId) {
+                    new PNotify({
+                        title: data.title,
+                        text: data.text,
+                        hide: data.hide,
+                        animation: "fade",
+                        animateSpeed: "slow",
+                        mouseReset: true,
+                        delay: data.delay,
+                        buttons: {
+                            sticker: true,
+                            closer: true
+                        },
+                        type: data.notify_type,
+                    });
+                }
+                return
             }
 
             if (plugin == 'bettergrblsupport' && data.type == 'restart_required') {
@@ -599,31 +574,6 @@ $(function() {
                     type: "notice"
                 });
                 return
-            }
-
-            if (plugin == 'bettergrblsupport' && data.type == 'send_notification') {
-                $.ajax({
-                    url: API_BASEURL + "plugin/action_command_notification",
-                    type: "POST",
-                    dataType: "json",
-                    data: JSON.stringify({
-                        command: "add",
-                        message: data.message
-                    }),
-                    contentType: "application/json; charset=UTF-8",
-                    error: function(data, status) {
-                        new PNotify({
-                            title: "Unable to add notification",
-                            text: data.responseText,
-                            hide: true,
-                            buttons: {
-                                sticker: false,
-                                closer: true
-                            },
-                            type: "error"
-                        });
-                    }
-                });
             }
 
             if (plugin == 'bettergrblsupport' && data.type == 'xy_probe') {
@@ -660,28 +610,22 @@ $(function() {
                                   text: "CANCEL",
                                   click: function(notice) {
                                       // we need to inform the plugin we bailed
-                                      $.ajax({
-                                          url: API_BASEURL + "plugin/bettergrblsupport",
-                                          type: "POST",
-                                          dataType: "json",
-                                          data: JSON.stringify({
-                                              command: "cancelProbe"
-                                          }),
-                                          contentType: "application/json; charset=UTF-8",
-                                          error: function(data, status) {
-                                              new PNotify({
-                                                  title: "Unable to cancel Multipoint Z-Probe",
-                                                  text: data.responseText,
-                                                  hide: true,
-                                                  buttons: {
-                                                      sticker: false,
-                                                      closer: true
-                                                  },
-                                                  type: "error"
-                                              });
-                                          }
-                                      });
-                                      notice.remove();
+                                        OctoPrint.simpleApiCommand("bettergrblsupport", "cancelProbe")
+                                            .fail(
+                                                function(data, status) {
+                                                    new PNotify({
+                                                        title: "Unable to cancel Multipoint Z-Probe",
+                                                        text: data.responseText,
+                                                        hide: true,
+                                                        buttons: {
+                                                            sticker: false,
+                                                            closer: true
+                                                        },
+                                                        type: "error"
+                                                    })
+                                                  }
+                                            );
+                                        notice.remove();
                                   }
                               },
                           ]
@@ -692,138 +636,126 @@ $(function() {
 
             if (plugin == 'bettergrblsupport' && data.type == 'simple_zprobe') {
                 if (data.sessionId != undefined && data.sessionId == self.sessionId) {
-                  var text = "";
-                  var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
+                    var text = "";
+                    var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
 
-                  // if (!confirmActions) {
-                  //   OctoPrint.control.sendGcode(data.gcode);
-                  //   return
-                  // }
+                    // if (!confirmActions) {
+                    //   OctoPrint.control.sendGcode(data.gcode);
+                    //   return
+                    // }
 
-                  text = "Select <B>PROCEED</B> to initiate Single Point Z-Probe once the machine is at the desired location, and you are ready to continue.";
+                    text = "Select <B>PROCEED</B> to initiate Single Point Z-Probe once the machine is at the desired location, and you are ready to continue.";
 
-                  new PNotify({
-                      title: "Single Point Z-Probe",
-                      text: text,
-                      type: "notice",
-                      hide: false,
-                      animation: "fade",
-                      animateSpeed: "slow",
-                      sticker: false,
-                      closer: true,
-                      confirm: {
-                          confirm: true,
-                          buttons: [{
-                                  text: "PROCEED",
-                                  click: function(notice) {
-                                    OctoPrint.control.sendGcode(data.gcode);
-                                    notice.remove();
-                                  }
-                              },
-                              {
-                                  text: "CANCEL",
-                                  click: function(notice) {
-                                      // we need to inform the plugin we bailed
-                                      $.ajax({
-                                          url: API_BASEURL + "plugin/bettergrblsupport",
-                                          type: "POST",
-                                          dataType: "json",
-                                          data: JSON.stringify({
-                                              command: "cancelProbe"
-                                          }),
-                                          contentType: "application/json; charset=UTF-8",
-                                          error: function(data, status) {
-                                              new PNotify({
-                                                  title: "Unable to cancel Multipoint Z-Probe",
-                                                  text: data.responseText,
-                                                  hide: true,
-                                                  buttons: {
-                                                      sticker: false,
-                                                      closer: true
-                                                  },
-                                                  type: "error"
-                                              });
-                                          }
-                                      });
-                                      notice.remove();
-                                  }
-                              },
-                          ]
-                      },
-                  });
+                    new PNotify({
+                        title: "Single Point Z-Probe",
+                        text: text,
+                        type: "notice",
+                        hide: false,
+                        animation: "fade",
+                        animateSpeed: "slow",
+                        sticker: false,
+                        closer: true,
+                        confirm: {
+                            confirm: true,
+                            buttons: [{
+                                    text: "PROCEED",
+                                    click: function(notice) {
+                                        OctoPrint.control.sendGcode(data.gcode);
+                                        notice.remove();
+                                    }
+                                },
+                                {
+                                    text: "CANCEL",
+                                    click: function(notice) {
+                                        // we need to inform the plugin we bailed
+                                        OctoPrint.simpleApiCommand("bettergrblsupport", "cancelProbe")
+                                            .fail(
+                                                function(data, status) {
+                                                    new PNotify({
+                                                        title: "Unable to cancel Single Point Z-Probe",
+                                                        text: data.responseText,
+                                                        hide: true,
+                                                        buttons: {
+                                                            sticker: false,
+                                                            closer: true
+                                                        },
+                                                        type: "error"
+                                                    });
+                                                }
+                                            );
+                                        notice.remove();
+                                    }
+                                },
+                            ]
+                        },
+                    });
                 }
             }
 
             if (plugin == 'bettergrblsupport' && data.type == 'multipoint_zprobe') {
                 if (data.sessionId != undefined && data.sessionId == self.sessionId) {
-                  var instruction = data.instruction;
-                  var text = "";
-                  var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
+                    var instruction = data.instruction;
+                    var text = "";
+                    var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
 
-                  if (!confirmActions && instruction.action == "move") {
-                    OctoPrint.control.sendGcode(instruction.gcode);
-                    OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
+                    if (!confirmActions && instruction.action == "move") {
+                        OctoPrint.control.sendGcode(instruction.gcode);
+                        OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
                     return
-                  }
+                    }
 
-                  if (instruction.action == "probe") {
-                      text = "Select <B>PROCEED</B> to initiate Z-Probe once the machine has reached the [<B>" + instruction.location + "</B>] location, and you are ready to continue.";
-                  } else {
-                      text = "Your machine is ready to move to the [<B>" + instruction.location + "</B>] location.  Select <B>PROCEED</B> when you are ready to continue.";
-                  }
+                    if (instruction.action == "probe") {
+                        text = "Select <B>PROCEED</B> to initiate Z-Probe once the machine has reached the [<B>" + instruction.location + "</B>] location, and you are ready to continue.";
+                    } else {
+                        text = "Your machine is ready to move to the [<B>" + instruction.location + "</B>] location.  Select <B>PROCEED</B> when you are ready to continue.";
+                    }
 
-                  new PNotify({
-                      title: "Multipoint Z-Probe",
-                      text: text,
-                      type: "notice",
-                      hide: false,
-                      animation: "fade",
-                      animateSpeed: "slow",
-                      sticker: false,
-                      closer: true,
-                      confirm: {
-                          confirm: true,
-                          buttons: [{
-                                  text: "PROCEED",
-                                  click: function(notice) {
-                                    OctoPrint.control.sendGcode(instruction.gcode);
-                                      if (instruction.action == "move") {
-                                        OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
-                                      }
-                                      notice.remove();
-                                  }
-                              },
-                              {
-                                  text: "CANCEL",
-                                  click: function(notice) {
-                                      // we need to inform the plugin we bailed
-                                      $.ajax({
-                                          url: API_BASEURL + "plugin/bettergrblsupport",
-                                          type: "POST",
-                                          dataType: "json",
-                                          data: JSON.stringify({
-                                              command: "cancelProbe"
-                                          }),
-                                          contentType: "application/json; charset=UTF-8",
-                                          error: function(data, status) {
-                                              new PNotify({
-                                                  title: "Unable to cancel Multipoint Z-Probe",
-                                                  text: data.responseText,
-                                                  hide: true,
-                                                  buttons: {
-                                                      sticker: false,
-                                                      closer: true
-                                                  },
-                                                  type: "error"
-                                              });
-                                          }
-                                      });
-                                      notice.remove();
-                                  }
-                              },
-                          ]
-                      },
-                  });
+                    new PNotify({
+                        title: "Multipoint Z-Probe",
+                        text: text,
+                        type: "notice",
+                        hide: false,
+                        animation: "fade",
+                        animateSpeed: "slow",
+                        sticker: false,
+                        closer: true,
+                        confirm: {
+                            confirm: true,
+                            buttons: [{
+                                    text: "PROCEED",
+                                    click: function(notice) {
+                                        OctoPrint.control.sendGcode(instruction.gcode);
+                                        if (instruction.action == "move") {
+                                            OctoPrint.control.sendGcode("BGS_MULTIPOINT_ZPROBE_MOVE");
+                                        }
+                                        notice.remove();
+                                    }
+                                },
+                                {
+                                    text: "CANCEL",
+                                    click: function(notice) {
+                                        // we need to inform the plugin we bailed
+                                        OctoPrint.simpleApiCommand("bettergrblsupport", "cancelProbe")
+                                            .fail(
+                                                function(data, status) {
+                                                    new PNotify({
+                                                        title: "Unable to cancel Multipoint Z-Probe",
+                                                        text: data.responseText,
+                                                        hide: true,
+                                                        buttons: {
+                                                            sticker: false,
+                                                            closer: true
+                                                        },
+                                                        type: "error"
+                                                    });
+                                                }
+                                            );
+                                        notice.remove();
+                                    }
+                                },
+                            ]
+                        },
+                    });
                 }
             }
 
