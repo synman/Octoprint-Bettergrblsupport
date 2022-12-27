@@ -1578,37 +1578,36 @@ def process_fluid_config_item(_plugin, key, value, path=""):
             process_fluid_config_item(_plugin, child_key, child_value, path)
     else:
         if not value is None and not "PIN" in key.upper() and not "MOTOR" in path.upper() and not is_spindle(path):
-            _plugin._printer.commands("$/{}{}={}".format(path, key, value))
+            _plugin._printer.commands("$/{}{}={}".format(path, key, value.replace("null", "")))
 
 def is_spindle(path):
-    path = path.upper()
-    if path == "10V":
+    if path.upper().startswith("10V/"):
         return True
-    elif path == "BESC":
+    elif path.upper().startswith("BESC/"):
         return True
-    elif path == "DAC":
+    elif path.upper().startswith("DAC/"):
         return True
-    elif path == "H2A":
+    elif path.upper().startswith("H2A/"):
         return True
-    elif path == "H100":
+    elif path.upper().startswith("H100/"):
         return True
-    elif path == "HBRIDGE":
+    elif path.upper().startswith("HBRIDGE/"):
         return True
-    elif path == "HUANYANG":
+    elif path.upper().startswith("HUANYANG/"):
         return True
-    elif path == "LASER":
+    elif path.upper().startswith("LASER/"):
         return True
-    elif path == "NOWFOREVER":
+    elif path.upper().startswith("NOWFOREVER/"):
         return True
-    elif path == "NOSPINDLE":
+    elif path.upper().startswith("NOSPINDLE/"):
         return True
-    elif path == "ONOFF":
+    elif path.upper().startswith("ONOFF/"):
         return True
-    elif path == "PWM":
+    elif path.upper().startswith("PWM/"):
         return True
-    elif path == "RELAY":
+    elif path.upper().startswith("RELAY/"):
         return True
-    elif path == "YL620":
+    elif path.upper().startswith("YL620/"):
         return True
 
     return False

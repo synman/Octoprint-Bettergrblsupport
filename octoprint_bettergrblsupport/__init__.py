@@ -1118,7 +1118,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if lastRequest.upper() in ("$CD", "$CONFIG/DUMP"):
                 self.fluidConfig = lastResponse
                 self.fluidYaml = yaml.safe_load(lastResponse)
-                self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False))
+                self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False).replace(": null", ": "))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
                 self._settings.save(trigger_event=True)
                 # lets populate our x,y,z limits (namely set distance)
@@ -1178,7 +1178,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             plungeRate=["plunge_rate"],
             powerRate=["power_rate"],
         )
-
 
     def on_api_command(self, command, data):
         self._logger.debug("__init__: on_api_command data=[{}]".format(data))
