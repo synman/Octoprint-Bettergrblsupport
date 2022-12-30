@@ -952,6 +952,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             foundZ = True
 
         #ADD A and B here
+        match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
+        if not match is None:
+            self.grblA = float(match.groups(1)[0]) if self.positioning == 0 else self.grblA + float(match.groups(1)[0])
+            found = True
+
+        match = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
+        if not match is None:
+            self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
+            found = True
 
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)

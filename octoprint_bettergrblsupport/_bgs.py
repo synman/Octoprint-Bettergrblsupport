@@ -610,7 +610,7 @@ def process_grbl_status_msg(_plugin, msg):
         _plugin.grblA = float(match.groups(1)[4])
         _plugin.grblB = float(match.groups(1)[5])
 
-    match = re.search(r'.*\|Pn:([XYZPDHRS]+)', msg)
+    match = re.search(r'.*\|Pn:([XYZABPDHRS]+)', msg)
     if not match is None:
         _plugin.grblActivePins = match.groups(1)[0]
     else:
@@ -627,6 +627,8 @@ def process_grbl_status_msg(_plugin, msg):
                                                                     x=_plugin.grblX,
                                                                     y=_plugin.grblY,
                                                                     z=_plugin.grblZ,
+                                                                    a=_plugin.grblA,
+                                                                    b=_plugin.grblB,
                                                                     pins=_plugin.grblActivePins,
                                                                     speed=_plugin.grblSpeed,
                                                                     power=_plugin.grblPowerLevel,
