@@ -1390,6 +1390,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "down":
                 self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertZ, zf))
+            
+            if direction == "a-right":
+                self._printer.commands("{}G91 G21 A{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertZ, zf))
+            
+            if direction == "a-left":
+                self._printer.commands("{}G91 G21 A-{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertZ, zf))
+            
+            if direction == "b-right":
+                self._printer.commands("{}G91 G21 B{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertZ, zf))
+            
+            if direction == "b-left":
+                self._printer.commands("{}G91 G21 B-{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertZ, zf))
 
             return
 
