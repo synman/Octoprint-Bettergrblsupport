@@ -92,6 +92,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblX = float(0)
         self.grblY = float(0)
         self.grblZ = float(0)
+        self.grblA = float(0)
+        self.grblB = float(0)
         self.grblActivePins = ""
         self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
@@ -948,6 +950,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
             found = True
             foundZ = True
+
+        #ADD A and B here
 
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
