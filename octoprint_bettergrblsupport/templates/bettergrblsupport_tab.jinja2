@@ -53,6 +53,18 @@
            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
         </tr>
+        <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">A</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: aPos()"></strong></td>
+        </tr>
+        <!-- /ko -->
+        <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">B</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: bPos()"></strong></td>
+        </tr>
+        <!-- /ko -->
         <tr>
          <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
