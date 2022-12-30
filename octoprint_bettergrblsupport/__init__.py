@@ -260,7 +260,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             bgsFilters = self.bgs_filters,
             activeFilters = [],
             fluidYaml = None,
-            fluidSettings = {}
+            fluidSettings = {},
+            hasA = False,
+            hasB = False
         )
 
 

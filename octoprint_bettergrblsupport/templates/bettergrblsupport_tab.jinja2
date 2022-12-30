@@ -165,6 +165,7 @@
             </td>
          </tr>
          <tr>
+         <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
             <td style="padding: 0px 0px 10px 0px;">
                <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('a-right')}">
                <i class="fa fa-rotate-right"></i>
@@ -173,6 +174,8 @@
                <i class="fa fa-rotate-left"></i>
                </button>
             </td>
+         <!-- /ko -->
+         <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
             <td style="padding: 0px 0px 10px 0px;">
                <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('b-right')}">
                <i class="fa fa-rotate-right"></i>
@@ -181,6 +184,7 @@
                <i class="fa fa-rotate-left"></i>
                </button>
             </td>
+         <!-- /ko -->
          </tr>
          <tr>
             <td colspan=3 align="center" class="distance">
