@@ -53,6 +53,18 @@
            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
         </tr>
+        <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">A</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: aPos()"></strong></td>
+        </tr>
+        <!-- /ko -->
+        <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
+        <tr>
+           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">B</td>
+           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: bPos()"></strong></td>
+        </tr>
+        <!-- /ko -->
         <tr>
          <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
@@ -163,6 +175,40 @@
                <i class="fa fa-arrow-down" style="transform: rotate(-45deg);"></i>
                </button>
             </td>
+         </tr>
+         <tr>
+            <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
+               <td style="padding: 0px 0px 10px 0px;">
+                  <label>A axis:</label>
+               </td>
+            <!-- /ko -->
+            <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
+            <td style="padding: 0px 0px 10px 0px;">
+                  <label>B axis:</label>
+               </td>
+            <!-- /ko -->
+         </tr>
+         <tr>
+         <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
+            <td style="padding: 0px 0px 10px 0px;">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('a-right')}">
+               <i class="fa fa-rotate-right"></i>
+               </button>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('a-left')}">
+               <i class="fa fa-rotate-left"></i>
+               </button>
+            </td>
+         <!-- /ko -->
+         <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
+            <td style="padding: 0px 0px 10px 0px;">
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('b-right')}">
+               <i class="fa fa-rotate-right"></i>
+               </button>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('b-left')}">
+               <i class="fa fa-rotate-left"></i>
+               </button>
+            </td>
+         <!-- /ko -->
          </tr>
          <tr>
             <td colspan=3 align="center" class="distance">

@@ -32,6 +32,8 @@ $(function() {
         self.webcamError = ko.observable(false);
 
         self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
+        if (self.settings.hasA() == true) { self.origin_axes.push("A"); }
+        if (self.settings.hasB() == true) { self.origin_axes.push("B"); }
         self.origin_axis = ko.observable("XY");
 
         self.coordinate_systems = ko.observableArray(["G54", "G55", "G56", "G57", "G58", "G59"]);
@@ -50,6 +52,8 @@ $(function() {
         self.xPos = ko.observable("N/A");
         self.yPos = ko.observable("N/A");
         self.zPos = ko.observable("N/A");
+        self.aPos = ko.observable("N/A");
+        self.bPos = ko.observable("N/A");
         self.power = ko.observable("N/A");
         self.speed = ko.observable("N/A");
         self.pins = ko.observable("N/A")
@@ -494,6 +498,9 @@ $(function() {
                 if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
                 if (data.y != undefined) self.yPos(Number.parseFloat(data.y).toFixed(2));
                 if (data.z != undefined) self.zPos(Number.parseFloat(data.z).toFixed(2));
+                if (data.a != undefined) self.aPos(Number.parseFloat(data.a).toFixed(2));
+                if (data.b != undefined) self.bPos(Number.parseFloat(data.b).toFixed(2));
+
                 if (data.speed != undefined) self.speed(Number.parseFloat(data.speed).toFixed(2));
                 if (data.pins != undefined) self.pins(data.pins);
 

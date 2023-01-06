@@ -92,6 +92,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblX = float(0)
         self.grblY = float(0)
         self.grblZ = float(0)
+        self.grblA = float(0)
+        self.grblB = float(0)
         self.grblActivePins = ""
         self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
@@ -260,7 +262,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             bgsFilters = self.bgs_filters,
             activeFilters = [],
             fluidYaml = None,
-            fluidSettings = {}
+            fluidSettings = {},
+            hasA = False,
+            hasB = False
         )
 
 
@@ -947,6 +951,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             found = True
             foundZ = True
 
+        #ADD A and B here
+        match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
+        if not match is None:
+            self.grblA = float(match.groups(1)[0]) if self.positioning == 0 else self.grblA + float(match.groups(1)[0])
+            found = True
+
+        match = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
+        if not match is None:
+            self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
+            found = True
+
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
         if not match is None:
@@ -1002,6 +1017,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 x=self.grblX,
                                                                                 y=self.grblY,
                                                                                 z=self.grblZ,
+                                                                                a=self.grblA,
+                                                                                b=self.grblB,
                                                                                 speed=self.grblSpeed,
                                                                                 power=self.grblPowerLevel,
                                                                                 positioning=self.positioning,
@@ -1390,6 +1407,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "down":
                 self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1 * self.invertZ, zf))
+            
+            if direction == "a-right":
+                self._printer.commands("{}G91 G21 A{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance, zf))
+            
+            if direction == "a-left":
+                self._printer.commands("{}G91 G21 A{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1, zf))
+            
+            if direction == "b-right":
+                self._printer.commands("{}G91 G21 B{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance, zf))
+            
+            if direction == "b-left":
+                self._printer.commands("{}G91 G21 B{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * -1, zf))
 
             return
 
