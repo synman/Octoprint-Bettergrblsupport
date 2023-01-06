@@ -101,7 +101,7 @@
           <td colspan=3 align="center">
             <span class="btn-group" data-toggle="buttons-radio" style="margin: 0px 0px 10px 0px;">
                <!-- ko foreach: origin_axes -->
-                <button type="button" class="btn origin_axis" style="border: 1px solid;" data-bind="click: function() { $root.origin_axis($data) }, text: $data, css: { active: $root.origin_axis() === $data }"></button>
+                <button type="button" class="btn origin_axis" style="border: 1px solid;" data-bind="attr: { id: 'control-axes-' + $data }, click: function() { $root.origin_axis($data) }, text: $data, css: { active: $root.origin_axis() === $data }"></button>
                <!-- /ko -->
             </span>
           </td>
@@ -124,7 +124,7 @@
          </tr>
          <tr>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('up')}">
+               <button id="control-zup" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('up')}">
                  <i class="fa fa-arrow-up"></i>
                </button>
             </td>
@@ -132,7 +132,7 @@
                <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('northwest')}, mousedown: function() {jog('northwest')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                  <i class="fa fa-arrow-up" style="transform: rotate(-45deg);"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('north')}, mousedown: function() {jog('north')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+               <button id="control-north" class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('north')}, mousedown: function() {jog('north')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                  <i class="fa fa-arrow-up"></i>
                </button>
                <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('northeast')}, mousedown: function() {jog('northeast')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
@@ -147,20 +147,20 @@
                </button>
             </td>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('west')}, mousedown: function() {jog('west')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+               <button id="control-west" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('west')}, mousedown: function() {jog('west')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                  <i class="fa fa-arrow-left"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('home')}">
+               <button id="control-home" class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('home')}">
                  <i class="fa fa-home"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('east')}, mousedown: function() {jog('east')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+               <button id="control-east" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('east')}, mousedown: function() {jog('east')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                  <i class="fa fa-arrow-right"></i>
                </button>
             </td>
          </tr>
          <tr>
             <td style="padding: 0px 0px 20px 0px;">
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('down')}">
+               <button id="control-zdown" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('down')}">
                <i class="fa fa-arrow-down"></i>
                </button>
             </td>
@@ -168,7 +168,7 @@
                <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('southwest')}, mousedown: function() {jog('southwest')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                <i class="fa fa-arrow-down" style="transform: rotate(45deg);"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('south')}, mousedown: function() {jog('south')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+               <button id="control-south" class="btn box" style="border: 1px solid; margin: 0px 5px 0px 5px; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('south')}, mousedown: function() {jog('south')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
                <i class="fa fa-arrow-down"></i>
                </button>
                <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('southeast')}, mousedown: function() {jog('southeast')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
@@ -214,12 +214,12 @@
             <td colspan=3 align="center" class="distance">
               <span>
                 <span>
-                  <button type="button" class="btn" style="border: 1px solid; width: 35px; margin: 5px 0px 0px 0px" data-bind="click: function() { operatorClicked() }, text: operator"></button>
+                  <button id="control-distance-operator" type="button" class="btn" style="border: 1px solid; width: 35px; margin: 5px 0px 0px 0px" data-bind="click: function() { operatorClicked() }, text: operator"></button>
                 </span>
                 <span style="margin: 0px 1px 0px 1px">&nbsp;</span>
                  <span align="center" class="btn-group">
                     <!-- ko foreach: distances -->
-                      <button type="button" class="btn dist" style="border: 1px solid; margin: 5px 0px 0px 0px" data-bind="click: function() { $parent.distanceClicked($data) }, text: $data, enable: $root.operator() != 'J'"></button>
+                      <button id="control-distance-$data" type="button" class="btn dist" style="border: 1px solid; margin: 5px 0px 0px 0px" data-bind="attr: { id: 'control-distance-' + $index() }, click: function() { $parent.distanceClicked($data) }, text: $data, enable: $root.operator() != 'J'"></button>
                     <!-- /ko -->
                  </span>
                 <span style="margin: 0px 1px 0px 1px">&nbsp;</span>

@@ -116,8 +116,6 @@ $(function() {
 
         self.onWebcamLoaded = function() {
             if (self.webcamLoaded()) return;
-
-            console.log("Webcam stream loaded");
             self.webcamLoaded(true);
             self.webcamError(false);
         };
@@ -417,6 +415,9 @@ $(function() {
                 self.distance(newValue);
             });
 
+            if (self.settings.settings.plugins.bettergrblsupport.hasA() == true) { self.origin_axes.push("A"); }
+            if (self.settings.settings.plugins.bettergrblsupport.hasB() == true) { self.origin_axes.push("B"); }
+    
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
             self.notifications.onDataUpdaterPluginMessage = self.overrideOnDataUpdaterPluginMessage;
@@ -1115,6 +1116,130 @@ $(function() {
             }
             return span + " " + offset;
         };
+
+        self.onKeyDown = function (data, event) {
+            if (!self.settings.feature_keyboardControl()) return;
+
+            var button = undefined;
+            var visualizeClick = true;
+            var simulateTouch = false;
+
+            switch (event.which) {
+                case 37: // left arrow key
+                    // X-
+                    button = $("#control-west");
+                    simulateTouch = true;
+                    break;
+                case 38: // up arrow key
+                    // Y+
+                    button = $("#control-north");
+                    simulateTouch = true;
+                    break;
+                case 39: // right arrow key
+                    // X+
+                    button = $("#control-east");
+                    simulateTouch = true;
+                    break;
+                case 40: // down arrow key
+                    // Y-
+                    button = $("#control-south");
+                    simulateTouch = true;
+                    break;
+                case 49: // number 1
+                case 97: // numpad 1
+                    // toggle operator
+                    button = $("#control-distance-operator");
+                    break;
+                case 50: // number 2
+                case 98: // numpad 2
+                    // Distance 0.1
+                    button = $("#control-distance-0");
+                    break;
+                case 51: // number 3
+                case 99: // numpad 3
+                    // Distance 1
+                    button = $("#control-distance-1");
+                    break;
+                case 52: // number 4
+                case 100: // numpad 4
+                    // Distance 5
+                    button = $("#control-distance-2");
+                    break;
+                case 53: // number 5
+                case 101: // numpad 5
+                    // Distance 10
+                    button = $("#control-distance-3");
+                    break;
+                case 54: // number 6
+                case 102: // numpad 6
+                    // Distance 50
+                    button = $("#control-distance-4");
+                    break;
+                case 55: // number 7
+                case 103: // numpad 7
+                    // Distance 100
+                    button = $("#control-distance-5");
+                    break;
+                case 33: // page up key
+                case 87: // w key
+                    // z lift up
+                    button = $("#control-zup");
+                    break;
+                case 34: // page down key
+                case 83: // s key
+                    // z lift down
+                    button = $("#control-zdown");
+
+                    break;
+                case 36: // home key
+                    // xy home
+                    button = $("#control-home");
+                    $("#control-axes-XY").click();
+                    break;
+                case 35: // end key
+                    // z home
+                    button = $("#control-home");
+                    $("#control-axes-Z").click();
+                    break;
+                default:
+                    event.preventDefault();
+                    return false;
+            }
+
+            if (button === undefined) {
+                return false;
+            } else {
+                event.preventDefault();
+                if (visualizeClick) {
+                    button.addClass("active");
+                    setTimeout(function () {
+                        button.removeClass("active");
+                    }, 150);
+                }
+                if (simulateTouch) {
+                    button.mousedown();
+                    setTimeout(function () {
+                        button.mouseup();
+                    }, 150);
+                } else {
+                    button.click();
+                }
+            }
+        };
+
+        $(document).ready(function() {
+            $(this).keydown(function(e) {
+                if (OctoPrint.coreui.selectedTab != undefined &&
+                        OctoPrint.coreui.selectedTab == "#tab_plugin_bettergrblsupport" &&
+                        OctoPrint.coreui.browserTabVisible && $(":focus").length == 0) {
+                    self.onKeyDown(undefined, e);
+                }
+            });
+        
+            $(this).keyup(function(e) {
+                // console.log("keyup");
+            });
+        });
     }
 
     // cute little hack for removing "Print" from the start button
