@@ -32,8 +32,6 @@ $(function() {
         self.webcamError = ko.observable(false);
 
         self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
-        if (self.settings.hasA() == true) { self.origin_axes.push("A"); }
-        if (self.settings.hasB() == true) { self.origin_axes.push("B"); }
         self.origin_axis = ko.observable("XY");
 
         self.coordinate_systems = ko.observableArray(["G54", "G55", "G56", "G57", "G58", "G59"]);
@@ -415,6 +413,9 @@ $(function() {
                 self.distance(newValue);
             });
 
+            if (self.settings.settings.plugins.bettergrblsupport.hasA() == true) { self.origin_axes.push("A"); }
+            if (self.settings.settings.plugins.bettergrblsupport.hasB() == true) { self.origin_axes.push("B"); }
+    
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
             self.notifications.onDataUpdaterPluginMessage = self.overrideOnDataUpdaterPluginMessage;
