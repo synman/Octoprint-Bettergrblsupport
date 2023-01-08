@@ -1448,7 +1448,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             elif axis == "B" and hasB:
                 self._printer.commands("G91 G10 P{} L20 B0".format(program))
             else:
-                self._printer.commands("G91 G10 P{} L20 X0 Y0 Z0 {extra_axes}".format(program, extra_axes))
+                self._printer.commands("G91 G10 P{0} L20 X0 Y0 Z0 {1}".format(program, extra_axes))
 
             _bgs.add_notifications(self, ["Coordinate system {} home for {} set".format(program, axis)])
             return
