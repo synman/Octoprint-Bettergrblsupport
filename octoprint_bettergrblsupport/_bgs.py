@@ -602,13 +602,13 @@ def process_grbl_status_msg(_plugin, msg):
     if match.groups(1)[5]:
         _plugin.grblA = float(match.groups(1)[4])
         _plugin.grblB = float(match.groups(1)[5])
-        response = response+'A:{4} B:{5} '.format(match.groups(1)(4), match.groups(1)(5))
+        response = response+'A:{4} B:{5} '.format(_plugin.grblA, _plugin.grblB)
     if match.groups(1)[4] and not match.groups(1)[5] and hasB:
         _plugin.grblB = float(match.groups(1)[4])
-        reponse = response+'B:{4}'.format(match.groups(1)(4))
+        reponse = response+'B:{4}'.format(_plugin.grblB)
     else:
         _plugin.grblA = float(match.groups(1)[4])
-        response = response+'A:{4} '.format(match.groups(1)(4))
+        response = response+'A:{4} '.format(_plugin.grblA)
     response = response+msg
 
     match = re.search(r'.*\|Pn:([XYZABPDHRS]+)', msg)
