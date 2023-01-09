@@ -591,7 +591,8 @@ def process_grbl_status_msg(_plugin, msg):
     hasA = _plugin._settings.get(["hasA"])
     hasB = _plugin._settings.get(["hasB"])
     match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+),?(-?[\d\.]+)?,?(-?[\d\.]+)?', msg)
-    response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=msg)
+    #response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=msg)
+    response = 'X:{1} Y:{2} Z:{3} E:0 '.format(*match.groups())
     _plugin.grblMode = "MPos" if "MPos" in msg else "WPos" if "WPos" in msg else "N/A"
     _plugin.grblState = str(match.groups(1)[0])
     _plugin.grblX = float(match.groups(1)[1])
@@ -601,24 +602,15 @@ def process_grbl_status_msg(_plugin, msg):
     if match.groups(1)[5]:
         _plugin.grblA = float(match.groups(1)[4])
         _plugin.grblB = float(match.groups(1)[5])
-        
+        response = response+'A:{0} B:{1} '.format(_plugin.grblA, _plugin.grblB)
     if match.groups(1)[4] and not match.groups(1)[5] and hasB:
         _plugin.grblB = float(match.groups(1)[4])
+        reponse = response+'B:{0}'.format(_plugin.grblB)
     else:
         _plugin.grblA = float(match.groups(1)[4])
+        response = response+'A:{0} '.format(_plugin.grblA)
+    response = response+msg
 
-    '''
-    if hasA and hasB:
-        match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)', msg)
-        response = 'X:{1} Y:{2} Z:{3} A:{4} B:{5} E:0 {original}'.format(*match.groups(), original=msg)
-        _plugin.grblMode = "MPos" if "MPos" in msg else "WPos" if "WPos" in msg else "N/A"
-        _plugin.grblState = str(match.groups(1)[0])
-        _plugin.grblX = float(match.groups(1)[1])
-        _plugin.grblY = float(match.groups(1)[2])
-        _plugin.grblZ = float(match.groups(1)[3])
-        _plugin.grblA = float(match.groups(1)[4])
-        _plugin.grblB = float(match.groups(1)[5])
-    '''
     match = re.search(r'.*\|Pn:([XYZABPDHRS]+)', msg)
     if not match is None:
         _plugin.grblActivePins = match.groups(1)[0]
