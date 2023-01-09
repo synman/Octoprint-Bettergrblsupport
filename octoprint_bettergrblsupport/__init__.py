@@ -1331,6 +1331,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "move":
             sessionId = data.get("sessionId")
 
+            hasA = self._settings.get(["hasA"])
+            hasB = self._settings.get(["hasB"])
+            extra_axes = ""
+            if hasA:
+                extra_axes = extra_axes+"A0 "
+            if hasB:
+                extra_axes = extra_axes+"B0"
+
             # do move stuff
             direction = data.get("direction")
             distance = float(data.get("distance"))
@@ -1347,8 +1355,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._printer.commands("G0 G90 Z0")
                 elif axis == "XY":
                     self._printer.commands("G0 G90 X0 Y0")
+                elif axis == "A":
+                    self._printer.commands("G0 G90 A0")
+                elif axis == "B":
+                    self._printer.commands("G0 G90 B0")
                 else:
-                    self._printer.commands("G0 G90 X0 Y0 Z0")
+                    self._printer.commands("G0 G90 X0 Y0 Z0 {}".format(extra_axes))
 
                 program = int(float(self.grblCoordinateSystem.replace("G", "")))
                 program = -53 + program
