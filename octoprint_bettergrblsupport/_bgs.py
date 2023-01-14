@@ -236,7 +236,7 @@ def on_event(_plugin, event, payload):
                         Events.CONNECTING, Events.CONNECTED, Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
 
     if event not in subscribed_events and payload is not None and payload.get("state_id") not in ("PAUSING", "STARTING"):
-        _plugin._logger.debug('event [{}] received but not subscribed - discarding'.format(event))
+        _plugin._logger.debug('event [{}] payload [{}] received but not subscribed - discarding'.format(event, payload))
         return
 
     _plugin._logger.debug("_bgs: on_event event=[{}] payload=[{}]".format(event, payload))
