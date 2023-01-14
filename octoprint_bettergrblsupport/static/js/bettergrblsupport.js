@@ -414,11 +414,13 @@ $(function() {
             });
 
             if (self.settings.settings.plugins.bettergrblsupport.hasB() == true) { 
-                self.origin_axes.splice(0, "B");
+                self.origin_axes.unshift("B");
             }
             if (self.settings.settings.plugins.bettergrblsupport.hasA() == true) { 
-                self.origin_axes.splice(0, "A"); 
+                self.origin_axes.unshift("A"); 
             }
+
+            console.log(self.origin_axes());
     
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
