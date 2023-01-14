@@ -587,9 +587,6 @@ def toggle_weak(_plugin):
 
 
 def process_grbl_status_msg(_plugin, msg):
-    #need to redefine much of this if we have more axes
-    hasA = _plugin._settings.get(["hasA"])
-    hasB = _plugin._settings.get(["hasB"])
     match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+),?(-?[\d\.]+)?,?(-?[\d\.]+)?', msg)
     response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=msg)
     
@@ -603,9 +600,8 @@ def process_grbl_status_msg(_plugin, msg):
         _plugin.grblA = float(match.groups(1)[4])
         _plugin.grblB = float(match.groups(1)[5])
         
-    if match.groups(1)[4] and not match.groups(1)[5] and hasB:
-        _plugin.grblB = float(match.groups(1)[4])
-        
+    if match.groups(1)[4] and not match.groups(1)[5] and _plugin.hasB:
+        _plugin.grblB = float(match.groups(1)[4]) 
     else:
         _plugin.grblA = float(match.groups(1)[4])
         
