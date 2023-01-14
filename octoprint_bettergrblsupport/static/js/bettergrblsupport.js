@@ -413,8 +413,12 @@ $(function() {
                 self.distance(newValue);
             });
 
-            if (self.settings.settings.plugins.bettergrblsupport.hasA() == true) { self.origin_axes.push("A"); }
-            if (self.settings.settings.plugins.bettergrblsupport.hasB() == true) { self.origin_axes.push("B"); }
+            if (self.settings.settings.plugins.bettergrblsupport.hasB() == true) { 
+                self.origin_axes.splice(0, "B");
+            }
+            if (self.settings.settings.plugins.bettergrblsupport.hasA() == true) { 
+                self.origin_axes.splice(0, "A"); 
+            }
     
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
