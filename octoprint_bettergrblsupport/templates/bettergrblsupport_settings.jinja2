@@ -311,6 +311,12 @@
 		<h4>Grbl Settings</h4>
 	<!-- /ko -->
 		Signature: <span data-bind="text: settings.plugins.bettergrblsupport.grblVersion"></span>
+	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+		<br>
+		<label class="checkbox">
+			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.fluidAutoReport"> Auto Report Position
+		</label>
+	<!-- /ko -->
 		<hr>
 		<center>
 	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
@@ -325,7 +331,7 @@
 					<tr>
 						<td align="right" data-bind="text: key"></td>
 						<td align="center">
-							<input type="text" class="input-min" style="width: 200px" data-bind="value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
+							<input type="text" class="input-mini" style="width: 200px" data-bind="value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
 						</td>
 					</tr>
 				</tbody>
@@ -348,7 +354,7 @@
 					<tr>
 						<td align="center" data-bind="text: id"></td>
 						<td align="center">
-									<input type="text" class="input-min" style="width: 80px" data-bind="value: value, event: { change: $parent.updateSetting(id, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
+									<input type="text" class="input-mini" style="width: 80px" data-bind="value: value, event: { change: $parent.updateSetting(id, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
 						</td>
 						<td align="left" data-bind="text: description"></td>
 					</tr>

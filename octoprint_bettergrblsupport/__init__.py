@@ -267,7 +267,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             fluidYaml = None,
             fluidSettings = {},
             hasA = False,
-            hasB = False
+            hasB = False,
+            fluidAutoReport=True
         )
 
 
@@ -1171,6 +1172,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.fluidSettings = json.loads("{" + lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
                 self._settings.set(["fluidSettings"], self.fluidSettings)
                 self._settings.save(trigger_event=True)
+                if self._settings.get_boolean(["fluidAutoReport"]):
+                    self._printer.commands("$Report/Interval=250")
+
         return "ok "
 
 
