@@ -269,7 +269,7 @@ def on_event(_plugin, event, payload):
         _plugin._settings.set_boolean(["is_operational"], _plugin.is_operational)
 
         _plugin.fluidConfig = None
-        _plugin._printer.commands(["$I", "$G"])
+        _plugin._printer.commands(["$I", "$G", "$#"])
         # _plugin._printer.fake_ack()
 
     # Disconnecting & Disconnected
@@ -936,6 +936,9 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
             "G91"
         ])
 
+    # update our offsets
+    _plugin.offsets[_plugin.grblCoordinateSystem][axis] = position
+
     do_xy_probe(_plugin, xyProbe._axes, sessionId)
 
 
@@ -1006,6 +1009,9 @@ def defer_simple_z_probe(_plugin, z0):
     program = -53 + program
 
     _plugin._printer.commands(["G91", "G21", "G10 P{} L2 Z{:f}".format(program, z0), "G0 Z{}".format(_plugin.zProbeEndPos * _plugin.invertZ)])
+
+    # update our offsets
+    _plugin.offsets[_plugin.grblCoordinateSystem]["z"] = z0
 
     zProbe.teardown()
     zProbe = None
@@ -1173,6 +1179,9 @@ def do_multipoint_zprobe(_plugin, sessionId):
             program = -53 + program
 
             queue_cmds_and_send(_plugin, ["G10 P{} L2 Z{:f}".format(program, position)])
+
+            # update our offsets
+            _plugin.offsets[_plugin.grblCoordinateSystem]["z"] = position
 
             text = "Z Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>] ({})\r\n\r\n Result Details:\r\n\r\nVariance: {:.3f}mm\r\n\r\nHighest Point: {:.3f} ({})\r\nLowest Point: {:.3f} ({})\r\nMean Point: {:.3f}\r\nComputed Average: {:.3f}".format(
                 position,
@@ -1677,3 +1686,12 @@ def get_axes_limits(_plugin):
 
     _plugin._logger.debug("_bgs: get_axes_limits x={} y={} z={} distance={}".format(xl, yl, zl, distance))
     return xl, yl, zl
+
+def babystep_offset(_plugin, program, axis, increment):
+    pgm = int(program.replace("G", "")) - 53
+    newvalue = _plugin.offsets[program][axis] + increment
+
+    _plugin._printer.commands("G10 L2 P{} {}{}".format(pgm, axis, newvalue))
+
+    # update our offsets
+    _plugin.offsets[program][axis] = newvalue

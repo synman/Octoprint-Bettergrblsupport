@@ -144,7 +144,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.pausedPower = 0
         self.pausedPositioning = 0
 
-        self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "M115", "$SETTINGS/LIST", "$I", "$BUILD/INFO", "$G", "$GCODE/MODES"]
+        self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "M115", "$SETTINGS/LIST", "$I", "$BUILD/INFO", "$G", "$GCODE/MODES", "$#"]
         self.lastRequest = []
         self.lastResponse = ""
 
@@ -158,6 +158,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.hasA = False
         self.hasB = False
+
+        self.offsets = {}
 
         self.bgs_filters = [
             {"name": "Suppress status report requests", "regex": "^Send: \\?$"},
@@ -1157,6 +1159,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 # lets populate our x,y,z limits (namely set distance)
                 if all(id in self.grblSettings for id in (130, 131, 132)):
                     _bgs.get_axes_limits(self)
+
+            # grbl offsets
+            if lastRequest.upper() in ("$#"):
+                for offset in lastResponse.split("\n"):
+                    offsetpair = offset.replace("[", "").replace("]", "").split(":")
+                    offsetkey = offsetpair[0]
+                    if offsetkey in ("G54", "G55", "G56", "G57", "G58", "G59"):
+                        offsetvalues = offsetpair[1].split(",")
+                        self.offsets[offsetkey] = {}
+                        self.offsets[offsetkey]['x'] = float(offsetvalues[0])
+                        self.offsets[offsetkey]['y'] = float(offsetvalues[1])
+                        self.offsets[offsetkey]['z'] = float(offsetvalues[2])
+
+                self._logger.debug("offsets: [{}]".format(self.offsets))
 
             # grbl version signatures
             if lastRequest.upper() in ("$I", "$BUILD/INFO"):
