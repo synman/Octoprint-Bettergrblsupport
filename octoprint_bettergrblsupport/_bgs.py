@@ -1689,9 +1689,9 @@ def get_axes_limits(_plugin):
 
 def babystep_offset(_plugin, program, axis, increment):
     pgm = int(program.replace("G", "")) - 53
-    newvalue = _plugin.offsets[program][axis] + increment
+    newvalue = _plugin.offsets[program][axis.lower()] + increment
 
-    _plugin._printer.commands("G10 L2 P{} {}{}".format(pgm, axis, newvalue))
+    _plugin._printer.commands("G10 L2 P{} {}{}".format(pgm, axis.upper(), newvalue))
 
     # update our offsets
     _plugin.offsets[program][axis] = newvalue

@@ -908,6 +908,25 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             cmd = "\x18"
 
+        # baby stepping (Marlin M290)
+        if cmd.upper().startswith("M290"):
+            match = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
+            if match:
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "X", float(match.groups(1)[0]))
+            match = re.search(r".*[Yy]\ *(-?[\d.]+).*", cmd)
+            if match:
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "Y", float(match.groups(1)[0]))
+            match = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
+            if match:
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "Z", float(match.groups(1)[0]))
+            match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
+            if match:
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "A", float(match.groups(1)[0]))
+            match = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
+            if match:
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "B", float(match.groups(1)[0]))
+            return (None,)
+
         # grbl version info
         if cmd.upper().startswith("$I"):
             self.grblVersion = ""
@@ -942,37 +961,51 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
-        if not match is None:
+        if match:
             self.grblX = float(match.groups(1)[0]) if self.positioning == 0 else self.grblX + float(match.groups(1)[0])
             found = True
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Yy]\ *(-?[\d.]+).*", cmd)
-        if not match is None:
+        if match:
             self.grblY = float(match.groups(1)[0]) if self.positioning == 0 else self.grblY + float(match.groups(1)[0])
             found = True
 
         # match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
-        if not match is None:
+        if match:
             self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
             found = True
             foundZ = True
 
         #ADD A and B here
         match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
-        if not match is None:
+        if match:
             self.grblA = float(match.groups(1)[0]) if self.positioning == 0 else self.grblA + float(match.groups(1)[0])
             found = True
 
         match = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
-        if not match is None:
+        if match:
             self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
             found = True
 
+        # baby stepping (Marlin M290)
+        if found and cmd.upper().startswith("M290"):
+            if "X" in cmd.upper():
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "X", self.grblX)
+            elif "Y" in cmd.upper():
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "Y", self.grblY)
+            elif "Z" in cmd.upper():
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "Z", self.grblZ)
+            elif "A" in cmd.upper():
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "A", self.grblA)
+            elif "B" in cmd.upper():
+                _bgs.babystep_offset(self, self.grblCoordinateSystem, "B", self.grblB)
+                
+
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
-        if not match is None:
+        if match:
             grblSpeed = float(match.groups(1)[0])
 
             if (self.feedRate != 0 or self.plungeRate != 0) and grblSpeed != 0:
@@ -1001,7 +1034,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
-        if not match is None:
+        if match:
             grblPowerLevel = float(match.groups(1)[0])
 
             # check if power rate is overridden
@@ -1032,7 +1065,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                 positioning=self.positioning,
                                                                                 coolant=self.coolant))
                 self.timeRef = currentTime
-
 
         # we only want to track requests we care about
         if cmd.upper() in self.trackedCmds:
@@ -1105,7 +1137,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if line.lstrip().startswith("$"):
             match = re.search(r'^[$](-?[\d\.]+)=(-?[\d\.]+)', line)
 
-            if not match is None:
+            if match:
                 settingsId = int(match.groups(1)[0])
                 settingsValue = match.groups(1)[1]
 
