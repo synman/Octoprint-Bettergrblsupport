@@ -989,20 +989,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
             found = True
 
-        # baby stepping (Marlin M290)
-        if found and cmd.upper().startswith("M290"):
-            if "X" in cmd.upper():
-                _bgs.babystep_offset(self, self.grblCoordinateSystem, "X", self.grblX)
-            elif "Y" in cmd.upper():
-                _bgs.babystep_offset(self, self.grblCoordinateSystem, "Y", self.grblY)
-            elif "Z" in cmd.upper():
-                _bgs.babystep_offset(self, self.grblCoordinateSystem, "Z", self.grblZ)
-            elif "A" in cmd.upper():
-                _bgs.babystep_offset(self, self.grblCoordinateSystem, "A", self.grblA)
-            elif "B" in cmd.upper():
-                _bgs.babystep_offset(self, self.grblCoordinateSystem, "B", self.grblB)
-                
-
         # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
         match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
         if match:
