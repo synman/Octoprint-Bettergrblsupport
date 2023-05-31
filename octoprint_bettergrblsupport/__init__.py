@@ -190,7 +190,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.bgsFilters = self.bgs_filters
 
-        self.settingsVersion = 6
+        self.settingsVersion = 7
         self.wizardVersion = 16
         
         self.whenConnected = time.time()
@@ -250,6 +250,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             grblVersion = "unknown",
             laserMode = False,
             old_profile = "_default",
+            profile_fixed = False,
             useDevChannel = False,
             zprobeMethod = "SIMPLE",
             zprobeCalc = "MIN",
@@ -504,6 +505,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._logger.debug("__init__: on_settings_migrate target=[{}] current=[{}]".format(target, current))
 
         if current == None or current != target:
+            if not self._settings.get_boolean(["profile_fixed"]):
+                profile = self._settings.global_get_basefolder("printerProfiles") + os.path.sep + "_bgs.profile"
+                if os.path.exists(profile): os.remove(profile)                
+                self.settings.set_boolean(["profile_fixed"], True)
+
             orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
             if "gcodeviewer" in orderedTabs:
                 orderedTabs.remove("gcodeviewer")
