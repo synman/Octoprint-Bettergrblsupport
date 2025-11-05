@@ -610,10 +610,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgs_framing.js', 
+        return dict(js=['js/bettergrblsupport_control.js', 'js/bettergrblsupport_settings.js', 'js/bgs_framing.js', 
                         'js/bettergrblsupport_wizard.js', 'js/bgs_terminal.js'],
-                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css', 'css/bgs_framing.css'],
-                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less", "less/bgs_framing.less"])
+                    css=['css/bettergrblsupport_control.css', 'css/bettergrblsupport_settings.css', 'css/bgs_framing.css'],
+                    less=['less/bettergrblsupport.less', "less/bgs_framing.less"])
 
 
     # #~~ TemplatePlugin mixin
@@ -637,7 +637,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     "type": "wizard",
                     "name": "Better Grbl Support",
                     "template": "bettergrblsupport_wizard.jinja2",
-                    "custom_bindings": True
+                    "custom_bindings": False
+            },
+            {
+                    "type": "generic",
+                    "template": "bettergrblsupport_control.jinja2",
             }
         ]
 
