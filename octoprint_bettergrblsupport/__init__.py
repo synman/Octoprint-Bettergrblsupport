@@ -60,7 +60,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def __init__(self): 
         self.hideTempTab = True
-        self.hideControlTab = True
         self.hideGCodeTab = True
         self.helloCommand = "$$"
         self.statusCommand = "?"
@@ -74,7 +73,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.disablePolling = True
         self.disableModelSizeDetection = True
         self.neverSendChecksum = True
-        self.reOrderTabs = True
         self.reOrderSidebar = True
         self.disablePrinterSafety = True
         self.weakLaserValue = float(1)
@@ -190,8 +188,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.bgsFilters = self.bgs_filters
 
-        self.settingsVersion = 7
-        self.wizardVersion = 17
+        self.settingsVersion = 8
+        self.wizardVersion = 18
         
         self.whenConnected = time.time()
         self.handshakeSent = False
@@ -207,7 +205,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         return dict(
             hideTempTab = True,
-            hideControlTab = True,
             hideGCodeTab = True,
             hello = "$$",
             statusCommand = "?",
@@ -228,7 +225,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             is_operational = False,
             disableModelSizeDetection = True,
             neverSendChecksum = True,
-            reOrderTabs = True,
             reOrderSidebar = True,
             disablePrinterSafety = True,
             grblSettingsText = None,
@@ -300,7 +296,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # initialize all of our settings
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
-        self.hideControlTab = self._settings.get_boolean(["hideControlTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
 
         self.helloCommand = self._settings.get(["hello"])
@@ -317,7 +312,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.disableModelSizeDetection = self._settings.get_boolean(["disableModelSizeDetection"])
         self.neverSendChecksum = self._settings.get_boolean(["neverSendChecksum"])
 
-        self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
         self.reOrderSidebar = self._settings.get_boolean(["reOrderSidebar"])
 
         self.overrideM8 = self._settings.get_boolean(["overrideM8"])
@@ -379,11 +373,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if disabledTabs == None:
             disabledTabs = []
 
-        # initialize config.yaml ordered tabs list
-        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
-        if orderedTabs == None:
-            orderedTabs = []
-
         # initialize config.yaml ordered sidebar list
         orderedSidebar = self._settings.global_get(["appearance", "components", "order", "sidebar"])
         if orderedSidebar == None:
@@ -416,19 +405,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if "temperature" in disabledTabs:
                 disabledTabs.remove("temperature")
 
-        if self.hideControlTab:
-            if "control" not in disabledTabs:
-                disabledTabs.append("control")
-        else:
-            if "control" in disabledTabs:
-                disabledTabs.remove("control")
-
-        # ensure i am always the first tab
-        if "plugin_bettergrblsupport" in orderedTabs:
-            orderedTabs.remove("plugin_bettergrblsupport")
-        if self.reOrderTabs:
-            orderedTabs.insert(0, "plugin_bettergrblsupport")
-
         # ensure i am at the top of the sidebar
         if "plugin_bettergrblsupport" in orderedSidebar:
             orderedSidebar.remove("plugin_bettergrblsupport")
@@ -437,8 +413,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
-        self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
-        self._settings.global_set(["appearance", "components", "order", "sidebar"], orderedTabs)
+        self._settings.global_set(["appearance", "components", "order", "sidebar"], orderedSidebar)
 
         # add pretty much all of grbl to long running commands list
         longCmds = self._settings.global_get(["serial", "longRunningCommands"])
@@ -511,11 +486,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.settings.set_boolean(["profile_fixed"], True)
 
             orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+            if "plugin_bettergrblsupport" in orderedTabs:
+                orderedTabs.remove("plugin_bettergrblsupport")
+                self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
+            if "control" in orderedTabs:
+                orderedTabs.remove("control")
+                orderedTabs.insert(0, "control")
+                self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
             if "gcodeviewer" in orderedTabs:
                 orderedTabs.remove("gcodeviewer")
                 self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
             disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
+            if "control" in disabledTabs:
+                disabledTabs.remove("control")
+                self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
             if "gcodeviewer" in disabledTabs:
                 disabledTabs.remove("gcodeviewer")
                 self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
@@ -527,6 +512,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set(["dwellCommand"], "G4 P0.001")
             self.dwellCommand = "G4 P0.001"
 
+            self._settings.remove(["reOrderTabs"])
+            self._settings.remove(["hideControlTab"])
             self._settings.remove(["showZ"])
             self._settings.remove(["distance"])
             self._settings.remove(["customControls"])
