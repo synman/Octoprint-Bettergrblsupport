@@ -29,7 +29,7 @@ $(function() {
 
         self.operator = ko.observable("=");
         self.distances = ko.observableArray([.1, 1, 5, 10, 50, 100]);
-        self.distance = ko.observable(100);
+        self.distance = ko.observable(10);
 
         self.is_printing = ko.observable(false);
         self.is_operational = ko.observable(false);
