@@ -1,267 +1,323 @@
-<div id="bettergrblsupport_control_panel" style="display: none;">
-<div id="control_panel" style="text-align: center; overflow: hidden; margin: 20px 0px 5px 0px;" valign="top" align="center;">
+<div id="bettergrblsupport_control_panel"
+   style="display: none; text-align: center; overflow: hidden; padding: 15px 5px 5px 15px;" valign="top"
+   align="center;">
 
-  <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
+   <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
 
-   <span style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 0px 20px 0px; vertical-align: middle;">
+   <span
+      style="display: inline-block; border: 1px solid; border-radius: 10px; margin: 0px 0px 20px 0px; vertical-align: middle;">
       <table align="center" style="margin: 0 auto; margin: 0px 0px 5px 0px;">
-        <tr style="cursor: pointer;" data-bind="click: function() { modeClick(); }">
-           <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
-           <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="70px"><strong data-bind="text: mode()"></strong></td>
-        </tr>
-        <tr>
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">State</td>
-           <td id="bgs_printer_state" style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: state()"></strong></td>
-        </tr>
-        <tr>
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">X</td>
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: xPos()"></strong></td>
-        </tr>
-        <tr>
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: yPos()"></strong></td>
-        </tr>
-        <tr>
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: zPos()"></strong></td>
-        </tr>
-        <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
-        <tr>
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">A</td>
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: aPos()"></strong></td>
-        </tr>
-        <!-- /ko -->
-        <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
-        <tr>
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">B</td>
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: bPos()"></strong></td>
-        </tr>
-        <!-- /ko -->
-        <tr>
-         <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
+         <tr style="cursor: pointer;" data-bind="click: function() { modeClick(); }">
+            <td style="padding: 5px 10px 0px 5px;" align="right" valign="middle">Mode</td>
+            <td style="padding: 5px 5px 0px 5px;" align="right" valign="middle" width="70px"><strong
+                  data-bind="text: mode()"></strong></td>
+         </tr>
+         <tr>
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">State</td>
+            <td id="bgs_printer_state" style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: state()"></strong></td>
+         </tr>
+         <tr>
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">X</td>
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: xPos()"></strong></td>
+         </tr>
+         <tr>
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Y</td>
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: yPos()"></strong></td>
+         </tr>
+         <tr>
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Z</td>
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: zPos()"></strong></td>
+         </tr>
+         <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
+         <tr>
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">A</td>
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: aPos()"></strong></td>
+         </tr>
          <!-- /ko -->
-         <!-- ko ifnot: settings.settings.plugins.bettergrblsupport.laserMode -->
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Speed</td>
+         <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
+         <tr>
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">B</td>
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: bPos()"></strong></td>
+         </tr>
          <!-- /ko -->
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: power()"></strong></td>
-        </tr>
-        <tr>
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Feed</td>
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: speed()"></strong></td>
-        </tr>
-        <tr style="cursor: pointer;" data-bind="click: function() { coolClick(); }">
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Cool</td>
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: coolant()"></strong></td>
-        </tr>
-        <tr style="cursor: pointer;" data-bind="click: function() { moveClick(); }">
-           <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Move</td>
-           <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong data-bind="text: positioning()"></strong></td>
-        </tr>
-        <tr>
-           <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Pins</td>
-           <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong data-bind="text: pins()"></strong></td>
-        </tr>
+         <tr>
+            <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Power</td>
+            <!-- /ko -->
+            <!-- ko ifnot: settings.settings.plugins.bettergrblsupport.laserMode -->
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Speed</td>
+            <!-- /ko -->
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: power()"></strong></td>
+         </tr>
+         <tr>
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Feed</td>
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: speed()"></strong></td>
+         </tr>
+         <tr style="cursor: pointer;" data-bind="click: function() { coolClick(); }">
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Cool</td>
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: coolant()"></strong></td>
+         </tr>
+         <tr style="cursor: pointer;" data-bind="click: function() { moveClick(); }">
+            <td style="padding: 3px 10px 0px 5px;" align="right" valign="middle">Move</td>
+            <td style="padding: 3px 5px 0px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: positioning()"></strong></td>
+         </tr>
+         <tr>
+            <td style="padding: 3px 10px 5px 5px;" align="right" valign="middle">Pins</td>
+            <td style="padding: 3px 5px 5px 5px;" align="right" valign="middle"><strong
+                  data-bind="text: pins()"></strong></td>
+         </tr>
       </table>
    </span>
 
    <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
 
-   <span style="display: inline-block; margin: 0px 0px 10px 0px; vertical-align: middle;">
+   <span
+      style="display: inline-block; margin: 0px 0px 10px 0px; vertical-align: middle; border: 1px solid; border-radius: 10px;  padding: 15px 15px 5px 15px;">
       <table class="jog-panel" id="jog_panel" border=0 style="margin: 0 auto;"">
         <tr>
-          <td colspan=3 align="center">
-            <span class="btn-group" data-toggle="buttons-radio" style="margin: 0px 0px 10px 0px;">
-               <!-- ko foreach: origin_axes -->
-                <button type="button" class="btn origin_axis" style="border: 1px solid;" data-bind="attr: { id: 'control-axes-' + $data }, click: function() { $root.origin_axis($data) }, text: $data, css: { active: $root.origin_axis() === $data }"></button>
-               <!-- /ko -->
-            </span>
-          </td>
-        </tr>
+          <td colspan=3 align=" center">
+         <span class="btn-group" data-toggle="buttons-radio" style="margin: 0px 0px 10px 0px;">
+            <!-- ko foreach: origin_axes -->
+            <button type="button" class="btn origin_axis" style="border: 1px solid;"
+               data-bind="attr: { id: 'control-axes-' + $data }, click: function() { $root.origin_axis($data) }, text: $data, css: { active: $root.origin_axis() === $data }"></button>
+            <!-- /ko -->
+         </span>
+         </td>
+         </tr>
          <tr>
             <td>
                <h5>&nbsp;</h5>
             </td>
             <td align="left" style="padding: 0px 0px 5px 0px; transform: translateX(-15px);">
-               <button class="btn" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('origin') }">
-               <i class="fa fa-crosshairs"></i>
+               <button class="btn" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { sendCommand('origin') }">
+                  <i class="fa fa-crosshairs"></i>
                </button>
             </td>
             <td rowspan=5 valign="top">
-              <!-- ko foreach: coordinate_systems -->
-               <button type="button" class="btn coordinate_system" style="border: 1px solid; margin: 1px 0px 1px 0px;" data-bind="enable: $root.is_operational() && !$root.is_printing() && $root.state() == 'Idle', click: function() { $root.coordinateSystemChanged($data) }, text: $data, css: { active: $root.coordinate_system() === $data }"></button>
+               <!-- ko foreach: coordinate_systems -->
+               <button type="button" class="btn coordinate_system" style="border: 1px solid; margin: 1px 0px 1px 0px;"
+                  data-bind="enable: $root.is_operational() && !$root.is_printing() && $root.state() == 'Idle', click: function() { $root.coordinateSystemChanged($data) }, text: $data, css: { active: $root.coordinate_system() === $data }"></button>
                <br>
-              <!-- /ko -->
+               <!-- /ko -->
             </td>
          </tr>
          <tr>
             <td style="padding: 0px 0px 10px 0px;">
-               <button id="control-zup" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('up')}">
-                 <i class="fa fa-arrow-up"></i>
+               <button id="control-zup" class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('up')}">
+                  <i class="fa fa-arrow-up"></i>
                </button>
             </td>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box"                    style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('northwest')}, mousedown: function() {jog('northwest')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
-                 <i class="fa fa-arrow-up" style="transform: rotate(-45deg);"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="event: { touchstart: function() {jog('northwest')}, mousedown: function() {jog('northwest')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+                  <i class="fa fa-arrow-up" style="transform: rotate(-45deg);"></i>
                </button>
-               <button id="control-north" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('north')}, mousedown: function() {jog('north')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
-                 <i class="fa fa-arrow-up"></i>
+               <button id="control-north" class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="event: { touchstart: function() {jog('north')}, mousedown: function() {jog('north')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+                  <i class="fa fa-arrow-up"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('northeast')}, mousedown: function() {jog('northeast')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
-                 <i class="fa fa-arrow-up" style="transform: rotate(45deg);"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="event: { touchstart: function() {jog('northeast')}, mousedown: function() {jog('northeast')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+                  <i class="fa fa-arrow-up" style="transform: rotate(45deg);"></i>
                </button>
             </td>
          </tr>
          <tr>
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle' && probeEnabled() , click: function() {moveHead('probe')}">
-                 <i class="fa fa-search-plus"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: is_operational() && !is_printing() && state() == 'Idle' && probeEnabled() , click: function() {moveHead('probe')}">
+                  <i class="fa fa-search-plus"></i>
                </button>
             </td>
             <td style="padding: 0px 0px 10px 0px;">
-               <button id="control-west" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('west')}, mousedown: function() {jog('west')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
-                 <i class="fa fa-arrow-left"></i>
+               <button id="control-west" class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="event: { touchstart: function() {jog('west')}, mousedown: function() {jog('west')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+                  <i class="fa fa-arrow-left"></i>
                </button>
-               <button id="control-home" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('home')}">
-                 <i class="fa fa-home"></i>
+               <button id="control-home" class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() {moveHead('home')}">
+                  <i class="fa fa-home"></i>
                </button>
-               <button id="control-east" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('east')}, mousedown: function() {jog('east')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
-                 <i class="fa fa-arrow-right"></i>
+               <button id="control-east" class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="event: { touchstart: function() {jog('east')}, mousedown: function() {jog('east')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+                  <i class="fa fa-arrow-right"></i>
                </button>
             </td>
          </tr>
          <tr>
             <td style="padding: 0px 0px 20px 0px;">
-               <button id="control-zdown" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('down')}">
-               <i class="fa fa-arrow-down"></i>
+               <button id="control-zdown" class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('down')}">
+                  <i class="fa fa-arrow-down"></i>
                </button>
             </td>
             <td style="padding: 0px 0px 20px 0px;">
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('southwest')}, mousedown: function() {jog('southwest')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
-               <i class="fa fa-arrow-down" style="transform: rotate(45deg);"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="event: { touchstart: function() {jog('southwest')}, mousedown: function() {jog('southwest')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+                  <i class="fa fa-arrow-down" style="transform: rotate(45deg);"></i>
                </button>
-               <button id="control-south" class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('south')}, mousedown: function() {jog('south')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
-               <i class="fa fa-arrow-down"></i>
+               <button id="control-south" class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="event: { touchstart: function() {jog('south')}, mousedown: function() {jog('south')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+                  <i class="fa fa-arrow-down"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="event: { touchstart: function() {jog('southeast')}, mousedown: function() {jog('southeast')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
-               <i class="fa fa-arrow-down" style="transform: rotate(-45deg);"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="event: { touchstart: function() {jog('southeast')}, mousedown: function() {jog('southeast')}, touchend: function() {cancelJog()}, mouseup: function() {cancelJog()}}, enable: isIdleOrJogging()">
+                  <i class="fa fa-arrow-down" style="transform: rotate(-45deg);"></i>
                </button>
             </td>
          </tr>
          <tr>
             <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
-               <td style="padding: 0px 0px 10px 0px;">
-                  <label>A axis:</label>
-               </td>
+            <td style="padding: 0px 0px 10px 0px;">
+               <label>A axis:</label>
+            </td>
             <!-- /ko -->
             <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
             <td style="padding: 0px 0px 10px 0px;">
-                  <label>B axis:</label>
-               </td>
+               <label>B axis:</label>
+            </td>
             <!-- /ko -->
          </tr>
          <tr>
-         <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
+            <!-- ko if: settings.settings.plugins.bettergrblsupport.hasA -->
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('a-right')}">
-               <i class="fa fa-rotate-right"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('a-right')}">
+                  <i class="fa fa-rotate-right"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('a-left')}">
-               <i class="fa fa-rotate-left"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('a-left')}">
+                  <i class="fa fa-rotate-left"></i>
                </button>
             </td>
-         <!-- /ko -->
-         <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
+            <!-- /ko -->
+            <!-- ko if: settings.settings.plugins.bettergrblsupport.hasB -->
             <td style="padding: 0px 0px 10px 0px;">
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('b-right')}">
-               <i class="fa fa-rotate-right"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('b-right')}">
+                  <i class="fa fa-rotate-right"></i>
                </button>
-               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px" data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('b-left')}">
-               <i class="fa fa-rotate-left"></i>
+               <button class="btn box" style="border: 1px solid; width: 40px; height: 40px"
+                  data-bind="enable: isIdleOrJogging() && operator() != 'J', click: function() {moveHead('b-left')}">
+                  <i class="fa fa-rotate-left"></i>
                </button>
             </td>
-         <!-- /ko -->
+            <!-- /ko -->
          </tr>
          <tr>
             <td colspan=3 align="center" class="distance" style="transform: translateY(-10px);">
-              <span>
-                <span>
-                  <button id="control-distance-operator" type="button" class="btn" style="border: 1px solid; width: 35px; margin:0px, 0px 0px 0px;" data-bind="click: function() { operatorClicked() }, text: operator"></button>
-                </span>
-                <span style="margin: 0px 1px 0px 1px">&nbsp;</span>
-                 <span align="center" class="btn-group" style="transform: translateY(5px);">
-                    <!-- ko foreach: distances -->
-                      <button id="control-distance-$data" type="button" class="btn dist" style="border: 1px solid; margin: 0px 0px 0px 0px" data-bind="attr: { id: 'control-distance-' + $index() }, click: function() { $parent.distanceClicked($data) }, text: $data, enable: $root.operator() != 'J'"></button>
-                    <!-- /ko -->
-                 </span>
-                <span style="margin: 0px 1px 0px 1px">&nbsp;</span>
-                 <span>
-                   <input type="number" value="100" style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 0px 0px 0px 0px" data-bind="textInput: distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }, enable: operator() != 'J'"></button>
-                 </span>
+               <span>
+                  <span>
+                     <button id="control-distance-operator" type="button" class="btn"
+                        style="border: 1px solid; width: 35px; margin:0px, 0px 0px 0px;"
+                        data-bind="click: function() { operatorClicked() }, text: operator"></button>
+                  </span>
+                  <span style="margin: 0px 1px 0px 1px">&nbsp;</span>
+                  <span align="center" class="btn-group" style="transform: translateY(5px);">
+                     <!-- ko foreach: distances -->
+                     <button id="control-distance-$data" type="button" class="btn dist"
+                        style="border: 1px solid; margin: 0px 0px 0px 0px"
+                        data-bind="attr: { id: 'control-distance-' + $index() }, click: function() { $parent.distanceClicked($data) }, text: $data, enable: $root.operator() != 'J'"></button>
+                     <!-- /ko -->
+                  </span>
+                  <span style="margin: 0px 1px 0px 1px">&nbsp;</span>
+                  <span>
+                     <input type="number" value="100"
+                        style="border: 1px solid; border-radius: 5px; height: 18px; width: 50px; margin: 0px 0px 0px 0px"
+                        data-bind="textInput: distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }, enable: operator() != 'J'"></button>
+                  </span>
                </span>
             </td>
          </tr>
       </table>
    </span>
 
-   <span style="display: inline-block; margin: 15px 10px 0px 10px; vertical-align: top;">&nbsp;</span>
+   <span style="display: inline-block; margin: 0px 5px 0px 5px; vertical-align: top;">&nbsp;</span>
 
-   <span id="laser_buttons" style="display: inline-block; vertical-align: top; margin: 20px 0px 20px 0px" >
+   <span id="laser_buttons"
+      style="display: inline-block; vertical-align: middle; margin: 5px 0px 5px 0px; border: 1px solid; border-radius: 10px;  padding: 15px 15px 15px 15px;">
       <!-- ko if: settings.settings.plugins.bettergrblsupport.laserMode -->
-        <button id="grblLaserButton" class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak Laser</button>
-        <br>
-        <br>
+      <button id="grblLaserButton" class="btn" style="width: 140px; border: 1px solid;"
+         data-bind="enable: is_operational() && !is_printing() && state() == 'Idle', click: function() { toggleWeak() }">Weak
+         Laser</button>
+      <br>
+      <br>
       <!-- /ko -->
-      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Home Machine</button>
+      <button class="btn" style="width: 140px; border: 1px solid;"
+         data-bind="enable: is_operational() && !is_printing() && (state() == 'Idle' || state() == 'Alarm'), click: function() { sendCommand('homing') }">Home
+         Machine</button>
       <br>
       <br>
-      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>
+      <button class="btn" style="width: 140px; border: 1px solid;"
+         data-bind="enable: is_operational(), click: function() { sendCommand('reset') }">Soft Reset</button>
       <br>
       <br>
-      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() != 'Run' && state() != 'Sleep', click: function() { sendCommand('sleep') }">Sleep</button>
+      <button class="btn" style="width: 140px; border: 1px solid;"
+         data-bind="enable: is_operational() && !is_printing() && state() != 'Run' && state() != 'Sleep', click: function() { sendCommand('sleep') }">Sleep</button>
       <br>
       <br>
-      <button class="btn" style="width: 140px; border: 1px solid;" data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
+      <button class="btn" style="width: 140px; border: 1px solid;"
+         data-bind="enable: is_operational() && !is_printing() && state() == 'Alarm', click: function() { sendCommand('unlock') }">Unlock</button>
       <br>
    </span>
 
    <span style="display: inline-block; margin: 0px 10px 0px 10px; vertical-align: middle;">&nbsp;</span>
-</div>
 
-<div id="overrides_panel" style="text-align: center; overflow: hidden; margin: 0px 0px 0px 0px;" valign="top" align="center">
-  <span style="display: inline-block; margin: 0px 5px 0px 0px; vertical-align: middle;">&nbsp;</span>
+   <div id="overrides_panel" style="text-align: center; overflow: align: center; vertical-align: top;">
+      <span style="display: inline-block; margin: 0px 5px 0px 0px; vertical-align: middle; align: center">&nbsp;</span>
 
-  <span id="grbl-control-jog-zy-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 10px 5px 10px; margin: 10px 0px 10px 0px;">
-      <label>Feed Rate Modifier</label>
-      <span class="input-append control-box">
-          <input type="number" class="input-mini" style="width:40px;" min="1" step="1" data-bind="textInput: feedRate, event: { blur: resetFeedRateDisplay, focus: cancelFeedRateDisplayReset }, css: { pulsate_text_opacity: feedRateResetter() !== undefined }">
-          <span class="add-on">%</span>
-          <button class="btn" data-bind="enable: is_operational() && is_printing() && feedRate(), click: function() { $root.sendCommand('feedRate') }">Set</button>
+      <span id="grbl-control-jog-zy-feedrate"
+         style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 10px 5px 10px; margin: 10px 0px 10px 0px;">
+         <label>Feed Rate Modifier</label>
+         <span class="input-append control-box">
+            <input type="number" class="input-mini" style="width:40px;" min="1" step="1"
+               data-bind="textInput: feedRate, event: { blur: resetFeedRateDisplay, focus: cancelFeedRateDisplayReset }, css: { pulsate_text_opacity: feedRateResetter() !== undefined }">
+            <span class="add-on">%</span>
+            <button class="btn"
+               data-bind="enable: is_operational() && is_printing() && feedRate(), click: function() { $root.sendCommand('feedRate') }">Set</button>
+         </span>
       </span>
-  </span>
 
-  <span style="display: inline-block; margin: 0px 5px 0px 5px; vertical-align: middle;">&nbsp;</span>
+      <span style="display: inline-block; margin: 0px 5px 0px 5px; vertical-align: middle;">&nbsp;</span>
 
-  <span id="grbl-control-jog-z-feedrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 10px 5px 10px; margin: 10px 0px 10px 0px;">
-      <label>Plunge Rate Modifier</label>
-      <span class="input-append control-box">
-          <input type="number" class="input-mini" style="width:40px;" min="1" step="1" data-bind="textInput: plungeRate, event: { blur: resetPlungeRateDisplay, focus: cancelPlungeRateDisplayReset }, css: { pulsate_text_opacity: plungeRateResetter() !== undefined }">
-          <span class="add-on">%</span>
-          <button class="btn" data-bind="enable: is_operational() && is_printing() && plungeRate(), click: function() { $root.sendCommand('plungeRate') }">Set</button>
+      <span id="grbl-control-jog-z-feedrate"
+         style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 10px 5px 10px; margin: 10px 0px 10px 0px;">
+         <label>Plunge Rate Modifier</label>
+         <span class="input-append control-box">
+            <input type="number" class="input-mini" style="width:40px;" min="1" step="1"
+               data-bind="textInput: plungeRate, event: { blur: resetPlungeRateDisplay, focus: cancelPlungeRateDisplayReset }, css: { pulsate_text_opacity: plungeRateResetter() !== undefined }">
+            <span class="add-on">%</span>
+            <button class="btn"
+               data-bind="enable: is_operational() && is_printing() && plungeRate(), click: function() { $root.sendCommand('plungeRate') }">Set</button>
+         </span>
       </span>
-  </span>
 
-  <span style="display: inline-block; margin: 0px 5px 0px 5px; vertical-align: middle;">&nbsp;</span>
+      <span style="display: inline-block; margin: 0px 5px 0px 5px; vertical-align: middle;">&nbsp;</span>
 
-  <span id="grbl-control-jog-flowrate" style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 10px 5px 10px; margin: 10px 0px 10px 0px;">
-      <label>Speed / Power Modifier</label>
-      <span class="input-append control-box">
-          <input type="number" class="input-mini" style="width:40px;" min="1" step="1" data-bind="textInput: powerRate, event: { blur: resetPowerRateDisplay, focus: cancelPowerRateDisplayReset }, css: { pulsate_text_opacity: powerRateResetter() !== undefined }">
-          <span class="add-on">%</span>
-          <button class="btn" data-bind="enable: is_operational() && is_printing() && powerRate(), click: function() { $root.sendCommand('powerRate') }">Set</button>
+      <span id="grbl-control-jog-flowrate"
+         style="border: 1px solid; border-radius: 10px; display: inline-block; vertical-align: top; padding: 5px 10px 5px 10px; margin: 10px 0px 10px 0px;">
+         <label>Speed / Power Modifier</label>
+         <span class="input-append control-box">
+            <input type="number" class="input-mini" style="width:40px;" min="1" step="1"
+               data-bind="textInput: powerRate, event: { blur: resetPowerRateDisplay, focus: cancelPowerRateDisplayReset }, css: { pulsate_text_opacity: powerRateResetter() !== undefined }">
+            <span class="add-on">%</span>
+            <button class="btn"
+               data-bind="enable: is_operational() && is_printing() && powerRate(), click: function() { $root.sendCommand('powerRate') }">Set</button>
+         </span>
       </span>
-  </span>
 
-  <span style="display: inline-block; margin: 0px 0px 0px 5px; vertical-align: middle;">&nbsp;</span>
-</div>
+      <span style="display: inline-block; margin: 0px 0px 0px 5px; vertical-align: middle;">&nbsp;</span>
+   </div>
 </div>

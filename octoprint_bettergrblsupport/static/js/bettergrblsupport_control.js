@@ -328,15 +328,14 @@ $(function() {
 
 
         self.modifyControlTab = function() {
-            $controlTab.children("div").not("#webcam_plugins_container, #bettergbrlsupport_control_panel, #control-jog-custom").remove();
+            $controlPanel = $('#bettergrblsupport_control_panel');
 
-            if ($('#bettergrblsupport_control_panel').length > 0) {
-                $controlPanel = $('#bettergrblsupport_control_panel');
-                //console.log("self.modifyControlTab");
-                //console.log($controlPanel);
-            }
-            if ($controlPanel != undefined) {
-                $("#webcam_plugins_container").after($controlPanel);
+            if ($controlPanel != undefined && $controlPanel.length > 0) {
+                $('div.jog-panel').remove();
+                $("#control-jog-general").remove();
+                $("#control-jog-extrusion").remove();
+
+                $controlPanel.insertBefore("#control-jog-custom");
                 $controlPanel.show();
             }
         };
