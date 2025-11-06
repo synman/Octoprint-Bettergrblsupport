@@ -248,7 +248,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             old_profile = "_default",
             profile_fixed = False,
             useDevChannel = False,
-            zprobeMethod = "SIMPLE",
+            zprobeMethod = "NONE",
             zprobeCalc = "MIN",
             autoSleep = False,
             autoSleepInterval = 20,
@@ -1416,16 +1416,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             if direction == "probe":
-                if axis in ("XY", "X", "Y"):
-                    _bgs.do_xy_probe(self, axis, sessionId)
-                elif axis == "Z":
-                    method = self._settings.get(["zprobeMethod"])
-                    if method == "SIMPLE":
-                        _bgs.do_simple_zprobe(self, sessionId)
-                    else:
-                        _bgs.do_multipoint_zprobe(self, sessionId)
-                elif axis == "ALL":
-                    _bgs.do_xyz_probe(self, sessionId)
+                method = self._settings.get(["zprobeMethod"])
+                if method != "NONE":
+                    if axis in ("XY", "X", "Y"):
+                        _bgs.do_xy_probe(self, axis, sessionId)
+                    elif axis == "Z":
+                        if method == "SIMPLE":
+                            _bgs.do_simple_zprobe(self, sessionId)
+                        else:
+                            _bgs.do_multipoint_zprobe(self, sessionId)
+                    elif axis == "ALL":
+                        _bgs.do_xyz_probe(self, sessionId)
                 return
 
             # check distance against limits

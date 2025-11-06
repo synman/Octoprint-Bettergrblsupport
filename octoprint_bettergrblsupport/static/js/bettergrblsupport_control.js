@@ -34,6 +34,7 @@ $(function() {
         self.is_printing = ko.observable(false);
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
+        self.probeEnabled = ko.observable(false)
 
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
@@ -263,6 +264,11 @@ $(function() {
         self.onBeforeBinding = function() {
             self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
             self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
+            
+            self.probeEnabled(self.settings.settings.plugins.bettergrblsupport.zprobeMethod() != "NONE");
+            self.settings.settings.plugins.bettergrblsupport.zprobeMethod.subscribe(function(newValue) {
+                self.probeEnabled(newValue != "NONE");
+            });
 
             self.distance(self.settings.settings.plugins.bettergrblsupport.control_distance());
             self.settings.settings.plugins.bettergrblsupport.control_distance.subscribe(function(newValue) {

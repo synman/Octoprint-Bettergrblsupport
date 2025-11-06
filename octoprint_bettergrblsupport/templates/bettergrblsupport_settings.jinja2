@@ -44,17 +44,20 @@
 
 			<h5><b>Probing</b></h5>
 
+		<!-- ko if: probeEnabled() -->
 			<div class="controls">
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions"> Confirm all Probe actions
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions, enabled: settings.plugins.bettergrblsupport.zprobeMethod != 'NONE'"> Confirm all Probe actions
 				</label>
 			</div>
 
 			<br>
+		<!-- /ko -->
 
 			<label class="control-label">Z-Probe Method</label>
 	    <div class="controls">
 	        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeMethod">
+	            <option value="NONE">Disabled</option>
 	            <option value="SIMPLE">Single point Z-Probe</option>
 	            <option value="MULTI">Multi point Z-Probe</option>
 	        </select>
@@ -76,6 +79,7 @@
 			<br>
 	<!-- /ko -->
 
+		<!-- ko if: probeEnabled() -->
 			<label class="control-label">Touchplate Height (Z)</label>
 			<div class="controls">
 					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
@@ -117,6 +121,7 @@
 			</div>
 
 			<br>
+		<!-- /ko -->
 
 			<h5><b>Miscellaneous</b></h5>
 
