@@ -1214,7 +1214,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     # ~ SimpleApiPlugin
     def on_api_get(self, request):
         return "this space intentionally left blank (for now)\n"
-
+    def is_api_protected(self):
+        """
+        Explicitly declares that the simple API is protected, silencing the warning.
+        """
+        return True
+    
     def get_api_commands(self):
         self._logger.debug("__init__: get_api_commands")
 
