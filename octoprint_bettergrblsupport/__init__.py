@@ -632,6 +632,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             }
         ]
 
+    def is_template_autoescaped(self):
+        return True
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
