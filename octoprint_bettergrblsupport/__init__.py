@@ -182,7 +182,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             {"name": "Suppress wait responses", "regex": "Recv: wait"},
             {
                 "name": "Suppress processing responses",
-                "regex": "Recv: (echo:\s*)?busy:\s*processing",
+                "regex": r"Recv: (echo:\s*)?busy:\s*processing",
             }
         ]
 
