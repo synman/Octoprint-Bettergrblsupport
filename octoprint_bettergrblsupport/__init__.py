@@ -1087,19 +1087,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             ignoreList = ("[MSG:'$H'|'$X' to unlock]", "[MSG:INFO: '$H'|'$X' to unlock]")
             if not line.rstrip("\r").rstrip("\n").strip() in ignoreList:
                 # auto reset
-                if "reset to continue" in line.lower():
+                # if "reset to continue" in line.lower():
+                    # TODO:  this may not be wise any longer
                     # automatically perform a soft reset if GRBL says we need one
-                    self._printer.commands("M999")
-                else:
-                    # replace MSG: Disabled / Enabled with check mode info
-                    line = line.replace("MSG:Disabled", "Check Mode Disabled")
-                    line = line.replace("MSG:Enabled", "Check Mode Enabled")
-                    # general clean up of the message
-                    line = line.replace("[","").replace("]","").replace("MSG:","")
-                    line = line.replace("\n", "").replace("\r", "")
+                    # self._printer.commands("M999")
+                # else:
+                # replace MSG: Disabled / Enabled with check mode info
+                line = line.replace("MSG:Disabled", "Check Mode Disabled")
+                line = line.replace("MSG:Enabled", "Check Mode Enabled")
+                # general clean up of the message
+                line = line.replace("[","").replace("]","").replace("MSG:","")
+                line = line.replace("\n", "").replace("\r", "")
 
-                    if len(line) > 0:
-                        _bgs.add_notifications(self, [line])
+                if len(line) > 0:
+                    _bgs.add_notifications(self, [line])
             return 
 
         # add a notification if we just z-probed
