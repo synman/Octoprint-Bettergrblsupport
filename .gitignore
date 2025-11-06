@@ -9,3 +9,5 @@ dist
 *.zip
 ._*
 .octoprint
+.env
+TCP4:blackbox-x32:23
