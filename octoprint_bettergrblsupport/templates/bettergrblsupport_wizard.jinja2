@@ -13,7 +13,19 @@
   <a href="https://github.com/synman/Octoprint-Bettergrblsupport/wiki" target="_blank">Better Grbl Support Wiki</a> to learn about its features and how they work.
   <br>
   <br>
-  <h4>Release Notes - 2.3.1</h4>
+   <h4>Release Notes - 2.3.2 (RC1/DEVEL)</h4>
+  <ul>
+    <li>Removed BGS Control Tab and moved all elements to the built-in Control Tab</li>
+    <li>Cleaned up config values and references to afformentioned change</li>
+    <li>Disabled automatic reset handling as this was causing problems on legacy grbl devices</li>
+    <li>Added an automatic reset on connect via afterPrinterConnected gcode script</li>
+    <li>Added the ability to completely disable probing</li>
+    <li>Default initial jog distance to 10 mm</li>
+    <li>Added ability to set Origin Offsets for X,Y,Z axes</li>
+    <li>Fixed OctoPrint compatibility and deprecation warnings</li>
+  </ul>
+  <br>
+  <h5>Release Notes - 2.3.1</h4>
   <ul>
     <li>Long overdue bugfix for corrupted machine profile with OctoPrint 1.9.0+</li>
     <li>Keyboard controls (1-7 for increment, arrows / w/s for movement)</li>

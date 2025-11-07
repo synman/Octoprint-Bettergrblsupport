@@ -7,6 +7,7 @@ dist
 *.egg*
 .DS_Store
 *.zip
-.env
+._*
 .octoprint
+.env
 TCP4:blackbox-x32:23

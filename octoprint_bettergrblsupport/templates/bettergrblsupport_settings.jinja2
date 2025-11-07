@@ -1,381 +1,471 @@
 <style>
 	.body {
-	  padding: 0;
-	  margin: 0;
+		padding: 0;
+		margin: 0;
 	}
 
 	.wrapper {
-	  display: flex;
-	  flex-direction: column;
-	  height: 100vh;
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
 	}
 
 	.header {
-	  position:relative;
-	  flex: 0 0 auto;
+		position: relative;
+		flex: 0 0 auto;
 	}
 
 	.content {
-	  overflow-y:scroll;
-	  flex: 0 1 auto;
+		overflow-y: scroll;
+		flex: 0 1 auto;
 	}
 </style>
 
 <form class="form-horizontal">
-<div class="wrapper">
-	<div class="header">
-		<h4>Better Grbl Support</h4>
-		<hr>
-	</div>
-	<div class="content">
-		<h5><b>User Interface</b></h5>
+	<div class="wrapper">
+		<div class="header">
+			<h4>Better Grbl Support</h4>
+			<hr>
+		</div>
+		<div class="content">
+			<h5><b>User Interface</b></h5>
 
 			<div class="controls">
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderTabs"> Grbl Control is always first tab *
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderSidebar">
+					Material Framing is always at top of sidebar *
 				</label>
-					<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.reOrderSidebar"> Material Framing is always at top of sidebar *
-					</label>
-					<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the Octoprint Temperature tab *
-					</label>
-					<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide the Octoprint GCode Viewer tab *
-					</label>
-					<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideControlTab"> Hide the Octoprint Control tab *
-					</label>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideTempTab"> Hide the
+					Octoprint Temperature tab *
+				</label>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide
+					the Octoprint GCode Viewer tab *
+				</label>
 			</div>
 
 			<h5><b>Probing</b></h5>
 
+			<!-- ko if: probeEnabled() -->
 			<div class="controls">
 				<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions"> Confirm all Probe actions
+					<input type="checkbox"
+						data-bind="checked: settings.plugins.bettergrblsupport.zProbeConfirmActions, enabled: settings.plugins.bettergrblsupport.zprobeMethod != 'NONE'">
+					Confirm all Probe actions
 				</label>
 			</div>
 
 			<br>
+			<!-- /ko -->
 
 			<label class="control-label">Z-Probe Method</label>
-	    <div class="controls">
-	        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeMethod">
-	            <option value="SIMPLE">Single point Z-Probe</option>
-	            <option value="MULTI">Multi point Z-Probe</option>
-	        </select>
-	    </div>
+			<div class="controls">
+				<select data-bind="value: settings.plugins.bettergrblsupport.zprobeMethod">
+					<option value="NONE">Disabled</option>
+					<option value="SIMPLE">Single point Z-Probe</option>
+					<option value="MULTI">Multi point Z-Probe</option>
+				</select>
+			</div>
 
 			<br>
 
-	<!-- ko if: isMultiPoint() -->
+			<!-- ko if: isMultiPoint() -->
 			<label class="control-label">Multipoint Calculation</label>
-	    <div class="controls">
-	        <select data-bind="value: settings.plugins.bettergrblsupport.zprobeCalc">
-							<option value="MIN">Highest</option>
-							<option value="MAX">Lowest</option>
-							<option value="MEAN">Mean distance</option>
-							<option value="AVG">Average distance</option>
-	        </select>
-	    </div>
+			<div class="controls">
+				<select data-bind="value: settings.plugins.bettergrblsupport.zprobeCalc">
+					<option value="MIN">Highest</option>
+					<option value="MAX">Lowest</option>
+					<option value="MEAN">Mean distance</option>
+					<option value="AVG">Average distance</option>
+				</select>
+			</div>
 
 			<br>
-	<!-- /ko -->
+			<!-- /ko -->
 
+			<!-- ko if: probeEnabled() -->
 			<label class="control-label">Touchplate Height (Z)</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 			</div>
 
 			<br>
 
 			<label class="control-label">Z Probe Distance</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = use machine Z limit)
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				(0 = use machine Z limit)
 			</div>
 
 			<br>
 
 			<label class="control-label">Z Probe End Position</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.zProbeEndPos, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 			</div>
 
 			<br>
 
 			<label class="control-label">Touchplate Width (X)</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.xProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				(include your tool's radius)
 			</div>
 
 			<br>
 
 			<label class="control-label">Touchplate Length (Y)</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.yProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (include your tool's radius)
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.yProbeOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				(include your tool's radius)
 			</div>
 
 			<br>
 
 			<label class="control-label">X/Y Probe Distance</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.xyProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.xyProbeTravel, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 			</div>
 
 			<br>
+			<!-- /ko -->
 
 			<h5><b>Miscellaneous</b></h5>
 
 			<label class="control-label">Initial Jog Distance</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm (0 = min of x/y limit)
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.distance, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				(0 = min of x/y limit)
 			</div>
 
 			<br>
 			<label class="control-label">Framing Feed Rate</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">% of max
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.framingPercentOfMaxSpeed, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">%
+				of max
 			</div>
 
 			<br>
 
 			<label class="control-label">Weak Laser Intensity</label>
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+				<input type="text" class="input-mini"
+					data-bind="numeric, value: settings.plugins.bettergrblsupport.weakLaserValue, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 			</div>
 
 			<br>
 
 			<div class="controls">
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertX"> Invert X Axis (jogging / framing / probing)
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.originOffsets"> Origin Offsets
+				</label>
+
+				<!-- ko if: settings.plugins.bettergrblsupport.originOffsets -->
+
+				<label class="control-label">X Offset</label>
+				<div class="controls">
+					<input type="text" class="input-mini"
+						data-bind="numeric, value: settings.plugins.bettergrblsupport.originXOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				</div>
+				<label class="control-label">Y Offset</label>
+				<div class="controls">
+					<input type="text" class="input-mini"
+						data-bind="numeric, value: settings.plugins.bettergrblsupport.originYOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				</div>
+				<label class="control-label">Z Offset</label>
+				<div class="controls">
+					<input type="text" class="input-mini"
+						data-bind="numeric, value: settings.plugins.bettergrblsupport.originZOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
+				</div>
+
+				<br>
+
+				<!-- /ko -->
+
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertX"> Invert X
+					Axis (jogging / framing / probing)
 				</label>
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertY"> Invert Y Axis (jogging / framing / probing)
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertY"> Invert Y
+					Axis (jogging / framing / probing)
 				</label>
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertZ"> Invert Z Axis (jogging / probing)
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.invertZ"> Invert Z
+					Axis (jogging / probing)
 				</label>
 
 				<br>
 
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hasA"> Has A Axis 
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hasA"> Has A Axis
 				</label>
 				<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hasB"> Has B Axis 
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hasB"> Has B Axis
 				</label>
 
 				<br>
 
-		 		<label class="checkbox">
-		  			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Automatic Sleep
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoSleep"> Automatic
+					Sleep
 				</label>
 
-			<!-- ko if: settings.plugins.bettergrblsupport.autoSleep -->
+				<!-- ko if: settings.plugins.bettergrblsupport.autoSleep -->
 
-			<label class="control-label">Inactivity Time</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+				<label class="control-label">Inactivity Time</label>
+				<div class="controls">
+					<input type="text" class="input-mini"
+						data-bind="numeric, value: settings.plugins.bettergrblsupport.autoSleepInterval, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+				</div>
+
+				<br>
+
+				<!-- /ko -->
+
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoCooldown">
+					Automatic Cooldown
+				</label>
+
+				<!-- ko if: settings.plugins.bettergrblsupport.autoCooldown -->
+
+				<label class="control-label">Cooldown Frequency</label>
+				<div class="controls">
+					<input type="text" class="input-mini"
+						data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownFrequency, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+				</div>
+
+				<label class="control-label">Cooldown Duration</label>
+				<div class="controls">
+					<input type="text" class="input-mini"
+						data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownDuration, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+				</div>
+
+				<!-- /ko -->
+
 			</div>
 
 			<br>
 
-			<!-- /ko -->
-
-			<label class="checkbox">
-					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.autoCooldown"> Automatic Cooldown
-			</label>
-
-			<!-- ko if: settings.plugins.bettergrblsupport.autoCooldown -->
-
-			<label class="control-label">Cooldown Frequency</label>
 			<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownFrequency, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.notifyFrameSize">
+					Notify when Job Framing size is computed
+				</label>
 			</div>
 
-			<label class="control-label">Cooldown Duration</label>
-			<div class="controls">
-				<input type="text" class="input-mini" data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownDuration, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
-			</div>
-
-			<!-- /ko -->
-
-		</div>
-
-		<br>
-
-		<div class="controls">
-			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.notifyFrameSize"> Notify when Job Framing size is computed
-			</label>
-		</div>
-
-		<br>
-
-		<div class="controls">
-			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.useDevChannel"> Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
-			</label>
-		</div>
-
-		<br>
-		<h4>Grbl Options</h4>
-		<hr>
-	  <label class="control-label">Air Assist Overrides</label>
-		<br>
-		<div class="controls">
-			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.overrideM8"> Suppress M8 Command
-			</label>
-			<!-- ko if: settings.plugins.bettergrblsupport.overrideM8 -->
-					<label>And Execute:</label>
-	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.bettergrblsupport.m8Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
-					<br><br>
-			<!-- /ko -->
-			<label class="checkbox">
-				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.overrideM9"> Suppress M9 Command
-			</label>
-			<!-- ko if: settings.plugins.bettergrblsupport.overrideM9 -->
-					<label>And Execute:</label>
-	        <input type="text" class="input-block-level" data-bind="value: settings.plugins.bettergrblsupport.m9Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
-					<br><br>
-			<!-- /ko -->
-		</div>
-		<div><small><a href="#" class="muted" data-bind="toggleContent: { class: 'fa-caret-right fa-caret-down' }, click: function() { toggleAdvanced() }"><i class="fas fa-caret-right"></i>Advanced options</a> (change at your own risk)</small></div>
-
-		<div id="settings_grbl_options" style="display: none">
 			<br>
-			<label class="control-label">Hello Command</label>
+
 			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.hello, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.useDevChannel">
+					Subscribe to DEVEL branch for unstable updates (USE AT OWN RISK) *
+				</label>
+			</div>
+
+			<br>
+			<h4>Grbl Options</h4>
+			<hr>
+			<label class="control-label">Air Assist Overrides</label>
+			<br>
+			<div class="controls">
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.overrideM8"> Suppress
+					M8 Command
+				</label>
+				<!-- ko if: settings.plugins.bettergrblsupport.overrideM8 -->
+				<label>And Execute:</label>
+				<input type="text" class="input-block-level"
+					data-bind="value: settings.plugins.bettergrblsupport.m8Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+				<br><br>
+				<!-- /ko -->
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.overrideM9"> Suppress
+					M9 Command
+				</label>
+				<!-- ko if: settings.plugins.bettergrblsupport.overrideM9 -->
+				<label>And Execute:</label>
+				<input type="text" class="input-block-level"
+					data-bind="value: settings.plugins.bettergrblsupport.m9Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+				<br><br>
+				<!-- /ko -->
+			</div>
+			<div><small><a href="#" class="muted"
+						data-bind="toggleContent: { class: 'fa-caret-right fa-caret-down' }, click: function() { toggleAdvanced() }"><i
+							class="fas fa-caret-right"></i>Advanced options</a> (change at your own risk)</small></div>
+
+			<div id="settings_grbl_options" style="display: none">
+				<br>
+				<label class="control-label">Hello Command</label>
+				<div class="controls">
+					<input type="text" class="input-mini"
+						data-bind="value: settings.plugins.bettergrblsupport.hello, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
 					<br>
 					<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM115"> Replace M115 requests with above
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM115">
+						Replace M115 requests with above
 					</label>
-			</div>
+				</div>
 
-			<br>
+				<br>
 
-			<div class="control-group">
-				<label class="control-label">Status Command</label>
+				<div class="control-group">
+					<label class="control-label">Status Command</label>
+					<div class="controls">
+						<input type="text" class="input-mini"
+							data-bind="value: settings.plugins.bettergrblsupport.statusCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM105">
+						Replace M105 requests with above
+						<br>
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePolling">
+						Disable status polling while printing
+					</div>
+				</div>
+
+				<label class="control-label">Position Command</label>
 				<div class="controls">
-						<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.statusCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
-						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM105"> Replace M105 requests with above
-						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePolling"> Disable status polling while printing
+					<input type="text" class="input-mini"
+						data-bind="value: settings.plugins.bettergrblsupport.positionCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+					<br>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM114">
+						Replace M114 requests with above
+					</label>
+				</div>
+
+				<br>
+
+				<label class="control-label">Dwell Command</label>
+				<div class="controls">
+					<input type="text" class="input-mini"
+						data-bind="value: settings.plugins.bettergrblsupport.dwellCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+					<br>
+					<label class="checkbox">
+						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM400">
+						Replace M400 requests with above
+					</label>
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.doSmoothie">
+					Smoothieware Support (EXPERIMENTAL)
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110">
+					Suppress M110 requests
+					<br>
+					<input type="checkbox"
+						data-bind="checked: settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model
+					Size Detection *
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.neverSendChecksum">
+					Never Send Checksums *
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePrinterSafety">
+					Disable Printer Safety Check Plugin *
+					<br>
+					<br>
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.ignoreErrors"> Ignore
+					Firmware Errors (NOT RECOMMENDED)
 				</div>
 			</div>
-
-			<label class="control-label">Position Command</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.positionCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
-					<br>
-					<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM114"> Replace M114 requests with above
-					</label>
-			</div>
-
 			<br>
+			<p>* Server restart is required for this setting change to take effect</p>
+			<br>
+			<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+			<h4>FluidNC Settings</h4>
+			<!-- /ko -->
+			<!-- ko ifnot: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+			<h4>Grbl Settings</h4>
+			<!-- /ko -->
+			Signature: <span data-bind="text: settings.plugins.bettergrblsupport.grblVersion"></span>
+			<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+			<br><br>
+			<label class="checkbox">
+				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.fluidAutoReport"> Auto
+				Report Position
+			</label>
+			<!-- /ko -->
+			<hr>
+			<center>
+				<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+				<table border=0 cellpadding=3>
+					<thead>
+						<tr>
+							<th align="right" width=30%>Id</th>
+							<th align="center" width=70%>Value</th>
+						</tr>
+					</thead>
+					<tbody data-bind="foreach: fluidSettings">
+						<tr>
+							<td align="right" data-bind="text: key"></td>
+							<td align="center">
+								<input type="text" class="input-mini" style="width: 200px"
+									data-bind="value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<br>
+				<b><span
+						data-bind="text: settings.plugins.bettergrblsupport.fluidSettings['Config/Filename']"></span></b>
+				<br>
+				<textarea
+					style="width: 90%; font-family:Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace;"
+					spellcheck="false" rows="25" type="text"
+					data-bind="value: settings.plugins.bettergrblsupport.fluidYaml"></textarea>
+				<!-- /ko -->
+				<!-- ko ifnot: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+				<table width=90% border=0 cellpadding=3>
+					<thead>
+						<tr>
+							<th align="center" width=10%>Id</th>
+							<th align="center" width=20%>Value</th>
+							<th align="left" width=70%>Description</th>
+						</tr>
+					</thead>
+					<tbody data-bind="foreach: grblSettings">
+						<tr>
+							<td align="center" data-bind="text: id"></td>
+							<td align="center">
+								<input type="text" class="input-mini" style="width: 80px"
+									data-bind="value: value, event: { change: $parent.updateSetting(id, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
+							</td>
+							<td align="left" data-bind="text: description"></td>
+						</tr>
+					</tbody>
+					<tr>
+						<td colspan=3>&nbsp;</td>
+					</tr>
+					<tr>
+						<td colspan=2>
+							<button class="btn"
+								data-bind="enable: is_operational() && !is_printing(), click: function() { backupSettings() }">Backup
+								Settings</button>
+						</td>
+						<td align="right">
+							<button class="btn"
+								data-bind="enable: is_operational() && !is_printing() && settings.plugins.bettergrblsupport.grblSettingsBackup().length > 0, click: function() { restoreSettings() }">Restore
+								Settings</button>
+						</td>
+					</tr>
+				</table>
+				<!-- /ko -->
+			</center>
+			<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
+			<br>
+			<p>* The ESP3D Web UI should be accessible via Wi-Fi for full functionality. If it isn't, modifications to
+				PIN, MOTOR, and SPINDLE configuration items will not be available.</p>
+			<!-- /ko -->
 
-			<label class="control-label">Dwell Command</label>
-			<div class="controls">
-					<input type="text" class="input-mini" data-bind="value: settings.plugins.bettergrblsupport.dwellCommand, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
-					<br>
-					<label class="checkbox">
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM400"> Replace M400 requests with above
-					</label>
-					<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.doSmoothie"> Smoothieware Support (EXPERIMENTAL)
-						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.suppressM110"> Suppress M110 requests
-						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disableModelSizeDetection"> Disable Model Size Detection *
-						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.neverSendChecksum"> Never Send Checksums *
-						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.disablePrinterSafety"> Disable Printer Safety Check Plugin *
-						<br>
-						<br>
-						<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.ignoreErrors"> Ignore Firmware Errors (NOT RECOMMENDED)
-			</div>
 		</div>
-		<br>
-		<p>* Server restart is required for this setting change to take effect</p>
-		<br>
-	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
-		<h4>FluidNC Settings</h4>
-	<!-- /ko -->
-	<!-- ko ifnot: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
-		<h4>Grbl Settings</h4>
-	<!-- /ko -->
-		Signature: <span data-bind="text: settings.plugins.bettergrblsupport.grblVersion"></span>
-	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
-		<br><br>
-		<label class="checkbox">
-			<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.fluidAutoReport"> Auto Report Position
-		</label>
-	<!-- /ko -->
-		<hr>
-		<center>
-	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
-			<table border=0 cellpadding=3>
-				<thead>
-					<tr>
-						<th align="right" width=30%>Id</th>
-						<th align="center" width=70%>Value</th>
-					</tr>
-				</thead>
-				<tbody data-bind="foreach: fluidSettings">
-					<tr>
-						<td align="right" data-bind="text: key"></td>
-						<td align="center">
-							<input type="text" class="input-mini" style="width: 200px" data-bind="value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<br>
-			<b><span data-bind="text: settings.plugins.bettergrblsupport.fluidSettings['Config/Filename']"></span></b>
-			<br>
-			<textarea style="width: 90%; font-family:Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace;" spellcheck="false" rows="25" type="text" data-bind="value: settings.plugins.bettergrblsupport.fluidYaml"></textarea>
-	<!-- /ko -->
-	<!-- ko ifnot: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
-			<table width=90% border=0 cellpadding=3>
-				<thead>
-					<tr>
-						<th align="center" width=10%>Id</th>
-						<th align="center" width=20%>Value</th>
-						<th align="left" width=70%>Description</th>
-					</tr>
-				</thead>
-				<tbody data-bind="foreach: grblSettings">
-					<tr>
-						<td align="center" data-bind="text: id"></td>
-						<td align="center">
-									<input type="text" class="input-mini" style="width: 80px" data-bind="value: value, event: { change: $parent.updateSetting(id, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
-						</td>
-						<td align="left" data-bind="text: description"></td>
-					</tr>
-				</tbody>
-				<tr><td colspan=3>&nbsp;</td></tr>
-				<tr>
-					<td colspan=2>
-						<button class="btn" data-bind="enable: is_operational() && !is_printing(), click: function() { backupSettings() }">Backup Settings</button>
-					</td>
-					<td align="right">
-						<button class="btn" data-bind="enable: is_operational() && !is_printing() && settings.plugins.bettergrblsupport.grblSettingsBackup().length > 0, click: function() { restoreSettings() }">Restore Settings</button>
-					</td>
-				</tr>
-			</table>
-	<!-- /ko -->
-		</center>
-	<!-- ko if: settings.plugins.bettergrblsupport.fluidYaml() > ""  -->
-		<br>
-		<p>* The ESP3D Web UI should be accessible via Wi-Fi for full functionality.  If it isn't, modifications to PIN, MOTOR, and SPINDLE configuration items will not be available.</p>
-	<!-- /ko -->
-
 	</div>
-</div>
 </form>
