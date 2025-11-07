@@ -194,7 +194,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.bgsFilters = self.bgs_filters
 
         self.settingsVersion = 8
-        self.wizardVersion = 18
+        self.wizardVersion = 19
         
         self.whenConnected = time.time()
         self.handshakeSent = False
