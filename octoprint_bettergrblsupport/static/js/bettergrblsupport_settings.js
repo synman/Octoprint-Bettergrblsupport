@@ -18,6 +18,7 @@ $(function() {
       self.is_printing = ko.observable(false);
       self.is_operational = ko.observable(false);
 
+      self.probeEnabled = ko.observable(false);
       self.isMultiPoint = ko.observable(false);
 
       self.fluidSettings = ko.observableArray([]);
@@ -189,12 +190,21 @@ $(function() {
           }
         });
 
+        self.probeEnabled(self.settings.plugins.bettergrblsupport.zprobeMethod() == "NONE");
         self.isMultiPoint(self.settings.plugins.bettergrblsupport.zprobeMethod() == "MULTI");
+
         self.settings.plugins.bettergrblsupport.zprobeMethod.subscribe(function(newValue) {
           if (newValue == "MULTI") {
             self.isMultiPoint(true);
+            self.probeEnabled(true);
           } else {
-            self.isMultiPoint(false);
+            if (newValue == "SIMPLE") {
+              self.isMultiPoint(false);
+              self.probeEnabled(true);
+            } else {
+              self.isMultiPoint(false);
+              self.probeEnabled(false);
+            }
           }
         });
       };

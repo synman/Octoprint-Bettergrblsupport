@@ -1,3 +1,4 @@
+
 /*
  * View model for OctoPrint-Bettergrblsupport
  *
@@ -17,19 +18,8 @@ $(function() {
 
         self.my_notifications = ko.observableArray();
 
-        var $body = $('body');
-
-        var $container = $('webcam_container');
-
-        var framingPanel = $('#framing_panel');
-        var controlPanel = $('#control_panel');
-        var overridesPanel = $('#overrides_panel');
-
-        self.webcamDisableTimeout = undefined;
-        self.webcamLoaded = ko.observable(false);
-        self.webcamMjpgEnabled = ko.observable(false);
-        self.webcamHlsEnabled = ko.observable(false);
-        self.webcamError = ko.observable(false);
+        var $controlTab = $("#control");
+        var $controlPanel = undefined;
 
         self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
         self.origin_axis = ko.observable("XY");
@@ -39,11 +29,12 @@ $(function() {
 
         self.operator = ko.observable("=");
         self.distances = ko.observableArray([.1, 1, 5, 10, 50, 100]);
-        self.distance = ko.observable(100);
+        self.distance = ko.observable(10);
 
         self.is_printing = ko.observable(false);
         self.is_operational = ko.observable(false);
         self.isLoading = ko.observable(undefined);
+        self.probeEnabled = ko.observable(false)
 
         self.mode = ko.observable("N/A");
         self.state = ko.observable("N/A");
@@ -64,142 +55,8 @@ $(function() {
 
         self.controls = ko.observableArray([]);
 
-        tab = document.getElementById("tab_plugin_bettergrblsupport_link");
-        tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
-
-        self._disableWebcam = function() {
-            // only disable webcam stream if tab is out of focus for more than 5s, otherwise we might cause
-            // more load by the constant connection creation than by the actual webcam stream
-
-            // safari bug doesn't release the mjpeg stream, so we just disable this for safari.
-            if (OctoPrint.coreui.browser.safari) {
-                return;
-            }
-
-            var timeout = self.settings.webcam_streamTimeout() || 5;
-            self.webcamDisableTimeout = setTimeout(function() {
-                console.log("Unloading webcam stream");
-                $("#webcam_image").attr("src", "");
-                self.webcamLoaded(false);
-            }, timeout * 1000);
-        };
-
-        self._enableWebcam = function() {
-            if (OctoPrint.coreui.selectedTab != undefined &&
-                (OctoPrint.coreui.selectedTab != "#tab_plugin_bettergrblsupport" ||
-                    !OctoPrint.coreui.browserTabVisible)
-            ) {
-                return;
-            }
-
-            if (self.webcamDisableTimeout != undefined) {
-                clearTimeout(self.webcamDisableTimeout);
-            }
-
-            // IF disabled then we dont need to do anything
-            if (self.settings.webcam_webcamEnabled() == false) {
-                return;
-            }
-
-            // Determine stream type and switch to corresponding webcam.
-            var streamType = determineWebcamStreamType(self.settings.webcam_streamUrl());
-            if (streamType == "mjpg") {
-                self._switchToMjpgWebcam();
-            } else if (streamType == "hls") {
-                self._switchToHlsWebcam();
-            } else {
-                throw "Unknown stream type " + streamType;
-            }
-        };
-
-        self.onWebcamLoaded = function() {
-            if (self.webcamLoaded()) return;
-            self.webcamLoaded(true);
-            self.webcamError(false);
-        };
-
-        self.onWebcamErrored = function() {
-            console.log("Webcam stream failed to load/disabled");
-            if (self.webcamLoaded()) {
-              self._enableWebcam();
-              return;
-            }
-            self.webcamLoaded(false);
-            self.webcamError(true);
-        };
-
-        self.onTabChange = function(current, previous) {
-            if (current == "#tab_plugin_bettergrblsupport") {
-                self._enableWebcam();
-            } else if (previous == "#tab_plugin_bettergrblsupport") {
-                self._disableWebcam();
-            }
-        };
-
-        self.onBrowserTabVisibilityChange = function(status) {
-            if (status) {
-                self._enableWebcam();
-            } else {
-                self._disableWebcam();
-            }
-        };
-
-        self.webcamRatioClass = ko.pureComputed(function() {
-            if (self.settings.webcam_streamRatio() == "4:3") {
-                return "ratio43";
-            } else {
-                return "ratio169";
-            }
-        });
-
-        self._switchToMjpgWebcam = function() {
-            var webcamImage = $("#webcam_image");
-            var currentSrc = webcamImage.attr("src");
-
-            // safari bug doesn't release the mjpeg stream, so we just set it up the once
-            if (OctoPrint.coreui.browser.safari && currentSrc != undefined) {
-                return;
-            }
-
-            var newSrc = self.settings.webcam_streamUrl();
-            if (currentSrc != newSrc) {
-                if (self.settings.webcam_cacheBuster()) {
-                    if (newSrc.lastIndexOf("?") > -1) {
-                        newSrc += "&";
-                    } else {
-                        newSrc += "?";
-                    }
-                    newSrc += new Date().getTime();
-                }
-
-                self.webcamLoaded(false);
-                self.webcamError(false);
-                webcamImage.attr("src", newSrc);
-
-                self.webcamHlsEnabled(false);
-                self.webcamMjpgEnabled(true);
-            }
-        };
-
-        self._switchToHlsWebcam = function() {
-            var video = document.getElementById("webcam_hls");
-
-            // Check for native playback options: https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/canPlayType
-            if (
-                video != null &&
-                typeof video.canPlayType != undefined &&
-                video.canPlayType("application/vnd.apple.mpegurl") == "probably"
-            ) {
-                video.src = self.settings.webcam_streamUrl();
-            } else if (Hls.isSupported()) {
-                var hls = new Hls();
-                hls.loadSource(self.settings.webcam_streamUrl());
-                hls.attachMedia(video);
-            }
-
-            self.webcamMjpgEnabled(false);
-            self.webcamHlsEnabled(true);
-        };
+        //tab = document.getElementById("mytab_plugin_bettergrblsupport_link");
+        //tab.innerHTML = tab.innerHTML.replace("Better Grbl Support", "Grbl Control");
 
         self.handleFocus = function (event, type, item) {
           window.setTimeout(function () {
@@ -407,6 +264,11 @@ $(function() {
         self.onBeforeBinding = function() {
             self.is_printing(self.settings.settings.plugins.bettergrblsupport.is_printing());
             self.is_operational(self.settings.settings.plugins.bettergrblsupport.is_operational());
+            
+            self.probeEnabled(self.settings.settings.plugins.bettergrblsupport.zprobeMethod() != "NONE");
+            self.settings.settings.plugins.bettergrblsupport.zprobeMethod.subscribe(function(newValue) {
+                self.probeEnabled(newValue != "NONE");
+            });
 
             self.distance(self.settings.settings.plugins.bettergrblsupport.control_distance());
             self.settings.settings.plugins.bettergrblsupport.control_distance.subscribe(function(newValue) {
@@ -420,8 +282,8 @@ $(function() {
                 self.origin_axes.unshift("A"); 
             }
 
-            console.log(self.origin_axes());
-    
+            //console.log(self.origin_axes());
+
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
             self.notifications.onDataUpdaterPluginMessage = self.overrideOnDataUpdaterPluginMessage;
@@ -432,7 +294,7 @@ $(function() {
         };
 
         self.overrideClear = function() {
-            OctoPrint.simpleApiCommand("bettergrblsupport", "clearNotifications");    
+            OctoPrint.simpleApiCommand("bettergrblsupport", "clearNotifications");
         };
 
         self.overrideOnDataUpdaterPluginMessage = function(plugin, data) {
@@ -463,13 +325,28 @@ $(function() {
             OctoPrint.control.sendGcode([coordinate_system, "?"]);
         };
 
-        self.onAllBound = function (allViewModels) {
-          self._enableWebcam();
 
-          OctoPrint.control.getCustomControls().done(function (response) {
-            self.controls(self._processControls(response.controls));
-          });
+
+        self.modifyControlTab = function() {
+            $controlPanel = $('#bettergrblsupport_control_panel');
+
+            if ($controlPanel != undefined && $controlPanel.length > 0) {
+                $('div.jog-panel').remove();
+                $("#control-jog-general").remove();
+                $("#control-jog-extrusion").remove();
+
+                $controlPanel.insertBefore("#control-jog-custom");
+                $controlPanel.show();
+            }
         };
+
+        self.onTabChange = function(next, current) {
+            if (next === "#control") {
+                   self.modifyControlTab();
+            }
+        };
+
+
 
         self.fromCurrentData = function(data) {
             self._processStateData(data.state);
@@ -806,42 +683,6 @@ $(function() {
           }
         }
 
-        self.fsClick = function() {  
-            $body.toggleClass('inlineFullscreen');
-            $container.toggleClass("inline fullscreen");
-            // streamImg.classList.toggle("fullscreen");
-
-            var progressBar = document.getElementById("state");
-
-            if (progressBar.style.visibility == "" || progressBar.style.visibility == "visible") {
-                progressBar.style.visibility = "hidden";
-            } else {
-                progressBar.style.visibility = "visible";
-            }
-
-            if (framingPanel.is(':visible')) {
-                framingPanel.hide();
-            } else {
-                framingPanel.show();
-            }
-
-            if (controlPanel.is(':visible')) {
-                controlPanel.hide();
-            } else {
-                controlPanel.show();
-            }
-
-            if (overridesPanel.is(':visible')) {
-                overridesPanel.hide();
-            } else {
-                overridesPanel.show();
-            }
-
-            $('#sidebar_plugin_bettergrblsupport_wrapper').toggle();
-            $('#sidebar_plugin_action_command_notification_wrapper').toggle();
-        }
-
-
         self.feedRateResetter = ko.observable();
         self.resetFeedRateDisplay = function() {
             self.cancelFeedRateDisplayReset();
@@ -897,229 +738,6 @@ $(function() {
         };
 
 
-
-        self._processControls = function (controls) {
-            for (var i = 0; i < controls.length; i++) {
-                controls[i] = self._processControl(controls[i]);
-            }
-            return controls;
-        };
-
-        self._processControl = function (control) {
-            if (control.hasOwnProperty("processed") && control.processed) {
-                return control;
-            }
-
-            if (
-                control.hasOwnProperty("template") &&
-                control.hasOwnProperty("key") &&
-                control.hasOwnProperty("template_key") &&
-                !control.hasOwnProperty("output")
-            ) {
-                control.output = ko.observable(control.default || "");
-                if (!self.feedbackControlLookup.hasOwnProperty(control.key)) {
-                    self.feedbackControlLookup[control.key] = {};
-                }
-                self.feedbackControlLookup[control.key][control.template_key] =
-                    control.output;
-            }
-
-            if (control.hasOwnProperty("children")) {
-                control.children = ko.observableArray(
-                    self._processControls(control.children)
-                );
-                if (
-                    !control.hasOwnProperty("layout") ||
-                    !(
-                        control.layout == "vertical" ||
-                        control.layout == "horizontal" ||
-                        control.layout == "horizontal_grid"
-                    )
-                ) {
-                    control.layout = "vertical";
-                }
-
-                if (!control.hasOwnProperty("collapsed")) {
-                    control.collapsed = false;
-                }
-            }
-
-            if (control.hasOwnProperty("input")) {
-                var attributeToInt = function (obj, key, def) {
-                    if (obj.hasOwnProperty(key)) {
-                        var val = obj[key];
-                        if (_.isNumber(val)) {
-                            return val;
-                        }
-
-                        var parsedVal = parseInt(val);
-                        if (!isNaN(parsedVal)) {
-                            return parsedVal;
-                        }
-                    }
-                    return def;
-                };
-
-                _.each(control.input, function (element) {
-                    if (element.hasOwnProperty("slider") && _.isObject(element.slider)) {
-                        element.slider["min"] = attributeToInt(element.slider, "min", 0);
-                        element.slider["max"] = attributeToInt(
-                            element.slider,
-                            "max",
-                            255
-                        );
-
-                        // try defaultValue, default to min
-                        var defaultValue = attributeToInt(
-                            element,
-                            "default",
-                            element.slider.min
-                        );
-
-                        // if default value is not within range of min and max, correct that
-                        if (
-                            !_.inRange(
-                                defaultValue,
-                                element.slider.min,
-                                element.slider.max
-                            )
-                        ) {
-                            // use bound closer to configured default value
-                            defaultValue =
-                                defaultValue < element.slider.min
-                                    ? element.slider.min
-                                    : element.slider.max;
-                        }
-
-                        element.value = ko.observable(defaultValue);
-                    } else {
-                        element.slider = false;
-                        element.value = ko.observable(
-                            element.hasOwnProperty("default")
-                                ? element["default"]
-                                : undefined
-                        );
-                    }
-                });
-            }
-
-            if (control.hasOwnProperty("javascript")) {
-                var js = control.javascript;
-
-                // if js is a function everything's fine already, but if it's a string we need to eval that first
-                if (!_.isFunction(js)) {
-                    control.javascript = function (data) {
-                        eval(js);
-                    };
-                }
-            }
-
-            if (control.hasOwnProperty("enabled")) {
-                var enabled = control.enabled;
-
-                // if js is a function everything's fine already, but if it's a string we need to eval that first
-                if (!_.isFunction(enabled)) {
-                    control.enabled = function (data) {
-                        return eval(enabled);
-                    };
-                }
-            }
-
-            if (!control.hasOwnProperty("additionalClasses")) {
-                control.additionalClasses = "";
-            }
-
-            control.processed = true;
-            return control;
-        };
-
-
-        self.isCustomEnabled = function (data) {
-            if (data.hasOwnProperty("enabled")) {
-                return data.enabled(data);
-            } else {
-                return (
-                    self.loginState.hasPermission(self.access.permissions.CONTROL) &&
-                    self.is_operational()
-                );
-            }
-        };
-
-        self.clickCustom = function (data) {
-            var callback;
-            if (data.hasOwnProperty("javascript")) {
-                callback = data.javascript;
-            } else {
-                callback = self.sendCustomCommand;
-            }
-
-            if (data.confirm) {
-                showConfirmationDialog({
-                    message: data.confirm,
-                    onproceed: function (e) {
-                        callback(data);
-                    }
-                });
-            } else {
-                callback(data);
-            }
-        };
-
-        self.sendCustomCommand = function (command) {
-            if (!command) return;
-
-            var parameters = {};
-            if (command.hasOwnProperty("input")) {
-                _.each(command.input, function (input) {
-                    if (
-                        !input.hasOwnProperty("parameter") ||
-                        !input.hasOwnProperty("value")
-                    ) {
-                        return;
-                    }
-
-                    parameters[input.parameter] = input.value();
-                });
-            }
-
-            if (command.hasOwnProperty("command") || command.hasOwnProperty("commands")) {
-                var commands = command.commands || [command.command];
-                OctoPrint.control.sendGcodeWithParameters(commands, parameters);
-            } else if (command.hasOwnProperty("script")) {
-                var script = command.script;
-                var context = command.context || {};
-                OctoPrint.control.sendGcodeScriptWithParameters(
-                    script,
-                    context,
-                    parameters
-                );
-            }
-        };
-
-
-        self.displayMode = function (customControl) {
-            if (customControl.hasOwnProperty("children")) {
-                if (customControl.name) {
-                    return "customControls_containerTemplate_collapsable";
-                } else {
-                    return "customControls_containerTemplate_nameless";
-                }
-            } else {
-                return "customControls_controlTemplate";
-            }
-        };
-
-        self.rowCss = function (customControl) {
-            var span = "span2";
-            var offset = "";
-            if (customControl.hasOwnProperty("width")) {
-                span = "span" + customControl.width;
-            }
-            if (customControl.hasOwnProperty("offset")) {
-                offset = "offset" + customControl.offset;
-            }
-            return span + " " + offset;
-        };
 
         self.onKeyDown = function (data, event) {
             if (!self.settings.feature_keyboardControl()) return;
@@ -1437,6 +1055,14 @@ $(function() {
     OCTOPRINT_VIEWMODELS.push([
         BettergrblsupportViewModel,
         ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel"],
-        ["#tab_plugin_bettergrblsupport"]
+        ["#bettergrblsupport_control_panel"]
     ]);
+
+    //OCTOPRINT_VIEWMODELS.push({
+    //    construct: BettergrblsupportViewModel,
+    //    name: "bettergrblsupportViewModel",
+    //    dependencies: ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel"],
+    //    elements: ["#bgs_control_panel"]
+    //});
+
 });

@@ -227,6 +227,13 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if os.path.exists(oldCancelScript) and not os.path.exists(currentCancelScript):
         os.rename(oldCancelScript, currentCancelScript)
 
+    # remove our M999 on connect
+    oldConnectedScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "oldAfterPrinterConnected"))
+    currentConnectedScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "afterPrinterConnected"))
+
+    if os.path.exists(oldConnectedScript):
+        if os.path.exists(currentCancelScript): os.remove(currentConnectedScript)
+        os.rename(oldCancelScript, currentCancelScript)
 
 # #-- EventHandlerPlugin mix-in
 def on_event(_plugin, event, payload):

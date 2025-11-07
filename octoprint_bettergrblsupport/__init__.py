@@ -60,7 +60,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def __init__(self): 
         self.hideTempTab = True
-        self.hideControlTab = True
         self.hideGCodeTab = True
         self.helloCommand = "$$"
         self.statusCommand = "?"
@@ -74,7 +73,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.disablePolling = True
         self.disableModelSizeDetection = True
         self.neverSendChecksum = True
-        self.reOrderTabs = True
         self.reOrderSidebar = True
         self.disablePrinterSafety = True
         self.weakLaserValue = float(1)
@@ -159,6 +157,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.hasA = False
         self.hasB = False
 
+        self.originOffsets = False
+        self.originXOffset = 0.0
+        self.originYOffset = 0.0
+        self.originZOffset = 0.0
+
         self.offsets = {}
 
         self.bgs_filters = [
@@ -171,27 +174,27 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.octo_filters = [
             {
                 "name": "Suppress temperature messages",
-                "regex": "(Send: (N\d+\s+)?M105)|(Recv:\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
+                "regex": r"(Send: (N\d+\s+)?M105)|(Recv:\s+(ok\s+([PBN]\d+\s+)*)?([BCLPR]|T\d*):-?\d+)",
             },
             {
                 "name": "Suppress SD status messages",
-                "regex": "(Send: (N\d+\s+)?M27)|(Recv: SD printing byte)|(Recv: Not SD printing)",
+                "regex": r"(Send: (N\d+\s+)?M27)|(Recv: SD printing byte)|(Recv: Not SD printing)",
             },
             {
                 "name": "Suppress position messages",
-                "regex": "(Send:\s+(N\d+\s+)?M114)|(Recv:\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
+                "regex": r"(Send:\s+(N\d+\s+)?M114)|(Recv:\s+(ok\s+)?X:[+-]?([0-9]*[.])?[0-9]+\s+Y:[+-]?([0-9]*[.])?[0-9]+\s+Z:[+-]?([0-9]*[.])?[0-9]+\s+E\d*:[+-]?([0-9]*[.])?[0-9]+).*",
             },
             {"name": "Suppress wait responses", "regex": "Recv: wait"},
             {
                 "name": "Suppress processing responses",
-                "regex": "Recv: (echo:\s*)?busy:\s*processing",
+                "regex": r"Recv: (echo:\s*)?busy:\s*processing",
             }
         ]
 
         self.bgsFilters = self.bgs_filters
 
-        self.settingsVersion = 7
-        self.wizardVersion = 17
+        self.settingsVersion = 8
+        self.wizardVersion = 19
         
         self.whenConnected = time.time()
         self.handshakeSent = False
@@ -207,7 +210,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         return dict(
             hideTempTab = True,
-            hideControlTab = True,
             hideGCodeTab = True,
             hello = "$$",
             statusCommand = "?",
@@ -222,13 +224,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             frame_length = 100,
             frame_width = 100,
             frame_origin = None,
-            distance = float(0),
+            distance = float(10),
             control_distance = float(0),
             is_printing = False,
             is_operational = False,
             disableModelSizeDetection = True,
             neverSendChecksum = True,
-            reOrderTabs = True,
             reOrderSidebar = True,
             disablePrinterSafety = True,
             grblSettingsText = None,
@@ -252,7 +253,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             old_profile = "_default",
             profile_fixed = False,
             useDevChannel = False,
-            zprobeMethod = "SIMPLE",
+            zprobeMethod = "NONE",
             zprobeCalc = "MIN",
             autoSleep = False,
             autoSleepInterval = 20,
@@ -271,7 +272,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             fluidSettings = {},
             hasA = False,
             hasB = False,
-            fluidAutoReport=True
+            fluidAutoReport=True,
+            originOffsets = False,
+            originXOffset = 0.0,
+            originYOffset = 0.0,
+            originZOffset = 0.0
         )
 
 
@@ -300,7 +305,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # initialize all of our settings
         self.hideTempTab = self._settings.get_boolean(["hideTempTab"])
-        self.hideControlTab = self._settings.get_boolean(["hideControlTab"])
         self.hideGCodeTab = self._settings.get_boolean(["hideGCodeTab"])
 
         self.helloCommand = self._settings.get(["hello"])
@@ -317,7 +321,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.disableModelSizeDetection = self._settings.get_boolean(["disableModelSizeDetection"])
         self.neverSendChecksum = self._settings.get_boolean(["neverSendChecksum"])
 
-        self.reOrderTabs = self._settings.get_boolean(["reOrderTabs"])
         self.reOrderSidebar = self._settings.get_boolean(["reOrderSidebar"])
 
         self.overrideM8 = self._settings.get_boolean(["overrideM8"])
@@ -360,6 +363,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.hasA = self._settings.get_boolean(["hasA"])
         self.hasB = self._settings.get_boolean(["hasB"])
 
+        self.originOffsets = self._settings.get_boolean(["originOffsets"])
+        self.originXOffset = float(self._settings.get(["originXOffset"]))
+        self.originYOffset = float(self._settings.get(["originYOffset"]))
+        self.originZOffset = float(self._settings.get(["originZOffset"]))
+
         fluidYaml = self._settings.get(["fluidYaml"])
         if not fluidYaml is None and len(fluidYaml) > 0:
             self.fluidYaml = yaml.safe_load(fluidYaml)
@@ -378,11 +386,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
         if disabledTabs == None:
             disabledTabs = []
-
-        # initialize config.yaml ordered tabs list
-        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
-        if orderedTabs == None:
-            orderedTabs = []
 
         # initialize config.yaml ordered sidebar list
         orderedSidebar = self._settings.global_get(["appearance", "components", "order", "sidebar"])
@@ -416,19 +419,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if "temperature" in disabledTabs:
                 disabledTabs.remove("temperature")
 
-        if self.hideControlTab:
-            if "control" not in disabledTabs:
-                disabledTabs.append("control")
-        else:
-            if "control" in disabledTabs:
-                disabledTabs.remove("control")
-
-        # ensure i am always the first tab
-        if "plugin_bettergrblsupport" in orderedTabs:
-            orderedTabs.remove("plugin_bettergrblsupport")
-        if self.reOrderTabs:
-            orderedTabs.insert(0, "plugin_bettergrblsupport")
-
         # ensure i am at the top of the sidebar
         if "plugin_bettergrblsupport" in orderedSidebar:
             orderedSidebar.remove("plugin_bettergrblsupport")
@@ -437,8 +427,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self._settings.global_set(["plugins", "_disabled"], disabledPlugins)
         self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
-        self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
-        self._settings.global_set(["appearance", "components", "order", "sidebar"], orderedTabs)
+        self._settings.global_set(["appearance", "components", "order", "sidebar"], orderedSidebar)
 
         # add pretty much all of grbl to long running commands list
         longCmds = self._settings.global_get(["serial", "longRunningCommands"])
@@ -490,16 +479,31 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         oldCancelScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "oldAfterPrintCancelled"))
         currentCancelScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "afterPrintCancelled"))
 
-        if not os.path.exists(oldCancelScript) and os.path.exists(currentCancelScript):
-            os.rename(currentCancelScript, oldCancelScript)
+        if not os.path.exists(oldCancelScript):
+            if os.path.exists(currentCancelScript):
+                os.rename(currentCancelScript, oldCancelScript)
+            else:
+                os.makedirs(os.path.dirname(oldCancelScript), exist_ok=True)
+                open(oldCancelScript, 'a')
+
+        #  lets sneak in a reset (M999) on establishing a connection
+        oldConnectedScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "oldAfterPrinterConnected"))
+        currentConnectedScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "afterPrinterConnected"))
+
+        if not os.path.exists(oldConnectedScript):
+            if os.path.exists(currentConnectedScript): 
+                os.rename(currentConnectedScript, oldConnectedScript)
+            else:
+                os.makedirs(os.path.dirname(oldConnectedScript), exist_ok=True)
+                open(oldConnectedScript, 'a')
+            src = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep + "afterPrinterConnected"
+            copyfile(src, currentConnectedScript)
 
         _bgs.load_grbl_settings(self)
-
 
     def get_settings_version(self):
         self._logger.debug("__init__: get_settings_version")
         return self.settingsVersion
-
 
     def on_settings_migrate(self, target, current):
         self._logger.debug("__init__: on_settings_migrate target=[{}] current=[{}]".format(target, current))
@@ -511,11 +515,21 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.settings.set_boolean(["profile_fixed"], True)
 
             orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+            if "plugin_bettergrblsupport" in orderedTabs:
+                orderedTabs.remove("plugin_bettergrblsupport")
+                self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
+            if "control" in orderedTabs:
+                orderedTabs.remove("control")
+                orderedTabs.insert(0, "control")
+                self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
             if "gcodeviewer" in orderedTabs:
                 orderedTabs.remove("gcodeviewer")
                 self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
             disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
+            if "control" in disabledTabs:
+                disabledTabs.remove("control")
+                self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
             if "gcodeviewer" in disabledTabs:
                 disabledTabs.remove("gcodeviewer")
                 self._settings.global_set(["appearance", "components", "disabled", "tab"], disabledTabs)
@@ -527,6 +541,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set(["dwellCommand"], "G4 P0.001")
             self.dwellCommand = "G4 P0.001"
 
+            self._settings.remove(["reOrderTabs"])
+            self._settings.remove(["hideControlTab"])
             self._settings.remove(["showZ"])
             self._settings.remove(["distance"])
             self._settings.remove(["customControls"])
@@ -534,12 +550,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.save()
             self._logger.info("Migrated to settings v%d from v%d", target, 1 if current == None else current)
 
-
     def on_settings_save(self, data):
         self._logger.debug("__init__: on_settings_save data=[{}]".format(data))
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return
+
+        # override origin offsets if they are all zero
+        if "originOffsets" in data or "originXOffset" in data or "originYOffset" in data or "originZOffset" in data:
+            offsetX = float (self.originXOffset)
+            offsetY = float (self.originYOffset)
+            offsetZ = float (self.originZOffset)
+            if "originXOffset" in data: offsetX = float(data["originXOffset"])
+            if "originYOffset" in data: offsetY = float(data["originYOffset"])
+            if "originZOffset" in data: offsetZ = float(data["originZOffset"])
+            if offsetX == 0.0 and offsetY == 0.0 and offsetZ == 0.0: data["originOffsets"] = False
+            if data["originOffsets"] == False:
+                data["originXOffset"] = 0.0
+                data["originYOffset"] = 0.0
+                data["originZOffset"] = 0.0
+            self._logger.debug(f"origin offsets changed: {data}")
 
         self._logger.debug("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
@@ -603,18 +633,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # resume status requests (after 10 seconds)
         threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 10, "fluidYaml" in data or "fluidSettings" in data)).start()
 
-
     # #~~ AssetPlugin mixin
     def get_assets(self):
         self._logger.debug("__init__: get_assets")
 
         # Define your plugin's asset files to automatically include in the
         # core UI here.
-        return dict(js=['js/bettergrblsupport.js', 'js/bettergrblsupport_settings.js', 'js/bgs_framing.js', 
+        return dict(js=['js/bettergrblsupport_control.js', 'js/bettergrblsupport_settings.js', 'js/bgs_framing.js', 
                         'js/bettergrblsupport_wizard.js', 'js/bgs_terminal.js'],
-                    css=['css/bettergrblsupport.css', 'css/bettergrblsupport_settings.css', 'css/bgs_framing.css'],
-                    less=['less/bettergrblsupport.less', "less/bettergrblsupport.less", "less/bgs_framing.less"])
-
+                    css=['css/bettergrblsupport_control.css', 'css/bettergrblsupport_settings.css', 'css/bgs_framing.css'],
+                    less=['less/bettergrblsupport.less', "less/bgs_framing.less"])
 
     # #~~ TemplatePlugin mixin
     def get_template_configs(self):
@@ -637,10 +665,16 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     "type": "wizard",
                     "name": "Better Grbl Support",
                     "template": "bettergrblsupport_wizard.jinja2",
-                    "custom_bindings": True
+                    "custom_bindings": False
+            },
+            {
+                    "type": "generic",
+                    "template": "bettergrblsupport_control.jinja2",
             }
         ]
 
+    def is_template_autoescaped(self):
+        return True
 
     # #-- EventHandlerPlugin mix-in
     def on_event(self, event, payload):
@@ -1094,19 +1128,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             ignoreList = ("[MSG:'$H'|'$X' to unlock]", "[MSG:INFO: '$H'|'$X' to unlock]")
             if not line.rstrip("\r").rstrip("\n").strip() in ignoreList:
                 # auto reset
-                if "reset to continue" in line.lower():
+                # if "reset to continue" in line.lower():
+                    # TODO:  this may not be wise any longer
                     # automatically perform a soft reset if GRBL says we need one
-                    self._printer.commands("M999")
-                else:
-                    # replace MSG: Disabled / Enabled with check mode info
-                    line = line.replace("MSG:Disabled", "Check Mode Disabled")
-                    line = line.replace("MSG:Enabled", "Check Mode Enabled")
-                    # general clean up of the message
-                    line = line.replace("[","").replace("]","").replace("MSG:","")
-                    line = line.replace("\n", "").replace("\r", "")
+                    # self._printer.commands("M999")
+                # else:
+                # replace MSG: Disabled / Enabled with check mode info
+                line = line.replace("MSG:Disabled", "Check Mode Disabled")
+                line = line.replace("MSG:Enabled", "Check Mode Enabled")
+                # general clean up of the message
+                line = line.replace("[","").replace("]","").replace("MSG:","")
+                line = line.replace("\n", "").replace("\r", "")
 
-                    if len(line) > 0:
-                        _bgs.add_notifications(self, [line])
+                if len(line) > 0:
+                    _bgs.add_notifications(self, [line])
             return 
 
         # add a notification if we just z-probed
@@ -1221,7 +1256,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     # ~ SimpleApiPlugin
     def on_api_get(self, request):
         return "this space intentionally left blank (for now)\n"
-
+    def is_api_protected(self):
+        """
+        Explicitly declares that the simple API is protected, silencing the warning.
+        """
+        return True
+    
     def get_api_commands(self):
         self._logger.debug("__init__: get_api_commands")
 
@@ -1417,16 +1457,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return
 
             if direction == "probe":
-                if axis in ("XY", "X", "Y"):
-                    _bgs.do_xy_probe(self, axis, sessionId)
-                elif axis == "Z":
-                    method = self._settings.get(["zprobeMethod"])
-                    if method == "SIMPLE":
-                        _bgs.do_simple_zprobe(self, sessionId)
-                    else:
-                        _bgs.do_multipoint_zprobe(self, sessionId)
-                elif axis == "ALL":
-                    _bgs.do_xyz_probe(self, sessionId)
+                method = self._settings.get(["zprobeMethod"])
+                if method != "NONE":
+                    if axis in ("XY", "X", "Y"):
+                        _bgs.do_xy_probe(self, axis, sessionId)
+                    elif axis == "Z":
+                        if method == "SIMPLE":
+                            _bgs.do_simple_zprobe(self, sessionId)
+                        else:
+                            _bgs.do_multipoint_zprobe(self, sessionId)
+                    elif axis == "ALL":
+                        _bgs.do_xyz_probe(self, sessionId)
                 return
 
             # check distance against limits
@@ -1494,19 +1535,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             program = -53 + program
 
             if axis == "X":
-                self._printer.commands("G91 G10 P{} L20 X0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 X{1}".format(program, self.originXOffset))
             elif axis == "Y":
-                self._printer.commands("G91 G10 P{} L20 Y0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 Y{1}".format(program, self.originYOffset))
             elif axis == "Z":
-                self._printer.commands("G91 G10 P{} L20 Z0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 Z{1}".format(program, self.originZOffset))
             elif axis == "XY":
-                self._printer.commands("G91 G10 P{} L20 X0 Y0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 X{1} Y{2}".format(program, self.originXOffset, self.originYOffset))
             elif axis == "A" and self.hasA:
-                self._printer.commands("G91 G10 P{} L20 A0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 A0".format(program))
             elif axis == "B" and self.hasB:
-                self._printer.commands("G91 G10 P{} L20 B0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 B0".format(program))
             else:
-                self._printer.commands("G91 G10 P{0} L20 X0 Y0 Z0 {1}".format(program, extra_axes))
+                self._printer.commands("G91 G10 P{0} L20 X{1} Y{2} Z{3} {4}".format(program, self.originXOffset, self.originYOffset, self.originZOffset, extra_axes))
 
             self._printer.commands("$#")
             _bgs.add_notifications(self, ["Coordinate system {} home for {} set".format(program, axis)])
