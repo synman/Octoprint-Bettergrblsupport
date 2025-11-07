@@ -157,6 +157,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.hasA = False
         self.hasB = False
 
+        self.originOffsets = False
+        self.originXOffset = 0.0
+        self.originYOffset = 0.0
+        self.originZOffset = 0.0
+
         self.offsets = {}
 
         self.bgs_filters = [
@@ -267,7 +272,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             fluidSettings = {},
             hasA = False,
             hasB = False,
-            fluidAutoReport=True
+            fluidAutoReport=True,
+            originOffsets = False,
+            originXOffset = 0.0,
+            originYOffset = 0.0,
+            originZOffset = 0.0
         )
 
 
@@ -353,6 +362,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.hasA = self._settings.get_boolean(["hasA"])
         self.hasB = self._settings.get_boolean(["hasB"])
+
+        self.originOffsets = self._settings.get_boolean(["originOffsets"])
+        self.originXOffset = float(self._settings.get(["originXOffset"]))
+        self.originYOffset = float(self._settings.get(["originYOffset"]))
+        self.originZOffset = float(self._settings.get(["originZOffset"]))
 
         fluidYaml = self._settings.get(["fluidYaml"])
         if not fluidYaml is None and len(fluidYaml) > 0:
@@ -536,12 +550,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.save()
             self._logger.info("Migrated to settings v%d from v%d", target, 1 if current == None else current)
 
-
     def on_settings_save(self, data):
         self._logger.debug("__init__: on_settings_save data=[{}]".format(data))
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
             return
+
+        # override origin offsets if they are all zero
+        if "originOffsets" in data or "originXOffset" in data or "originYOffset" in data or "originZOffset" in data:
+            offsetX = float (self.originXOffset)
+            offsetY = float (self.originYOffset)
+            offsetZ = float (self.originZOffset)
+            if "originXOffset" in data: offsetX = float(data["originXOffset"])
+            if "originYOffset" in data: offsetY = float(data["originYOffset"])
+            if "originZOffset" in data: offsetZ = float(data["originZOffset"])
+            if offsetX == 0.0 and offsetY == 0.0 and offsetZ == 0.0: data["originOffsets"] = False
+            if data["originOffsets"] == False:
+                data["originXOffset"] = 0.0
+                data["originYOffset"] = 0.0
+                data["originZOffset"] = 0.0
+            self._logger.debug(f"origin offsets changed: {data}")
 
         self._logger.debug("saving settings")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
@@ -605,7 +633,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # resume status requests (after 10 seconds)
         threading.Thread(target=_bgs.defer_resuming_status_reports, args=(self, 10, "fluidYaml" in data or "fluidSettings" in data)).start()
 
-
     # #~~ AssetPlugin mixin
     def get_assets(self):
         self._logger.debug("__init__: get_assets")
@@ -616,7 +643,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         'js/bettergrblsupport_wizard.js', 'js/bgs_terminal.js'],
                     css=['css/bettergrblsupport_control.css', 'css/bettergrblsupport_settings.css', 'css/bgs_framing.css'],
                     less=['less/bettergrblsupport.less', "less/bgs_framing.less"])
-
 
     # #~~ TemplatePlugin mixin
     def get_template_configs(self):
@@ -1509,19 +1535,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             program = -53 + program
 
             if axis == "X":
-                self._printer.commands("G91 G10 P{} L20 X0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 X{1}".format(program, self.originXOffset))
             elif axis == "Y":
-                self._printer.commands("G91 G10 P{} L20 Y0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 Y{1}".format(program, self.originYOffset))
             elif axis == "Z":
-                self._printer.commands("G91 G10 P{} L20 Z0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 Z{1}".format(program, self.originZOffset))
             elif axis == "XY":
-                self._printer.commands("G91 G10 P{} L20 X0 Y0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 X{1} Y{2}".format(program, self.originXOffset, self.originYOffset))
             elif axis == "A" and self.hasA:
-                self._printer.commands("G91 G10 P{} L20 A0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 A0".format(program))
             elif axis == "B" and self.hasB:
-                self._printer.commands("G91 G10 P{} L20 B0".format(program))
+                self._printer.commands("G91 G10 P{0} L20 B0".format(program))
             else:
-                self._printer.commands("G91 G10 P{0} L20 X0 Y0 Z0 {1}".format(program, extra_axes))
+                self._printer.commands("G91 G10 P{0} L20 X{1} Y{2} Z{3} {4}".format(program, self.originXOffset, self.originYOffset, self.originZOffset, extra_axes))
 
             self._printer.commands("$#")
             _bgs.add_notifications(self, ["Coordinate system {} home for {} set".format(program, axis)])
