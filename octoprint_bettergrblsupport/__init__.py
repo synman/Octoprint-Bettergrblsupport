@@ -465,16 +465,31 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         oldCancelScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "oldAfterPrintCancelled"))
         currentCancelScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "afterPrintCancelled"))
 
-        if not os.path.exists(oldCancelScript) and os.path.exists(currentCancelScript):
-            os.rename(currentCancelScript, oldCancelScript)
+        if not os.path.exists(oldCancelScript):
+            if os.path.exists(currentCancelScript):
+                os.rename(currentCancelScript, oldCancelScript)
+            else:
+                os.makedirs(os.path.dirname(oldCancelScript), exist_ok=True)
+                open(oldCancelScript, 'a')
+
+        #  lets sneak in a reset (M999) on establishing a connection
+        oldConnectedScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "oldAfterPrinterConnected"))
+        currentConnectedScript = os.path.realpath(os.path.join(self._settings.global_get_basefolder("scripts"), "gcode", "afterPrinterConnected"))
+
+        if not os.path.exists(oldConnectedScript):
+            if os.path.exists(currentConnectedScript): 
+                os.rename(currentConnectedScript, oldConnectedScript)
+            else:
+                os.makedirs(os.path.dirname(oldConnectedScript), exist_ok=True)
+                open(oldConnectedScript, 'a')
+            src = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep + "afterPrinterConnected"
+            copyfile(src, currentConnectedScript)
 
         _bgs.load_grbl_settings(self)
-
 
     def get_settings_version(self):
         self._logger.debug("__init__: get_settings_version")
         return self.settingsVersion
-
 
     def on_settings_migrate(self, target, current):
         self._logger.debug("__init__: on_settings_migrate target=[{}] current=[{}]".format(target, current))
