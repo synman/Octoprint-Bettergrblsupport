@@ -28,7 +28,7 @@ Here are some of bgs's capabilities (as of v2.0.0):
 
 ## Documentation
 
-Visit the [Better Grbl Support Wiki](https://github.com/synman/Octoprint-Bettergrblsupport/wiki) for general instructions and workflows.
+Visit the [Better Grbl Support Wiki](https://github.com/synman/Octoprint-Bettergrblsupport/wiki) for general instructions and workflows.  [DeepWiki](https://deepwiki.com/synman/Octoprint-Bettergrblsupport) is another good source.
 
 ## Screenshots
 
