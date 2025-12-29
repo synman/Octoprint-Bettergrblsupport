@@ -358,7 +358,7 @@ def on_event(_plugin, event, payload):
         if not is_laser_mode(_plugin):
             _plugin._printer.commands(["G91 G0 Z5"])
 
-        _plugin._printer.commands(["M5"])
+        # _plugin._printer.commands(["M5"])
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
@@ -378,7 +378,7 @@ def on_event(_plugin, event, payload):
 
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
-        do_fake_ack(_plugin._printer, _plugin._logger)
+        # do_fake_ack(_plugin._printer, _plugin._logger)
 
     # starting up
     if event == Events.STARTUP:
