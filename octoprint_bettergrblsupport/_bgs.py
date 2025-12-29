@@ -355,8 +355,6 @@ def on_event(_plugin, event, payload):
         _plugin.pausedPower = _plugin.grblPowerLevel
         _plugin.pausedPositioning = _plugin.positioning
 
-        # _plugin._printer.fake_ack()
-
         # retract Z 5 if not laser mode
         if not is_laser_mode(_plugin):
             _plugin._printer.commands(["G91 G0 Z5"])
@@ -367,6 +365,7 @@ def on_event(_plugin, event, payload):
     if event == Events.PRINT_PAUSED:
         _plugin._logger.debug("paused job")
         _plugin._printer.commands(["!"])
+        do_fake_ack(_plugin._printer, _plugin._logger)
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
