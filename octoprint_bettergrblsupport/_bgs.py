@@ -369,7 +369,7 @@ def on_event(_plugin, event, payload):
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
-        send_command_now(_plugin._printer, _plugin._logger, ["~"])
+        # send_command_now(_plugin._printer, _plugin._logger, ["~"])
         send_command_now(_plugin._printer, _plugin._logger, [_plugin.grblMCode])
 
         # move our spindle back down 5
