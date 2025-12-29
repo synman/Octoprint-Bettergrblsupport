@@ -369,15 +369,11 @@ def on_event(_plugin, event, payload):
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
-        send_command_now(_plugin._printer, _plugin._logger, ["?"])
-        do_fake_ack(_plugin._printer, _plugin._logger)
-
         send_command_now(_plugin._printer, _plugin._logger, [_plugin.grblMCode])
 
         # move our spindle back down 5
         if not is_laser_mode(_plugin):
             send_command_now(_plugin._printer, _plugin._logger, ["G4 P10", "G91 G0 Z-5"])
-            do_fake_ack(_plugin._printer, _plugin._logger)
 
         # make sure we are using whatever positioning mode was active before we paused
         send_command_now(_plugin._printer, _plugin._logger, ["G91" if _plugin.pausedPositioning == 1 else "G90"])
