@@ -283,6 +283,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger.debug("__init__: on_after_startup")
 
+        restart_needed = False
+
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
         self._settings.set_boolean(["is_operational"], self._printer.is_operational())
@@ -297,6 +299,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer_profile_manager.select("_bgs")
             self._printer_profile_manager.set_default("_bgs")
             self._logger.info("bgs printer profile created and selected")
+            restart_needed = True
 
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
@@ -392,32 +395,56 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if orderedSidebar == None:
             orderedSidebar = []
 
+        # initialize ordered tabs
+        orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
+        if orderedTabs == None:
+            orderedTabs = []
+
         # disable the printer safety check plugin
         if self.disablePrinterSafety:
             if "printer_safety_check" not in disabledPlugins:
                 disabledPlugins.append("printer_safety_check")
+                restart_required = True
         else:
             if "printer_safety_check" in disabledPlugins:
                 disabledPlugins.remove("printer_safety_check")
+                restart_required = True
 
         # disable the gcodeviewer plugin
         if self.hideGCodeTab:
             if "gcodeviewer" not in disabledPlugins:
                 disabledPlugins.append("gcodeviewer")
+                restart_required = True
             if "plugin_gcodeviewer" not in disabledTabs:
                 disabledTabs.append("plugin_gcodeviewer")
+                restart_required = True
         else:
             if "gcodeviewer" in disabledPlugins:
                 disabledPlugins.remove("gcodeviewer")
+                restart_required = True
             if "plugin_gcodeviewer" in disabledTabs:
                 disabledTabs.remove("plugin_gcodeviewer")
+                restart_required = True
 
         if self.hideTempTab:
             if "temperature" not in disabledTabs:
                 disabledTabs.append("temperature")
+                restart_required = True
         else:
             if "temperature" in disabledTabs:
                 disabledTabs.remove("temperature")
+                restart_required = True
+
+        # ensure control tab is visible
+        if "control" in disabledTabs:
+            disabledTabs.remove("control")
+            restart_required = True
+
+        # ensure control is first tab
+        if "control" in orderedTabs:
+            orderedTabs.remove("control")
+            orderedTabs.insert(0, "control")
+            self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
         # ensure i am at the top of the sidebar
         if "plugin_bettergrblsupport" in orderedSidebar:
@@ -501,6 +528,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         _bgs.load_grbl_settings(self)
 
+        if restart_required:
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="restart_required"))
+
+
     def get_settings_version(self):
         self._logger.debug("__init__: get_settings_version")
         return self.settingsVersion
@@ -549,6 +580,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self._settings.save()
             self._logger.info("Migrated to settings v%d from v%d", target, 1 if current == None else current)
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="restart_required"))
 
     def on_settings_save(self, data):
         self._logger.debug("__init__: on_settings_save data=[{}]".format(data))

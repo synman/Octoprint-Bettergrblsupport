@@ -7,4 +7,9 @@
 7 Homing fail. Safety door was opened during active homing cycle.
 8 Homing fail. Cycle failed to clear limit switch when pulling off. Try increasing pull-off setting or check wiring.
 9 Homing fail. Could not find limit switch within search distance. Defined as 1.5 * max_travel on search and 5 * pulloff on locate phases.
-10 Homing fail. Second dual axis limit switch failed to trigger within configured search distance after first. Try increasing trigger fail distance or check wiring.
+10 Spindle Control
+11 Control Pin
+12 Ambiguous Switch - There is a limit switch active, but FluidNC does not have enough info to clear the switch.
+13 Hard Stop
+14 Unhomed - Your machine needs to be homed.  You can clear this alarm with $Alarm/Disable or $X
+15 Init

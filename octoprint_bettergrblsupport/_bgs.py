@@ -151,6 +151,11 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if "plugin_bettergrblsupport" in orderedTabs:
         orderedTabs.remove("plugin_bettergrblsupport")
 
+    # ensure control is first tab
+    if "control" in orderedTabs:
+        orderedTabs.remove("control")
+        orderedTabs.insert(0, "control")
+
     # remove me from ordered sidebar if i'm in there
     if "plugin_bettergrblsupport" in orderedSidebar:
         orderedSidebar.remove("plugin_bettergrblsupport")
@@ -232,8 +237,11 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     currentConnectedScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "afterPrinterConnected"))
 
     if os.path.exists(oldConnectedScript):
-        if os.path.exists(currentCancelScript): os.remove(currentConnectedScript)
-        os.rename(oldCancelScript, currentCancelScript)
+        if os.path.exists(currentConnectedScript): os.remove(currentConnectedScript)
+        os.rename(oldConnectedScript, currentConnectedScript)
+
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="restart_required"))
+
 
 # #-- EventHandlerPlugin mix-in
 def on_event(_plugin, event, payload):

@@ -64,3 +64,15 @@
 152 Configuration is invalid. Check boot messages for ERR's.
 160 File Upload Failed
 161 File Download Failed
+162 Read-only setting
+170 Expression Divide By Zero
+171 Expression Invalid Argument
+173 Expression Unknown Operator
+174 Expression Argument Out of Range
+175 Expression Syntax Error
+176 Flow Control Syntax Error
+177 Flow Control Not Executing Macro
+178 Flow Control Out of Memory
+179 Flow Control Stack Overflow
+180 Parameter Assignment Failed
+181 Gcode invalid word value
