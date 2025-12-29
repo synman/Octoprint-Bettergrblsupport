@@ -354,7 +354,6 @@ def on_event(_plugin, event, payload):
         _plugin.pausedPower = _plugin.grblPowerLevel
         _plugin.pausedPositioning = _plugin.positioning
 
-
         pauseScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "afterPrintPaused"))
         resumeScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "beforePrintResumed"))
 
@@ -370,11 +369,14 @@ def on_event(_plugin, event, payload):
         with open(resumeScript, 'w') as file:
             # release feed hold
             file.write("~\n")
+            # reset our M-code
+            file.write(f"{_plugin.grblMCode}\n")
             # reset our speed / power 
             file.write(f"S{_plugin.pausedPower}\n")
             # move our spindle back down 5
             if not is_laser_mode(_plugin):
-                file.write("G4 P10", "G91 G0 Z-5\n")
+                file.write("G4 P10\n")
+                file.write("G91 G0 Z-5\n")
             # reset our positioning mode
             file.write("G91\n" if _plugin.pausedPositioning == 1 else "G90\n")
 
@@ -385,18 +387,8 @@ def on_event(_plugin, event, payload):
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
-        # send_command_now(_plugin._printer, _plugin._logger, [_plugin.grblMCode])
-
-        # move our spindle back down 5
-        # if not is_laser_mode(_plugin):
-        #     send_command_now(_plugin._printer, _plugin._logger, ["G4 P10", "G91 G0 Z-5"])
-
-        # make sure we are using whatever positioning mode was active before we paused
-        # send_command_now(_plugin._printer, _plugin._logger, ["G91" if _plugin.pausedPositioning == 1 else "G90"])
-
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
-        # do_fake_ack(_plugin._printer, _plugin._logger)
 
     # starting up
     if event == Events.STARTUP:
