@@ -371,7 +371,7 @@ def on_event(_plugin, event, payload):
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
-        _plugin._printer.commands(["~", "M3"], force=True)
+        _plugin._printer.commands(["~", _plugin.grblMCode], force=True)
 
         # move our spindle back down 5
         if not is_laser_mode(_plugin):

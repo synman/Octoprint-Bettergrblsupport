@@ -99,6 +99,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.positioning = 0
         self.coolant = "M9"
         self.grblCoordinateSystem = "G54"
+        self.GrblMCode = "M5"
 
         self.timeRef = 0
 
@@ -809,6 +810,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() in ("G54", "G55", "G56", "G57", "G58", "G59"):
             self.grblCoordinateSystem = cmd.upper()
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coord=self.grblCoordinateSystem))
+
+        # capture M-Command if sent
+        if "M3" in cmd.upper():
+            self.grblMCode = "M3"
+        if "M4" in cmd.upper():
+            self.grblMCode = "M4"
+        if "M5" in cmd.upper():
+            self.grblMCode = "M5"
 
         # M8 (air assist on) processing - work in progress
         if cmd.upper() in ("M7", "M8"):
