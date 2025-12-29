@@ -285,7 +285,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_after_startup(self):
         self._logger.debug("__init__: on_after_startup")
 
-        restart_needed = False
+        restart_required = False
 
         # establish initial state for printer status
         self._settings.set_boolean(["is_printing"], self._printer.is_printing())
@@ -301,7 +301,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._printer_profile_manager.select("_bgs")
             self._printer_profile_manager.set_default("_bgs")
             self._logger.info("bgs printer profile created and selected")
-            restart_needed = True
+            restart_required = True
 
         # let's only do stuff if our profile is selected
         if self._printer_profile_manager.get_current_or_default()["id"] != "_bgs":
