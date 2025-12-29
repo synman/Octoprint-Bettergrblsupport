@@ -366,7 +366,7 @@ def on_event(_plugin, event, payload):
     # Print Paused
     if event == Events.PRINT_PAUSED:
         _plugin._logger.debug("paused job")
-        _plugin._printer.commands(["M5", "?", "!", "?"], force=True)
+        _plugin._printer.commands(["M5", "!", "?"], force=True)
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
@@ -382,7 +382,7 @@ def on_event(_plugin, event, payload):
 
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
-        do_fake_ack(_plugin._printer, _plugin._logger)
+        # do_fake_ack(_plugin._printer, _plugin._logger)
 
     # starting up
     if event == Events.STARTUP:
