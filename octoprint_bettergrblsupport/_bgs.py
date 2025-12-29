@@ -362,12 +362,12 @@ def on_event(_plugin, event, payload):
             _plugin._printer.commands(["G91 G0 Z5"])
 
         # _plugin._printer.commands(["M5", "?"])
-        _plugin._printer.commands(["M5", "!"])
+        _plugin._printer.commands(["M5"])
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
         _plugin._logger.debug("paused job")
-        # _plugin._printer.commands(["M5", "!"])
+        _plugin._printer.commands(["!"])
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
