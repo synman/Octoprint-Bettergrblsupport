@@ -354,11 +354,29 @@ def on_event(_plugin, event, payload):
         _plugin.pausedPower = _plugin.grblPowerLevel
         _plugin.pausedPositioning = _plugin.positioning
 
-        # retract Z 5 if not laser mode
-        if not is_laser_mode(_plugin):
-            _plugin._printer.commands(["G91 G0 Z5"])
 
-        # _plugin._printer.commands(["M5"])
+        pauseScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "afterPrintPaused"))
+        resumeScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "beforePrintResumed"))
+
+        with open(pauseScript, 'w') as file:
+            # turn off laser/spindle
+            file.write("M5\n")
+            # retract Z 5 if not laser mode
+            if not is_laser_mode(_plugin):
+                file.write("G91 G0 Z5\n")
+            # start feed hold
+            file.write("!\n")
+
+        with open(resumeScript, 'w') as file:
+            # release feed hold
+            file.write("~\n")
+            # reset our speed / power 
+            file.write(f"S{_plugin.pausedPower}\n")
+            # move our spindle back down 5
+            if not is_laser_mode(_plugin):
+                file.write("G4 P10", "G91 G0 Z-5\n")
+            # reset our positioning mode
+            file.write("G91\n" if _plugin.pausedPositioning == 1 else "G90\n")
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
@@ -370,8 +388,8 @@ def on_event(_plugin, event, payload):
         # send_command_now(_plugin._printer, _plugin._logger, [_plugin.grblMCode])
 
         # move our spindle back down 5
-        if not is_laser_mode(_plugin):
-            send_command_now(_plugin._printer, _plugin._logger, ["G4 P10", "G91 G0 Z-5"])
+        # if not is_laser_mode(_plugin):
+        #     send_command_now(_plugin._printer, _plugin._logger, ["G4 P10", "G91 G0 Z-5"])
 
         # make sure we are using whatever positioning mode was active before we paused
         # send_command_now(_plugin._printer, _plugin._logger, ["G91" if _plugin.pausedPositioning == 1 else "G90"])
