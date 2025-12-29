@@ -366,7 +366,7 @@ def on_event(_plugin, event, payload):
     # Print Paused
     if event == Events.PRINT_PAUSED:
         _plugin._logger.debug("paused job")
-        _plugin._printer.commands(["M5", "!", "?"], force=True)
+        _plugin._printer.commands(["M5", "!"], force=True)
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
