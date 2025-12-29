@@ -816,8 +816,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblMCode = "M3"
         if "M4" in cmd.upper():
             self.grblMCode = "M4"
-        if "M5" in cmd.upper():
-            self.grblMCode = "M5"
+        # if "M5" in cmd.upper():
+        #     self.grblMCode = "M5"
 
         # M8 (air assist on) processing - work in progress
         if cmd.upper() in ("M7", "M8"):
