@@ -359,14 +359,15 @@ def on_event(_plugin, event, payload):
 
         # retract Z 5 if not laser mode
         if not is_laser_mode(_plugin):
-            _plugin._printer.commands(["G91 G0 Z5"], force=True)
+            _plugin._printer.commands(["G91 G0 Z5"])
 
-        _plugin._printer.commands(["M5", "?"], force=True)
+        # _plugin._printer.commands(["M5", "?"])
+        _plugin._printer.commands(["M5", "!"])
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
         _plugin._logger.debug("paused job")
-        _plugin._printer.commands(["M5", "!"])
+        # _plugin._printer.commands(["M5", "!"])
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
