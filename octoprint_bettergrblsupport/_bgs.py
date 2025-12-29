@@ -300,16 +300,15 @@ def on_event(_plugin, event, payload):
     # Print Starting
     if payload is not None and payload.get("state_id") == "STARTING":
         add_notifications(_plugin, ["Pgm Begin"])
-        # threading.Thread(target=send_command_now, args=(_plugin._printer, _plugin._logger, "?")).start()
-        _plugin._printer.commands("?", force=True)
+        send_command_now(_plugin._printer, _plugin._logger, "?")
         return
 
     # 'PrintStarted'
     if event == Events.PRINT_STARTED:
         if "HOLD" in _plugin.grblState.upper():
-            _plugin._printer.commands(["~"], force=True)
+            send_command_now(_plugin._printer, _plugin._logger, "~")
         elif not _plugin.grblState.upper() in ("IDLE", "CHECK"):
-            # we have to stop This
+            # we have to stop this
             _plugin._printer.cancel_print()
             return
 
@@ -344,9 +343,9 @@ def on_event(_plugin, event, payload):
         _plugin._logger.debug("cancelling job")
 
         if "HOLD" in _plugin.grblState.upper():
-            _plugin._printer.commands(["~", "M5"], force=True)
+            send_command_now(_plugin._printer, _plugin._logger, ["~", "M5"])
         else:
-            _plugin._printer.commands(["M5"], force=True)
+            send_command_now(_plugin._printer, _plugin._logger, ["M5"])
 
     # Print Pausing
     if payload is not None and payload.get("state_id") == "PAUSING":
@@ -359,7 +358,7 @@ def on_event(_plugin, event, payload):
         if not is_laser_mode(_plugin):
             _plugin._printer.commands(["G91 G0 Z5"])
 
-        # _plugin._printer.commands(["M5"])
+        _plugin._printer.commands(["M5"])
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
@@ -370,15 +369,15 @@ def on_event(_plugin, event, payload):
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
-        # _plugin._printer.commands(["~", _plugin.grblMCode], force=True)
-        _plugin._printer.commands([_plugin.grblMCode], force=True)
+        send_command_now(_plugin._printer, _plugin._logger, ["~"])
+        send_command_now(_plugin._printer, _plugin._logger, [_plugin.grblMCode])
 
         # move our spindle back down 5
         if not is_laser_mode(_plugin):
-            _plugin._printer.commands(["G4 P10", "G91 G0 Z-5"], force=True)
+            send_command_now(_plugin._printer, _plugin._logger, ["G4 P10", "G91 G0 Z-5"])
 
         # make sure we are using whatever positioning mode was active before we paused
-        _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"], force=True)
+        send_command_now(_plugin._printer, _plugin._logger, ["G91" if _plugin.pausedPositioning == 1 else "G90"])
 
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
@@ -465,7 +464,7 @@ def send_frame_init_gcode(_plugin):
 
     # cancel jog if grbl 1.1+is_grbl_one_dot_one
     if is_grbl_one_dot_one(_plugin) and is_latin_encoding_available(_plugin):
-        _plugin._printer.commands("CANCELJOG", force=True)
+        send_command_now(_plugin._printer, _plugin._logger, "CANCELJOG")
 
     # Linear mode, feedrate f% of max
     _plugin._printer.commands("G1 F{}".format(f))
@@ -650,7 +649,7 @@ def process_grbl_status_msg(_plugin, msg):
     # odd edge case where a machine could be asleep or holding while connecting
     # TODO: this may no longer be valid given refactoring
     if not _plugin._printer.is_operational() and _plugin.grblState.upper() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
-        _plugin._printer.commands("M999", force=True)
+        send_command_now(_plugin._printer, _plugin._logger, "M999")
 
     # pop any queued commands if state is IDLE or HOLD:0, DOOR:0, CHECK, or ALARM
     if len(_plugin.grblCmdQueue) > 0 and _plugin.grblState.upper() in ("IDLE", "HOLD:0", "DOOR:0", "CHECK", "ALARM"):
