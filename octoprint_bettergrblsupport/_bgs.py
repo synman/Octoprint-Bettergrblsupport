@@ -361,7 +361,6 @@ def on_event(_plugin, event, payload):
         if not is_laser_mode(_plugin):
             _plugin._printer.commands(["G91 G0 Z5"])
 
-        # _plugin._printer.commands(["M5", "?"])
         _plugin._printer.commands(["M5"])
 
     # Print Paused
@@ -376,14 +375,14 @@ def on_event(_plugin, event, payload):
 
         # move our spindle back down 5
         if not is_laser_mode(_plugin):
-            _plugin._printer.commands(["G4 P10", "G91 G0 Z-5"], force=True)
+            _plugin._printer.commands(["G4 P10", "G91 G0 Z-5"])
 
         # make sure we are using whatever positioning mode was active before we paused
-        _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"], force=True)
+        _plugin._printer.commands(["G91" if _plugin.pausedPositioning == 1 else "G90"])
 
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
-        # do_fake_ack(_plugin._printer, _plugin._logger)
+        do_fake_ack(_plugin._printer, _plugin._logger)
 
     # starting up
     if event == Events.STARTUP:
