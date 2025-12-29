@@ -357,31 +357,32 @@ def on_event(_plugin, event, payload):
         # retract Z 5 if not laser mode
         if not is_laser_mode(_plugin):
             _plugin._printer.commands(["G91 G0 Z5"])
+            do_fake_ack(_plugin._printer, _plugin._logger)
 
         _plugin._printer.commands(["M5"])
+        do_fake_ack(_plugin._printer, _plugin._logger)
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
         _plugin._logger.debug("paused job")
-        # _plugin._printer.commands(["!"])
-        # do_fake_ack(_plugin._printer, _plugin._logger)
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
-        # send_command_now(_plugin._printer, _plugin._logger, ["~"])
         send_command_now(_plugin._printer, _plugin._logger, [_plugin.grblMCode])
+        do_fake_ack(_plugin._printer, _plugin._logger)
 
         # move our spindle back down 5
         if not is_laser_mode(_plugin):
             send_command_now(_plugin._printer, _plugin._logger, ["G4 P10", "G91 G0 Z-5"])
+            do_fake_ack(_plugin._printer, _plugin._logger)
 
         # make sure we are using whatever positioning mode was active before we paused
         send_command_now(_plugin._printer, _plugin._logger, ["G91" if _plugin.pausedPositioning == 1 else "G90"])
+        do_fake_ack(_plugin._printer, _plugin._logger)
 
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
-        # do_fake_ack(_plugin._printer, _plugin._logger)
 
     # starting up
     if event == Events.STARTUP:
