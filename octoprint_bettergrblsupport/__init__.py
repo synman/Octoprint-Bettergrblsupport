@@ -128,7 +128,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.autoSleep = False
         self.autoSleepInterval = 20
 
-        self.autoSleepTimer = time.time()
+        self.autoSleepTimer = time.monotonic()
 
         self.autoCooldown = False
         self.autoCooldownFrequency = 60
@@ -141,8 +141,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.invertZ = 1
 
         self.connectionState = None
-        self.pausedPower = 0
-        self.pausedPositioning = 0
 
         self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "M115", "$SETTINGS/LIST", "$I", "$BUILD/INFO", "$G", "$GCODE/MODES", "$#"]
         self.lastRequest = []
@@ -198,7 +196,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.settingsVersion = 8
         self.wizardVersion = 19
         
-        self.whenConnected = time.time()
+        self.whenConnected = time.monotonic()
         self.handshakeSent = False
 
         self.octoprintVersion = octoprint.server.VERSION
@@ -748,18 +746,18 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 if self.suppressM105:
                     # go to sleep if autosleep and now - last > interval
-                    # self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.time(), time.time() - self.autoSleepTimer))
-                    if self.autoSleep and time.time() - self.autoSleepTimer > self.autoSleepInterval * 60:
+                    # self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.monotonic(), time.monotonic() - self.autoSleepTimer))
+                    if self.autoSleep and time.monotonic() - self.autoSleepTimer > self.autoSleepInterval * 60:
                         if self.grblState.upper() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
                             _bgs.queue_cmds_and_send(self, ["$SLP"])
                         else:
                             self._logger.debug("resetting autosleep timer")
-                            self.autoSleepTimer = time.time()
+                            self.autoSleepTimer = time.monotonic()
 
                     self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
                     return (self.statusCommand, )
 
-        self.autoSleepTimer = time.time()
+        self.autoSleepTimer = time.monotonic()
 
         # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
         if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
@@ -1117,8 +1115,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             found = True
 
         if found:
-            currentTime = int(round(time.time() * 1000))
-            if currentTime > self.timeRef + 250:
+            currentTime =time.monotonic()
+            if currentTime > self.timeRef + 0.25:
                 # self._logger.info("x=[{}] y=[{}] z=[{}] f=[{}] s=[{}]".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                 mode=self.grblMode,

@@ -277,8 +277,8 @@ def on_event(_plugin, event, payload):
         _plugin._logger.debug('machine connected')
 
         _plugin.connectionState = event
-        _plugin.whenConnected = time.time()
-        _plugin.autoSleepTimer = time.time()
+        _plugin.whenConnected = time.monotonic()
+        _plugin.autoSleepTimer = time.monotonic()
 
         _plugin.is_operational = True
         _plugin._settings.set_boolean(["is_operational"], _plugin.is_operational)
@@ -351,8 +351,10 @@ def on_event(_plugin, event, payload):
     if payload is not None and payload.get("state_id") == "PAUSING":
         _plugin._logger.debug("pausing job")
 
-        _plugin.pausedPower = _plugin.grblPowerLevel
-        _plugin.pausedPositioning = _plugin.positioning
+        pausedPower = _plugin.grblPowerLevel
+        pausedPositioning = _plugin.positioning
+        pausedSpeed = _plugin.grblSpeed
+        pausedGrblMCode = _plugin.grblMCode
 
         pauseScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "afterPrintPaused"))
         resumeScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "beforePrintResumed"))
@@ -370,15 +372,17 @@ def on_event(_plugin, event, payload):
             # release feed hold
             file.write("~\n")
             # reset our M-code
-            file.write(f"{_plugin.grblMCode}\n")
-            # reset our speed / power 
-            file.write(f"S{_plugin.pausedPower}\n")
+            file.write(f"{pausedGrblMCode}\n")
+            # reset our spindle speed / power 
+            file.write(f"S{pausedPower}\n")
+            # reset our feedrate
+            file.write(f"F{pausedSpeed}\n")
+            # reset our positioning mode
+            file.write("G91\n" if pausedPositioning == 1 else "G90\n")
             # move our spindle back down 5
             if not is_laser_mode(_plugin):
                 file.write("G4 P10\n")
                 file.write("G91 G0 Z-5\n")
-            # reset our positioning mode
-            file.write("G91\n" if _plugin.pausedPositioning == 1 else "G90\n")
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
@@ -732,7 +736,7 @@ def process_grbl_error(_plugin, msg):
         if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
 
     # hack to suppress errors on connect
-    if time.time() - _plugin.whenConnected < 20: return "ok "
+    if time.monotonic() - _plugin.whenConnected < 20: return "ok "
 
     # lets not deal with file not found
     if error == 65: return "ok "
@@ -768,8 +772,10 @@ def process_grbl_error(_plugin, msg):
     # don't tell octoprint because it will freak out
     return "ok "
 
-
+lastReport = 0
 def process_parser_status_msg(_plugin, msg):
+    global lastReport
+
     parserState = msg.replace("[", "").replace("]", "").replace("GC:", "")
 
     for state in parserState.split(" "):
@@ -802,12 +808,15 @@ def process_parser_status_msg(_plugin, msg):
         elif state.startswith("T"):
             _plugin._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
 
-    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
-                                                                        speed=_plugin.grblSpeed,
-                                                                        power=_plugin.grblPowerLevel,
-                                                                        coord=_plugin.grblCoordinateSystem,
-                                                                        coolant=_plugin.coolant,
-                                                                        positioning=_plugin.positioning))
+    # throttle our reports to every 250ms
+    if time.monotonic() - lastReport > 0.25:
+        lastReport = time.monotonic()
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
+                                                                            speed=_plugin.grblSpeed,
+                                                                            power=_plugin.grblPowerLevel,
+                                                                            coord=_plugin.grblCoordinateSystem,
+                                                                            coolant=_plugin.coolant,
+                                                                            positioning=_plugin.positioning))
 
 
 def do_xyz_probe(_plugin, sessionId):
@@ -1302,9 +1311,9 @@ def auto_cooldown_monitor(_plugin):
     while _plugin._printer.is_printing():
         _plugin._logger.debug("auto cooldown loop started")
 
-        startTime = time.time()
+        startTime = time.monotonic()
 
-        while _plugin._printer.is_printing() and time.time() < startTime + frequency:
+        while _plugin._printer.is_printing() and time.monotonic() < startTime + frequency:
             time.sleep(1)
 
         if _plugin._printer.is_printing():
@@ -1314,9 +1323,9 @@ def auto_cooldown_monitor(_plugin):
             _plugin._logger.debug("job appears to have unexpectedly ended while waiting for cooldown frequency")
             break
 
-        startTime = time.time()
+        startTime = time.monotonic()
 
-        while (_plugin._printer.is_pausing() or _plugin._printer.is_paused()) and time.time() < startTime + duration:
+        while (_plugin._printer.is_pausing() or _plugin._printer.is_paused()) and time.monotonic() < startTime + duration:
             time.sleep(1)
 
         if _plugin._printer.is_paused():
