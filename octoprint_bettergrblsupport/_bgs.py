@@ -285,7 +285,6 @@ def on_event(_plugin, event, payload):
 
         _plugin.fluidConfig = None
         _plugin._printer.commands(["$I", "$G", "$#"])
-        # _plugin._printer.fake_ack()
 
     # Disconnecting & Disconnected
     if event in (Events.DISCONNECTING, Events.DISCONNECTED):
