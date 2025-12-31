@@ -13,7 +13,14 @@
   <a href="https://github.com/synman/Octoprint-Bettergrblsupport/wiki" target="_blank">Better Grbl Support Wiki</a> to learn about its features and how they work.
   <br>
   <br>
-   <h4>Release Notes - 2.3.2 (RC1/DEVEL)</h4>
+  <h4>Release Notes - 2.3.3 (RC1/DEVEL)</h4>
+  <ul>
+    <li>Refactored Pause / Resume handling - should be far more reliable now</li>
+    <li>Default FluidNC Auto Reporting value is now disabled</li>
+    <li>Updated FluidNC alarm and error descriptions</li>
+  </ul>
+  <br>
+  <h5>Release Notes - 2.3.2</h5>
   <ul>
     <li>Removed BGS Control Tab and moved all elements to the built-in Control Tab</li>
     <li>Cleaned up config values and references to afformentioned change</li>
@@ -25,14 +32,14 @@
     <li>Fixed OctoPrint compatibility and deprecation warnings</li>
   </ul>
   <br>
-  <h5>Release Notes - 2.3.1</h4>
+  <h5>Release Notes - 2.3.1</h5>
   <ul>
     <li>Long overdue bugfix for corrupted machine profile with OctoPrint 1.9.0+</li>
     <li>Keyboard controls (1-7 for increment, arrows / w/s for movement)</li>
     <li>A and B axes support (thanks to <a href="https://github.com/paukstelis" target="_blank">@paukstelis</a>)</li>
   </ul>
   <br>
-  <h5>Release Notes - 2.3.0</h4>
+  <h5>Release Notes - 2.3.0</h5>
   This is a sizable update with the introduction of FluidNC support, including full management of its 
   Configuration files and Settings.  Behind the scenes, numerous other changes have been implemented that optimize existing 
   Grbl and Grbl_Esp32 settings management.  Additional major behind the scenes work includes synchronization of multi-message 
@@ -59,7 +66,7 @@
     <li>Ignore any G53 commands when calculating bounding box origin for a file</li>
   </ul>
   <br>
-  <h5>Release Notes - 2.2.2</h4>
+  <h5>Release Notes - 2.2.2</h5>
   <ul>
     <li>Added A/B/C axis descriptions to grbl_settings.txt</li>
     <li>Fixed bug preventing USB / Bluetooth gamepads from jogging</li>
