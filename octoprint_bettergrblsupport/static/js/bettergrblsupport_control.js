@@ -361,9 +361,9 @@ $(function() {
             self.is_operational(data.flags.operational);
             self.isLoading(data.flags.loading);
 
-            // if (self.is_printing()) {
-            //   self.state("Run");
-            // }
+            if (self.is_printing()) {
+              self.state("Run");
+            }
 
             if (!self.is_operational()) {
               self.state("N/A");
@@ -375,10 +375,10 @@ $(function() {
             if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
                 if (data.mode != undefined) self.mode(data.mode);
 
-                if (data.state != undefined && data.state == "Idle") {
-                  self.state(data.state);
-                  self.is_printing(false);
-                }
+                // if (data.state != undefined && !(self.is_printing() && data.state == "Idle")) {
+                //   self.state(data.state);
+                // }
+                if (data.state != undefined) self.state(data.state);
 
                 if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
                 if (data.y != undefined) self.yPos(Number.parseFloat(data.y).toFixed(2));
