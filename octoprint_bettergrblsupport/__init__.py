@@ -1284,7 +1284,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 if self.fluidConfig is None and _bgs.is_grbl_fluidnc(self):
                     self._printer.commands("$CD")
 
-            # fluid settings outside of config yaml
+            # fluid settings outside of config yaml 
             if lastRequest.upper() in ("$S", "$SETTINGS/LIST"):
                 self.fluidSettings = json.loads("{" + lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
                 self._settings.set(["fluidSettings"], self.fluidSettings)
