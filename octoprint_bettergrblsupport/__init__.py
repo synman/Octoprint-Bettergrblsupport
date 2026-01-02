@@ -1150,7 +1150,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     # self._logger.info("x=[{}] y=[{}] z=[{}] f=[{}] s=[{}]".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                     self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                     mode=self.grblMode,
-                                                                                    state=self.grblState,
                                                                                     x=self.grblX,
                                                                                     y=self.grblY,
                                                                                     z=self.grblZ,
