@@ -817,27 +817,29 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # if "M5" in cmd.upper():
         #     self.grblMCode = "M5"
 
-        # M8 (air assist on) processing - work in progress
-        if cmd.upper() in ("M7", "M8"):
-            self.coolant = cmd.upper()
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
+        # only apply coolant handling here if not fluidnc auto reporting
+        if not _bgs.is_grbl_fluidnc(self) and not self._settings.get_boolean(["fluidAutoReport"]):
+            # M8 (air assist on) processing - work in progress
+            if cmd.upper() in ("M7", "M8"):
+                self.coolant = cmd.upper()
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
 
-            if self.overrideM8 and cmd.upper() == "M8":
-                self._logger.debug('Turning ON Air Assist')
-                subprocess.call(self.m8Command, shell=True)
+                if self.overrideM8 and cmd.upper() == "M8":
+                    self._logger.debug('Turning ON Air Assist')
+                    subprocess.call(self.m8Command, shell=True)
 
-                return (None,)
+                    return (None,)
 
-        # M9 (air assist off) processing - work in progress
-        if cmd.upper() == "M9":
-            self.coolant = cmd.upper()
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", colant=self.coolant))
+            # M9 (air assist off) processing - work in progress
+            if cmd.upper() == "M9":
+                self.coolant = cmd.upper()
+                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
 
-            if self.overrideM9:
-                self._logger.debug('Turning OFF Air Assist')
-                subprocess.call(self.m9Command, shell=True)
+                if self.overrideM9:
+                    self._logger.debug('Turning OFF Air Assist')
+                    subprocess.call(self.m9Command, shell=True)
 
-                return (None,)
+                    return (None,)
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
@@ -1288,7 +1290,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.set(["fluidSettings"], self.fluidSettings)
                 self._settings.save(trigger_event=True)
                 if self._settings.get_boolean(["fluidAutoReport"]):
-                    self._printer.commands("$Report/Interval=250")
+                    self._printer.commands("$Report/Interval=1000")
                 else:
                     self._printer.commands("$Report/Interval=0")
 

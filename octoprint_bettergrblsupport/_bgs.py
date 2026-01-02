@@ -34,6 +34,7 @@ import math
 import re
 import requests
 import threading
+import subprocess
 
 from timeit import default_timer as timer
 from octoprint.events import Events
@@ -796,7 +797,16 @@ def process_parser_status_msg(_plugin, msg):
         elif state in ("M3", "M4", "M5"):
             _plugin._logger.debug("parser state indicates [%s] spindle state", state)
         elif state in ("M7", "M8", "M9"):
-            _plugin.coolant = state
+            _plugin.coolant = state.upper()
+            lastReport = 0
+            # M8 (air assist on) processing - work in progress
+            if _plugin.coolant in ("M7", "M8") and _plugin.overrideM8:
+                    _plugin._logger.debug('Turning ON Air Assist')
+                    subprocess.call(_plugin.m8Command, shell=True)
+            # M9 (air assist off) processing - work in progress
+            if _plugin.coolant == "M9" and _plugin.overrideM9:
+                    _plugin._logger.debug('Turning OFF Air Assist')
+                    subprocess.call(_plugin.m9Command, shell=True)
             _plugin._logger.debug("parser state indicates [%s] coolant state", state)
         elif state.startswith("F"):
             _plugin.grblSpeed = round(float(state.replace("F", "")))
