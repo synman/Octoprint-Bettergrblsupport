@@ -501,7 +501,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not "M30" in longCmds: longCmds.append("M30")
 
         self._settings.global_set(["serial", "longRunningCommands"], longCmds)
-        
+
         self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
         self._settings.global_set(["serial", "maxCommunicationTimeouts", "idle"], 0)
 
@@ -845,7 +845,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         #     self.grblMCode = "M5"
 
         # only apply coolant handling here if not fluidnc auto reporting
-        if not _bgs.is_grbl_fluidnc(self) and not self.fluidAutoReport:
+        if not (_bgs.is_grbl_fluidnc(self) and self.fluidAutoReport):
             # M8 (air assist on) processing - work in progress
             if cmd.upper() in ("M7", "M8"):
                 self.coolant = cmd.upper()
@@ -855,7 +855,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._logger.debug('Turning ON Air Assist')
                     subprocess.call(self.m8Command, shell=True)
 
-                    return (None,)
+                    # return (None,)
 
             # M9 (air assist off) processing - work in progress
             if cmd.upper() == "M9":
@@ -866,7 +866,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._logger.debug('Turning OFF Air Assist')
                     subprocess.call(self.m9Command, shell=True)
 
-                    return (None,)
+                    # return (None,)
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
