@@ -41,6 +41,7 @@ import os
 import time
 import subprocess
 import threading
+import platform
 
 import re
 import logging
@@ -853,13 +854,22 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 if self.overrideM8 and cmd.upper() == "M8":
                     self._logger.debug('Turning ON Air Assist')
-                    subprocess.Popen(self.m8Command, 
-                                        cmd,
-                                        shell=False,
+                    if platform.system() == "Windows":
+                        subprocess.Popen(self.m8Command, 
+                                        shell=True,
                                         stdin=None,
                                         stdout=None,
                                         stderr=None,
                                         creationflags=subprocess.DETACHED_PROCESS
+                                    )
+                    else: 
+                        subprocess.Popen(self.m8Command, 
+                                            cmd,
+                                            shell=False,
+                                            stdin=None,
+                                            stdout=None,
+                                            stderr=None,
+                                            start_new_session=True
                                     )
                     # return (None,)
 
