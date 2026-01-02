@@ -1147,7 +1147,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if found:
                 currentTime =time.monotonic()
                 if currentTime > self.timeRef + 0.25:
-                    # self._logger.info("x=[{}] y=[{}] z=[{}] f=[{}] s=[{}]".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
+                    self._logger.info("state=[{}] x=[{}] y=[{}] z=[{}] f=[{}] s=[{}]".format(self.grblState, self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
                     self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
                                                                                     mode=self.grblMode,
                                                                                     x=self.grblX,
