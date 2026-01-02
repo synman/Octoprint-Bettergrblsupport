@@ -162,6 +162,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.originYOffset = 0.0
         self.originZOffset = 0.0
 
+        self.fluidAutoReport = False
+        self.autoRepportInterval = 1000
+
         self.offsets = {}
 
         self.bgs_filters = [
@@ -273,6 +276,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             hasA = False,
             hasB = False,
             fluidAutoReport=False,
+            autoReportInterval=1000,
             originOffsets = False,
             originXOffset = 0.0,
             originYOffset = 0.0,
@@ -370,6 +374,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.originXOffset = float(self._settings.get(["originXOffset"]))
         self.originYOffset = float(self._settings.get(["originYOffset"]))
         self.originZOffset = float(self._settings.get(["originZOffset"]))
+
+        self.fluidAutoReport = self._settings.get_boolean(["fluidAutoReport"])
+        self.autoReportInterval = self._settings.get(["autoReportInterval"])
 
         fluidYaml = self._settings.get(["fluidYaml"])
         if not fluidYaml is None and len(fluidYaml) > 0:
@@ -494,7 +501,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not "M30" in longCmds: longCmds.append("M30")
 
         self._settings.global_set(["serial", "longRunningCommands"], longCmds)
+        
         self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
+        self._settings.global_set(["serial", "maxCommunicationTimeouts", "idle"], 0)
+
         self._settings.global_set(["serial", "encoding"], "latin_1")
         self._settings.global_set_boolean(["serial", "sanityCheckTools"], False)
 
@@ -766,7 +776,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._printer.commands(self.grblCmdQueue[0])
                     self.grblCmdQueue.pop(0)
 
-                if _bgs.is_grbl_fluidnc(self) and self._settings.get_boolean(["fluidAutoReport"]):
+                if _bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
                     # let fluidnc handle status reports
                     self._logger.debug('Allowing FluidNC to handle status report')
                     return (None, )
@@ -835,7 +845,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         #     self.grblMCode = "M5"
 
         # only apply coolant handling here if not fluidnc auto reporting
-        if not _bgs.is_grbl_fluidnc(self) and not self._settings.get_boolean(["fluidAutoReport"]):
+        if not _bgs.is_grbl_fluidnc(self) and not self.fluidAutoReport:
             # M8 (air assist on) processing - work in progress
             if cmd.upper() in ("M7", "M8"):
                 self.coolant = cmd.upper()
@@ -1055,7 +1065,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             cmd = self.lastGCommand + " " + cmd
 
         #none of the below applies if fluidnc auto reporting is enabled
-        if not (_bgs.is_grbl_fluidnc(self) and self._settings.get_boolean(["fluidAutoReport"])):
+        if not (_bgs.is_grbl_fluidnc(self) and self.fluidAutoReport):
             # keep track of distance traveled
             found = False
             foundZ = False
@@ -1308,8 +1318,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.fluidSettings = json.loads("{" + lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
                 self._settings.set(["fluidSettings"], self.fluidSettings)
                 self._settings.save(trigger_event=True)
-                if self._settings.get_boolean(["fluidAutoReport"]):
-                    self._printer.commands("$Report/Interval=1000")
+                if self.fluidAutoReport:
+                    self._printer.commands(f"$Report/Interval={self.autoReportInterval}")
                 else:
                     self._printer.commands("$Report/Interval=0")
 
