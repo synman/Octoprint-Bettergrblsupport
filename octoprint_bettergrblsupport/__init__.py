@@ -841,8 +841,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.grblMCode = "M3"
         if "M4" in cmd.upper():
             self.grblMCode = "M4"
-        # if "M5" in cmd.upper():
-        #     self.grblMCode = "M5"
+        if "M5" in cmd.upper():
+            self.grblMCode = "M5"
 
         # only apply coolant handling here if not fluidnc auto reporting
         if not (_bgs.is_grbl_fluidnc(self) and self.fluidAutoReport):
@@ -853,8 +853,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 if self.overrideM8 and cmd.upper() == "M8":
                     self._logger.debug('Turning ON Air Assist')
-                    subprocess.call(self.m8Command, shell=True)
-
+                    subprocess.Popen(self.m8Command, 
+                                        cmd,
+                                        shell=False,
+                                        stdin=None,
+                                        stdout=None,
+                                        stderr=None,
+                                        creationflags=subprocess.DETACHED_PROCESS
+                                    )
                     # return (None,)
 
             # M9 (air assist off) processing - work in progress
