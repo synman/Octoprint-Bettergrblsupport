@@ -330,7 +330,7 @@ def on_event(_plugin, event, payload):
 
     # Print ended (finished / failed / cancelled)
     if event in (Events.PRINT_CANCELLED, Events.PRINT_DONE, Events.PRINT_FAILED):
-        _plugin._logger.debug(f"handling event [{event.name}]")
+        _plugin._logger.debug(f"handling event [{event}]")
         _plugin.grblState = "Idle"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
 

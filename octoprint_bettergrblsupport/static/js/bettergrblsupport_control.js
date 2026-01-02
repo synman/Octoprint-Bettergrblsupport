@@ -370,14 +370,9 @@ $(function() {
             }
         };
 
-
         self.onDataUpdaterPluginMessage = function(plugin, data) {
             if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
                 if (data.mode != undefined) self.mode(data.mode);
-
-                // if (data.state != undefined && !(self.is_printing() && data.state == "Idle")) {
-                //   self.state(data.state);
-                // }
                 if (data.state != undefined) self.state(data.state);
 
                 if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
