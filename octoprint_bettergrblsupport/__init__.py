@@ -864,7 +864,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                     )
                     else: 
                         subprocess.Popen(self.m8Command, 
-                                            shell=False,
+                                            shell=True,
                                             stdin=None,
                                             stdout=None,
                                             stderr=None,
