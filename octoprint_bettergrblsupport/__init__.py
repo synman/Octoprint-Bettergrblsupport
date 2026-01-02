@@ -41,7 +41,6 @@ import os
 import time
 import subprocess
 import threading
-import platform
 
 import re
 import logging
@@ -854,23 +853,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 if self.overrideM8 and cmd.upper() == "M8":
                     self._logger.debug('Turning ON Air Assist')
-                    if platform.system() == "Windows":
-                        subprocess.Popen(self.m8Command, 
-                                        shell=True,
-                                        stdin=None,
-                                        stdout=None,
-                                        stderr=None,
-                                        creationflags=subprocess.DETACHED_PROCESS
-                                    )
-                    else: 
-                        subprocess.Popen(self.m8Command, 
-                                            shell=True,
-                                            stdin=None,
-                                            stdout=None,
-                                            stderr=None,
-                                            start_new_session=True
-                                    )
-                    return (None,)
+                    subprocess.Popen(self.m8Command, shell=True)
+                    # return (None,)
 
             # M9 (air assist off) processing - work in progress
             if cmd.upper() == "M9":
@@ -879,9 +863,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
                 if self.overrideM9:
                     self._logger.debug('Turning OFF Air Assist')
-                    subprocess.call(self.m9Command, shell=True)
+                    subprocess.Popen(self.m9Command, shell=True)
 
-                    return (None,)
+                    # return (None,)
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
         # see https://github.com/OctoPrint/OctoPrint/pull/4390
