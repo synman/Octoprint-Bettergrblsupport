@@ -738,24 +738,30 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         cmd = cmd.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
 
-        # suppress temperature if machine is printing
+        # suppress temperature if machine is printing or
+        # running fluidnc auto reporting
         if "M105" in cmd.upper() or cmd.startswith(self.statusCommand):
             if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
-            else:
-                if self.suppressM105:
-                    # go to sleep if autosleep and now - last > interval
-                    # self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.monotonic(), time.monotonic() - self.autoSleepTimer))
-                    if self.autoSleep and time.monotonic() - self.autoSleepTimer > self.autoSleepInterval * 60:
-                        if self.grblState.upper() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
-                            _bgs.queue_cmds_and_send(self, ["$SLP"])
-                        else:
-                            self._logger.debug("resetting autosleep timer")
-                            self.autoSleepTimer = time.monotonic()
 
-                    self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
-                    return (self.statusCommand, )
+            if self.suppressM105:
+                # go to sleep if autosleep and now - last > interval
+                # self._logger.debug("autosleep enabled={} interval={} timer={} time={} diff={}".format(self.autoSleep, self.autoSleepInterval, self.autoSleepTimer, time.monotonic(), time.monotonic() - self.autoSleepTimer))
+                if self.autoSleep and time.monotonic() - self.autoSleepTimer > self.autoSleepInterval * 60:
+                    if self.grblState.upper() != "SLEEP" and self._printer.is_operational() and not self._printer.is_printing():
+                        _bgs.queue_cmds_and_send(self, ["$SLP"])
+                    else:
+                        self._logger.debug("resetting autosleep timer")
+                        self.autoSleepTimer = time.monotonic()
+
+                if _bgs.is_grbl_fluidnc(self) and self._settings.get_boolean(["fluidAutoReport"]):
+                    # let fluidnc handle status reports
+                    self._logger.debug('Allowing FluidNC to handle status report')
+                    return (None, )
+
+                self._logger.debug('Rewriting M105 as %s' % self.statusCommand)
+                return (self.statusCommand, )
 
         self.autoSleepTimer = time.monotonic()
 
