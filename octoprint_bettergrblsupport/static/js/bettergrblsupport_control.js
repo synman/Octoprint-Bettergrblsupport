@@ -361,9 +361,9 @@ $(function() {
             self.is_operational(data.flags.operational);
             self.isLoading(data.flags.loading);
 
-            if (self.is_printing()) {
-              self.state("Run");
-            }
+            // if (self.is_printing()) {
+            //   self.state("Run");
+            // }
 
             if (!self.is_operational()) {
               self.state("N/A");
