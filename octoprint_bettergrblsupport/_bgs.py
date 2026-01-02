@@ -657,17 +657,6 @@ def process_grbl_status_msg(_plugin, msg):
                                                                     coolant=_plugin.coolant,
                                                                     positioning=_plugin.positioning))
 
-    # odd edge case where a machine could be asleep or holding while connecting
-    # TODO: this may no longer be valid given refactoring
-    if not _plugin._printer.is_operational() and _plugin.grblState.upper() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
-        send_command_now(_plugin._printer, _plugin._logger, "M999")
-
-    # pop any queued commands if state is IDLE or HOLD:0, DOOR:0, CHECK, or ALARM
-    if len(_plugin.grblCmdQueue) > 0 and _plugin.grblState.upper() in ("IDLE", "HOLD:0", "DOOR:0", "CHECK", "ALARM"):
-        _plugin._logger.debug('sending queued command [%s] - depth [%d]', _plugin.grblCmdQueue[0], len(_plugin.grblCmdQueue))
-        _plugin._printer.commands(_plugin.grblCmdQueue[0])
-        _plugin.grblCmdQueue.pop(0)
-
     # add a notification if we just homed
     if _plugin.grblState.upper() == "HOME":
         add_notifications(_plugin, ["Machine has been homed"])
@@ -772,10 +761,7 @@ def process_grbl_error(_plugin, msg):
     # don't tell octoprint because it will freak out
     return "ok "
 
-lastReport = 0
 def process_parser_status_msg(_plugin, msg):
-    global lastReport
-
     parserState = msg.replace("[", "").replace("]", "").replace("GC:", "")
 
     for state in parserState.split(" "):
@@ -798,8 +784,7 @@ def process_parser_status_msg(_plugin, msg):
             _plugin._logger.debug("parser state indicates [%s] spindle state", state)
         elif state in ("M7", "M8", "M9"):
             if state.upper() != _plugin.coolant:
-                _plugin.coolant = state.upper()
-                lastReport = 0
+                _plugin.coolan
                 # M8 (air assist on) processing - work in progress
                 if _plugin.coolant in ("M7", "M8") and _plugin.overrideM8:
                         _plugin._logger.debug('Turning ON Air Assist')
@@ -818,15 +803,12 @@ def process_parser_status_msg(_plugin, msg):
         elif state.startswith("T"):
             _plugin._logger.debug("parser state indicates tool #[%s] active", state.replace("T", ""))
 
-    # throttle our reports to every 250ms
-    if time.monotonic() - lastReport > 0.25:
-        lastReport = time.monotonic()
-        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
-                                                                            speed=_plugin.grblSpeed,
-                                                                            power=_plugin.grblPowerLevel,
-                                                                            coord=_plugin.grblCoordinateSystem,
-                                                                            coolant=_plugin.coolant,
-                                                                            positioning=_plugin.positioning))
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
+                                                                        speed=_plugin.grblSpeed,
+                                                                        power=_plugin.grblPowerLevel,
+                                                                        coord=_plugin.grblCoordinateSystem,
+                                                                        coolant=_plugin.coolant,
+                                                                        positioning=_plugin.positioning))
 
 
 def do_xyz_probe(_plugin, sessionId):

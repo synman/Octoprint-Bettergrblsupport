@@ -755,6 +755,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         self._logger.debug("resetting autosleep timer")
                         self.autoSleepTimer = time.monotonic()
 
+                # odd edge case where a machine could be asleep or holding while connecting
+                # TODO: this may no longer be valid given refactoring
+                if not self._printer.is_operational() and self.grblState.upper() in ("SLEEP", "HOLD:0", "HOLD:1", "DOOR:0", "DOOR:1"):
+                    _bgs.send_command_now(self._printer, self._logger, "M999")
+
+                # pop any queued commands if state is IDLE or HOLD:0, DOOR:0, CHECK, or ALARM
+                if len(self.grblCmdQueue) > 0 and self.grblState.upper() in ("IDLE", "HOLD:0", "DOOR:0", "CHECK", "ALARM"):
+                    self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
+                    self._printer.commands(self.grblCmdQueue[0])
+                    self.grblCmdQueue.pop(0)
+
                 if _bgs.is_grbl_fluidnc(self) and self._settings.get_boolean(["fluidAutoReport"]):
                     # let fluidnc handle status reports
                     self._logger.debug('Allowing FluidNC to handle status report')
@@ -1043,102 +1054,104 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper().startswith(("X", "Y", "Z")):
             cmd = self.lastGCommand + " " + cmd
 
-        # keep track of distance traveled
-        found = False
-        foundZ = False
+        #none of the below applies if fluidnc auto reporting is enabled
+        if not (_bgs.is_grbl_fluidnc(self) and self._settings.get_boolean(["fluidAutoReport"])):
+            # keep track of distance traveled
+            found = False
+            foundZ = False
 
-        # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
-        if match:
-            self.grblX = float(match.groups(1)[0]) if self.positioning == 0 else self.grblX + float(match.groups(1)[0])
-            found = True
+            # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+            match = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
+            if match:
+                self.grblX = float(match.groups(1)[0]) if self.positioning == 0 else self.grblX + float(match.groups(1)[0])
+                found = True
 
-        # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Yy]\ *(-?[\d.]+).*", cmd)
-        if match:
-            self.grblY = float(match.groups(1)[0]) if self.positioning == 0 else self.grblY + float(match.groups(1)[0])
-            found = True
+            # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+            match = re.search(r".*[Yy]\ *(-?[\d.]+).*", cmd)
+            if match:
+                self.grblY = float(match.groups(1)[0]) if self.positioning == 0 else self.grblY + float(match.groups(1)[0])
+                found = True
 
-        # match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
-        if match:
-            self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
-            found = True
-            foundZ = True
+            # match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
+            match = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
+            if match:
+                self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
+                found = True
+                foundZ = True
 
-        #ADD A and B here
-        match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
-        if match:
-            self.grblA = float(match.groups(1)[0]) if self.positioning == 0 else self.grblA + float(match.groups(1)[0])
-            found = True
+            #ADD A and B here
+            match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
+            if match:
+                self.grblA = float(match.groups(1)[0]) if self.positioning == 0 else self.grblA + float(match.groups(1)[0])
+                found = True
 
-        match = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
-        if match:
-            self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
-            found = True
+            match = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
+            if match:
+                self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
+                found = True
 
-        # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
-        if match:
-            grblSpeed = float(match.groups(1)[0])
+            # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
+            match = re.search(r".*[Ff]\ *(-?[\d.]+).*", cmd)
+            if match:
+                grblSpeed = float(match.groups(1)[0])
 
-            if (self.feedRate != 0 or self.plungeRate != 0) and grblSpeed != 0:
-                # check if feed rate is overridden
-                if self.feedRate != 0:
-                    if not foundZ:
-                        grblSpeed = grblSpeed * self.feedRate
-                        cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
-                        cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
-                        # self._logger.debug("feed rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
+                if (self.feedRate != 0 or self.plungeRate != 0) and grblSpeed != 0:
+                    # check if feed rate is overridden
+                    if self.feedRate != 0:
+                        if not foundZ:
+                            grblSpeed = grblSpeed * self.feedRate
+                            cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
+                            cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
+                            # self._logger.debug("feed rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
 
-                # check if plunge rate is overridden
-                if self.plungeRate != 0:
-                    if foundZ:
-                        grblSpeed = grblSpeed * self.plungeRate
-                        cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
-                        cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
-                        # self._logger.debug("plunge rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
+                    # check if plunge rate is overridden
+                    if self.plungeRate != 0:
+                        if foundZ:
+                            grblSpeed = grblSpeed * self.plungeRate
+                            cmd = cmd.upper().replace("F" + match.groups(1)[0], "F{:.3f}".format(grblSpeed))
+                            cmd = cmd.upper().replace("F " + match.groups(1)[0], "F {:.3f}".format(grblSpeed))
+                            # self._logger.debug("plunge rate modified from [{}] to [{}]".format(match.groups(1)[0], grblSpeed))
 
-            # make sure we post all speed on / off events
-            if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
-                self.timeRef = 0
+                # make sure we post all speed on / off events
+                if (grblSpeed == 0 and self.grblSpeed != 0) or (self.grblSpeed == 0 and grblSpeed != 0):
+                    self.timeRef = 0
 
-            self.grblSpeed = grblSpeed
-            found = True
+                self.grblSpeed = grblSpeed
+                found = True
 
-        # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
-        match = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
-        if match:
-            grblPowerLevel = float(match.groups(1)[0])
+            # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ss]|[Ss])\ *(-?[\d.]+).*", command)
+            match = re.search(r".*[Ss]\ *(-?[\d.]+).*", cmd)
+            if match:
+                grblPowerLevel = float(match.groups(1)[0])
 
-            # check if power rate is overridden
-            if self.powerRate != 0 and grblPowerLevel != 0:
-                grblPowerLevel = grblPowerLevel * self.powerRate
-                cmd = cmd.upper().replace("S" + match.groups(1)[0], "S{:.3f}".format(grblPowerLevel))
-                cmd = cmd.upper().replace("S " + match.groups(1)[0], "S {:.3f}".format(grblPowerLevel))
-                # self._logger.debug("power rate modified from [{}] to [{}]".format(match.groups(1)[0], grblPowerLevel))
+                # check if power rate is overridden
+                if self.powerRate != 0 and grblPowerLevel != 0:
+                    grblPowerLevel = grblPowerLevel * self.powerRate
+                    cmd = cmd.upper().replace("S" + match.groups(1)[0], "S{:.3f}".format(grblPowerLevel))
+                    cmd = cmd.upper().replace("S " + match.groups(1)[0], "S {:.3f}".format(grblPowerLevel))
+                    # self._logger.debug("power rate modified from [{}] to [{}]".format(match.groups(1)[0], grblPowerLevel))
 
-            # make sure we post all power on / off events
-            self.grblPowerLevel = grblPowerLevel
-            found = True
+                # make sure we post all power on / off events
+                self.grblPowerLevel = grblPowerLevel
+                found = True
 
-        if found:
-            currentTime =time.monotonic()
-            if currentTime > self.timeRef + 0.25:
-                # self._logger.info("x=[{}] y=[{}] z=[{}] f=[{}] s=[{}]".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
-                                                                                mode=self.grblMode,
-                                                                                state=self.grblState,
-                                                                                x=self.grblX,
-                                                                                y=self.grblY,
-                                                                                z=self.grblZ,
-                                                                                a=self.grblA,
-                                                                                b=self.grblB,
-                                                                                speed=self.grblSpeed,
-                                                                                power=self.grblPowerLevel,
-                                                                                positioning=self.positioning,
-                                                                                coolant=self.coolant))
-                self.timeRef = currentTime
+            if found:
+                currentTime =time.monotonic()
+                if currentTime > self.timeRef + 0.25:
+                    # self._logger.info("x=[{}] y=[{}] z=[{}] f=[{}] s=[{}]".format(self.grblX, self.grblY, self.grblZ, self.grblSpeed, self.grblPowerLevel))
+                    self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state",
+                                                                                    mode=self.grblMode,
+                                                                                    state=self.grblState,
+                                                                                    x=self.grblX,
+                                                                                    y=self.grblY,
+                                                                                    z=self.grblZ,
+                                                                                    a=self.grblA,
+                                                                                    b=self.grblB,
+                                                                                    speed=self.grblSpeed,
+                                                                                    power=self.grblPowerLevel,
+                                                                                    positioning=self.positioning,
+                                                                                    coolant=self.coolant))
+                    self.timeRef = currentTime
 
         # we only want to track requests we care about
         if cmd.upper() in self.trackedCmds:
