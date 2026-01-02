@@ -392,7 +392,6 @@
 			<label class="checkbox">
 				<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.fluidAutoReport"> Auto
 				Report Position
-			</label>
 				<!-- ko if: settings.plugins.bettergrblsupport.fluidAutoReport() > ""  -->
 					<label class="control-label">Interval</label>
 					<div class="controls">
@@ -400,6 +399,7 @@
 							data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownFrequency, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">ms
 					</div>
 				<!-- /ko -->
+			</label>
 			<!-- /ko -->
 			<hr>
 			<center>
