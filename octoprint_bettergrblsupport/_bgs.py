@@ -618,7 +618,12 @@ def process_grbl_status_msg(_plugin, msg):
     response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=msg)
     
     _plugin.grblMode = "MPos" if "MPos" in msg else "WPos" if "WPos" in msg else "N/A"
-    _plugin.grblState = str(match.groups(1)[0])
+    
+    if _plugin._printer.is_printing() and _plugin.grblState == "Idle":
+        _plugin.grblState = "Run"
+    else:
+        _plugin.grblState = str(match.groups(1)[0])
+
     _plugin.grblX = float(match.groups(1)[1])
     _plugin.grblY = float(match.groups(1)[2])
     _plugin.grblZ = float(match.groups(1)[3])
