@@ -619,7 +619,7 @@ def process_grbl_status_msg(_plugin, msg):
     
     _plugin.grblMode = "MPos" if "MPos" in msg else "WPos" if "WPos" in msg else "N/A"
     
-    if _plugin.is_printing() and _plugin.grblState == "Idle":
+    if _plugin.is_printing and _plugin.grblState == "Idle":
         _plugin.grblState = "Run"
     else:
         _plugin.grblState = str(match.groups(1)[0])
@@ -649,7 +649,7 @@ def process_grbl_status_msg(_plugin, msg):
         _plugin.grblPowerLevel = float(match.groups(1)[1])
 
     _plugin._logger.info("status received: printing=[%s] mode=[%s] state=[%s] x=[%.3f] y=[%.3f] z=[%.3f] a=[%.3f] b=[%.3f] pins=[%s] speed=[%d] power=[%.2f]",
-                        "yes" if _plugin.is_printing() else "no",
+                        "yes" if _plugin.is_printing else "no",
                         _plugin.grblMode,
                         _plugin.grblState,
                         _plugin.grblX,
