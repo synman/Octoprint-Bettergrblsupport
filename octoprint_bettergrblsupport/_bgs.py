@@ -310,6 +310,7 @@ def on_event(_plugin, event, payload):
         elif not _plugin.grblState.upper() in ("IDLE", "CHECK"):
             # we have to stop this
             _plugin._printer.cancel_print()
+            _plugin._logger.warning("print started but grbl state is [%s], cancelling print", _plugin.grblState)
             return
 
         # reset our rate overrides
