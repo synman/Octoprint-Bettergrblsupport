@@ -1379,7 +1379,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 self._printer.commands("M999")
             else:
-                self._printer.commands("$X")
+                self._printer.commands(["$X", self.statusCommand])
             return
 
         if command == "reset":
