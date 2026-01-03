@@ -648,6 +648,18 @@ def process_grbl_status_msg(_plugin, msg):
         _plugin.grblSpeed = round(float(match.groups(1)[0]))
         _plugin.grblPowerLevel = float(match.groups(1)[1])
 
+    _plugin._logger.info("status received: mode=[%s] state=[%s] x=[%.3f] y=[%.3f] z=[%.3f] a=[%.3f] b=[%.3f] pins=[%s] speed=[%d] power=[%.2f]",
+                        _plugin.grblMode,
+                        _plugin.grblState,
+                        _plugin.grblX,
+                        _plugin.grblY,
+                        _plugin.grblZ,
+                        _plugin.grblA,
+                        _plugin.grblB,
+                        _plugin.grblActivePins,
+                        _plugin.grblSpeed,
+                        _plugin.grblPowerLevel)
+    
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state",
                                                                     mode=_plugin.grblMode,
                                                                     state=_plugin.grblState,
