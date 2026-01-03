@@ -307,10 +307,10 @@ def on_event(_plugin, event, payload):
     if event == Events.PRINT_STARTED:
         if "HOLD" in _plugin.grblState.upper():
             send_command_now(_plugin._printer, _plugin._logger, "~")
-        elif not _plugin.grblState.upper() in ("IDLE", "CHECK"):
+        elif not _plugin.grblState.upper() in ("IDLE", "CHECK", "RUN"):
             # we have to stop this
-            _plugin._printer.cancel_print()
             _plugin._logger.warning("print started but grbl state is [%s], cancelling print", _plugin.grblState)
+            _plugin._printer.cancel_print()
             return
 
         # reset our rate overrides
@@ -649,7 +649,7 @@ def process_grbl_status_msg(_plugin, msg):
         _plugin.grblSpeed = round(float(match.groups(1)[0]))
         _plugin.grblPowerLevel = float(match.groups(1)[1])
 
-    _plugin._logger.info("status received: printing=[%s]mode=[%s] state=[%s] x=[%.3f] y=[%.3f] z=[%.3f] a=[%.3f] b=[%.3f] pins=[%s] speed=[%d] power=[%.2f]",
+    _plugin._logger.info("status received: printing=[%s] mode=[%s] state=[%s] x=[%.3f] y=[%.3f] z=[%.3f] a=[%.3f] b=[%.3f] pins=[%s] speed=[%d] power=[%.2f]",
                         "yes" if _plugin._printer.is_printing() else "no",
                         _plugin.grblMode,
                         _plugin.grblState,
