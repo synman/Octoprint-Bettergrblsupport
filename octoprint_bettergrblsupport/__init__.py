@@ -753,7 +753,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if machine is printing or
         # running fluidnc auto reporting
-        if "M105" in cmd.upper():
+        if "M105" in cmd.upper() or cmd.startswith(self.statusCommand):
             if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
@@ -1385,7 +1385,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "reset":
             _bgs.send_command_now(self._printer, self._logger, "M999")
             if _bgs._bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
-                threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": self.statusCommand, "waitTime": 1}).start()
+                threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "?", "waitTime": 1}).start()
             return
 
         if command == "updateGrblSetting":
