@@ -753,7 +753,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # suppress temperature if machine is printing or
         # running fluidnc auto reporting
-        if "M105" in cmd.upper() or cmd.startswith(self.statusCommand):
+        if "M105" in cmd.upper():
             if (self.disablePolling and self._printer.is_printing()) or len(self.lastRequest) > 0 or self.noStatusRequests:
                 self._logger.debug('Ignoring %s', cmd)
                 return (None, )
