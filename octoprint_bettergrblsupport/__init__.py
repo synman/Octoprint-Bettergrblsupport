@@ -1384,7 +1384,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "reset":
             _bgs.send_command_now(self._printer, self._logger, "M999")
-            if _bgs._bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
+            if _bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
                 threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "?", "waitTime": 1}).start()
             return
 
