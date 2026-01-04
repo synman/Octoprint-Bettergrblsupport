@@ -1194,6 +1194,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             
         if line.startswith('Grbl'):
             # it all starts here
+            if _bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
+                _bgs.send_command_now(self._printer, self._logger, self.statusCommand)
             return "ok " + line
 
         # forward any messages to the action notification plugin
@@ -1383,7 +1385,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "reset":
-            self._printer.commands(["M999", self.statusCommand], force=True)
+            self._printer.commands(["M999"], force=True)
             return
 
         if command == "updateGrblSetting":
