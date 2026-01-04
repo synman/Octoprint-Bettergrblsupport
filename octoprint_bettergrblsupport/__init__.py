@@ -796,8 +796,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # hack for unacknowledged grbl commmands
         if "$H" in cmd.upper() or "G38.2" in cmd.upper():
-            # threading.Thread(target=_bgs.do_fake_ack, args=(self._printer, self._logger)).start()
-            # self._logger.debug("fake_ack submitted")
             self.grblState = "Home" if "$H" in cmd.upper() else "Run"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Run"))
 
@@ -1379,13 +1377,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if self.doSmoothie:
                 self._printer.commands("M999")
             else:
-                self._printer.commands(["$X", self.statusCommand])
+                self._printer.commands("$X")
             return
 
         if command == "reset":
             _bgs.send_command_now(self._printer, self._logger, "M999")
             if _bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
-                threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "?", "waitTime": 1}).start()
+                threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "?", "waitTime": 2}).start()
             return
 
         if command == "updateGrblSetting":
