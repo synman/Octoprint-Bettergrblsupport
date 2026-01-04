@@ -1415,6 +1415,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "homing" and self._printer.is_ready() and self.grblState in ("Idle", "Alarm"):
             self._printer.commands("$H")
+            if _bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
+                threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "?", "waitTime": 3}).start()
             return
 
         if command == "feedRate":
