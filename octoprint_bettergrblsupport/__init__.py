@@ -1383,9 +1383,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "reset":
-            # force a fake ack in case something is holding up the send queue
-            # self._printer.fake_ack()
-            self._printer.commands("M999", force=True)
+            self._printer.commands(["M999", self.statusCommand], force=True)
             return
 
         if command == "updateGrblSetting":
