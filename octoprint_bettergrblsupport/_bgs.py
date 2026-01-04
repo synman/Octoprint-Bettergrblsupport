@@ -32,6 +32,7 @@ import time
 import math
 
 import re
+from turtle import delay
 import requests
 import threading
 import subprocess
@@ -1598,8 +1599,10 @@ def do_fake_ack(printer, logger):
     logger.debug("_bgs: do_fake_ack")
 
 
-def send_command_now(printer, logger, cmd):
+def send_command_now(printer, logger, cmd, delay=0):
     try:
+        if delay > 0:
+            time.sleep(delay)
         printer.commands(cmd, force=True)
         logger.debug("_bgs: send_command")
     except Exception as e:
