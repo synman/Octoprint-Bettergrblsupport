@@ -32,7 +32,6 @@ import time
 import math
 
 import re
-from turtle import delay
 import requests
 import threading
 import subprocess
