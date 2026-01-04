@@ -1599,10 +1599,10 @@ def do_fake_ack(printer, logger):
     logger.debug("_bgs: do_fake_ack")
 
 
-def send_command_now(printer, logger, cmd, delay=0):
+def send_command_now(printer, logger, cmd, waitTime=0):
     try:
-        if delay > 0:
-            time.sleep(delay)
+        if waitTime > 0:
+            time.sleep(waitTime)
         printer.commands(cmd, force=True)
         logger.debug("_bgs: send_command")
     except Exception as e:
