@@ -337,6 +337,11 @@ def on_event(_plugin, event, payload):
         _plugin.is_printing = False
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
 
+        # reset our rate overrides
+        _plugin.feedRate = 0
+        _plugin.plungeRate = 0
+        _plugin.powerRate = 0
+
         return
 
     # Print Cancelling
