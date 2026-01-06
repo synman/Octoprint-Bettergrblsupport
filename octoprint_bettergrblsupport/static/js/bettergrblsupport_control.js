@@ -284,6 +284,7 @@ $(function() {
 
             if (self.is_operational() && !self.is_printing()) {
                 OctoPrint.control.sendGcode(["?"]);
+            }
 
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;
