@@ -165,8 +165,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.fluidAutoReport = False
         self.autoRepportInterval = 1000
 
-        # TODO:  clean this up later
+        # TODO:  clean this up
         self.is_printing = False
+        self.is_operational = False
 
         self.offsets = {}
 
