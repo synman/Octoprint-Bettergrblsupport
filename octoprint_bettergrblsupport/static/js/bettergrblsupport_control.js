@@ -282,7 +282,8 @@ $(function() {
                 self.origin_axes.unshift("A"); 
             }
 
-            //console.log(self.origin_axes());
+            if (self.is_operational() && !self.is_printing()) {
+                OctoPrint.control.sendGcode(["?"]);
 
             self.notifications.requestData = self.overrideRequestData;
             self.notifications.clear = self.overrideClear;

@@ -1196,6 +1196,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # forward any messages to the action notification plugin
         if "MSG:" in line.upper():
+            if "MSG:Homed:" in line and _bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
+                    threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "?", "waitTime": 2}).start()
+
             ignoreList = ("[MSG:'$H'|'$X' to unlock]", "[MSG:INFO: '$H'|'$X' to unlock]")
             if not line.rstrip("\r").rstrip("\n").strip() in ignoreList:
                 # auto reset
@@ -1378,6 +1381,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._printer.commands("M999")
             else:
                 self._printer.commands("$X")
+                if _bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
+                    threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "?", "waitTime": 2}).start()
             return
 
         if command == "reset":
