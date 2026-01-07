@@ -18,7 +18,6 @@ $(function() {
 
         self.my_notifications = ko.observableArray();
 
-        var $controlTab = $("#control");
         var $controlPanel = undefined;
 
         self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
@@ -867,9 +866,10 @@ $(function() {
 
     // cute hack for changing printer to machine for the action notify sidebar plugin
     var x = document.getElementById("sidebar_plugin_action_command_notification_wrapper");
-    if (x != undefined) {
-        x.outerHTML = x.outerHTML.replace("printer.", "machine.").replace("Printer ", "");
-    }
+    let content = x.innerHTML;
+    content = content.replaceAll("Printer", "Machine");
+    content = content.replaceAll("printer", "machine");
+    x.innerHTML = content;
 
     // cute hack for changing printer to machine for the connection sidebar plugin
     var y = document.getElementById("connection_wrapper");
