@@ -1516,19 +1516,19 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             if direction == "home":
                 if axis == "X":
-                    self._printer.commands("G0 G90 X0")
+                    self._printer.commands(f"G0 G90 X{0 if not self.originOffsets else self.originXOffset}")
                 elif axis == "Y":
-                    self._printer.commands("G0 G90 Y0")
+                    self._printer.commands(f"G0 G90 Y{0 if not self.originOffsets else self.originYOffset}")
                 elif axis == "Z":
-                    self._printer.commands("G0 G90 Z0")
+                    self._printer.commands(f"G0 G90 Z{0 if not self.originOffsets else self.originZOffset}")
                 elif axis == "XY":
                     self._printer.commands(f"G0 G90 X{0 if not self.originOffsets else self.originXOffset} Y{0 if not self.originOffsets else self.originYOffset}")
                 elif axis == "A":
-                    self._printer.commands("G0 G90 A0")
+                    self._printer.commands(f"G0 G90 A0")
                 elif axis == "B":
-                    self._printer.commands("G0 G90 B0")
+                    self._printer.commands(f"G0 G90 B0")
                 else:
-                    self._printer.commands("G0 G90 X0 Y0 Z0 {}".format(extra_axes))
+                    self._printer.commands(f"G0 G90 X{0 if not self.originOffsets else self.originXOffset} Y{0 if not self.originOffsets else self.originYOffset} Z{0 if not self.originOffsets else self.originZOffset} {extra_axes}")
 
                 program = int(float(self.grblCoordinateSystem.replace("G", "")))
                 program = -53 + program
