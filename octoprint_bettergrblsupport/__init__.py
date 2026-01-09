@@ -653,7 +653,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             r.close()
 
                             if not "fluidSettings" in data:
-                                _bgs.queue_cmds_and_send(self, ["$Bye"])
+                                self._printer.commands("$Bye")
                         except Exception as e:
                             self._logger.warn("__init__: on_settings_save unable to save fluid config: {}".format(e))
                             _bgs.update_fluid_config(self)
@@ -665,7 +665,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     for key, value in data.get("fluidSettings", {}).items():
                         self._printer.commands("${}={}".format(key, value))
 
-                    _bgs.queue_cmds_and_send(self, ["$Bye"])
+                    self._printer.commands("$Bye")
                     threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "$CD", "waitTime": 10}).start()
 
     
