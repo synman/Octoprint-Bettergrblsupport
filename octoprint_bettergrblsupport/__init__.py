@@ -667,7 +667,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     if "fluidYaml" in data:
                         _bgs.queue_cmds_and_send(self, ["$Bye"])
                     else:
-                        _bgs.queue_cmds_and_send(self, ["$Bye", "$CD"])
+                        _bgs.queue_cmds_and_send(self, ["$Bye", "$S"])
     
                 # refresh our grbl settings
                 if not _bgs.is_grbl_fluidnc(self):
