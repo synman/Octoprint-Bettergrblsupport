@@ -172,17 +172,17 @@
 				<!-- ko if: settings.plugins.bettergrblsupport.originOffsets -->
 
 				<label class="control-label">X Offset</label>
-				<div class="controls">
+				<div class="controls" style="padding-bottom: 3px;">
 					<input type="text" class="input-mini"
 						data-bind="numeric, value: settings.plugins.bettergrblsupport.originXOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 				</div>
 				<label class="control-label">Y Offset</label>
-				<div class="controls">
+				<div class="controls" style="padding-bottom: 3px;">
 					<input type="text" class="input-mini"
 						data-bind="numeric, value: settings.plugins.bettergrblsupport.originYOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 				</div>
 				<label class="control-label">Z Offset</label>
-				<div class="controls">
+				<div class="controls" style="padding-bottom: 3px;">
 					<input type="text" class="input-mini"
 						data-bind="numeric, value: settings.plugins.bettergrblsupport.originZOffset, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">mm
 				</div>
@@ -240,13 +240,13 @@
 				<!-- ko if: settings.plugins.bettergrblsupport.autoCooldown -->
 
 				<label class="control-label">Cooldown Frequency</label>
-				<div class="controls">
+				<div class="controls" style="padding-bottom: 3px;">
 					<input type="text" class="input-mini"
 						data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownFrequency, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
 				</div>
 
 				<label class="control-label">Cooldown Duration</label>
-				<div class="controls">
+				<div class="controls" style="padding-bottom: 3px;">
 					<input type="text" class="input-mini"
 						data-bind="numeric, value: settings.plugins.bettergrblsupport.autoCooldownDuration, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">min
 				</div>
@@ -416,7 +416,7 @@
 							<td align="right" data-bind="text: key"></td>
 							<td align="center">
 								<input type="text" class="input-mini" style="width: 200px"
-									data-bind="value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
+									data-bind="enabled: !value.startsWith('Grbl'), value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
 							</td>
 						</tr>
 					</tbody>

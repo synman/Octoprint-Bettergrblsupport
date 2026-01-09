@@ -1,3 +1,4 @@
+0 User alarm triggered
 1 Hard limit triggered. Machine position is likely lost due to sudden and immediate halt. Re-homing is highly recommended.
 2 G-code motion target exceeds machine travel. Machine position safely retained. Alarm may be unlocked.
 3 Reset while in motion. Grbl cannot guarantee position. Lost steps are likely. Re-homing is highly recommended.
