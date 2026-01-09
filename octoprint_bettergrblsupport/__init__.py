@@ -29,6 +29,8 @@
 #
 from __future__ import absolute_import
 from pydoc import Helper
+
+from turtledemo.chaos import line
 from octoprint.events import Events
 from shutil import copyfile
 
@@ -664,10 +666,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     for key, value in data.get("fluidSettings", {}).items():
                         self._printer.commands("${}={}".format(key, value))
 
-                    if "fluidYaml" in data:
-                        _bgs.queue_cmds_and_send(self, ["$Bye"])
-                    else:
-                        _bgs.queue_cmds_and_send(self, ["$Settings/List", "$Bye"])
+                    _bgs.queue_cmds_and_send(self, "$Bye")
+                    threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "$CD", "waitTime": 10}).start()
+
     
                 # refresh our grbl settings
                 if not _bgs.is_grbl_fluidnc(self):
