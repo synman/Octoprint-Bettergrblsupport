@@ -416,7 +416,7 @@
 							<td align="right" data-bind="text: key"></td>
 							<td align="center">
 								<input type="text" class="input-mini" style="width: 200px"
-									data-bind="enabled: !value.startsWith('Grbl'), value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
+									data-bind="enable: !value.startsWith('Grbl'), value: value, event: { change: $parent.updateFluid(key, value, oldvalue), focus: function(d, e) {$root.handleFocus(e, 'target', $data)} }">
 							</td>
 						</tr>
 					</tbody>
