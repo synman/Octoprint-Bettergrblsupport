@@ -629,6 +629,12 @@ def process_grbl_status_msg(_plugin, msg):
     else:
         _plugin.grblState = str(match.groups(1)[0])
 
+    if _plugin.grblState == "Idle" and _plugin.M9PauseActive:
+        _plugin._logger.debug('Turning OFF Air Assist')
+        subprocess.Popen(_plugin.m9Command, shell=True)
+        _plugin.M9PauseActive = False   
+        _plugin.coolant = "M9"     
+
     _plugin.grblX = float(match.groups(1)[1])
     _plugin.grblY = float(match.groups(1)[2])
     _plugin.grblZ = float(match.groups(1)[3])
@@ -811,12 +817,18 @@ def process_parser_status_msg(_plugin, msg):
                 _plugin.coolant = state.upper()
                 # M8 (air assist on) processing - work in progress
                 if _plugin.coolant in ("M7", "M8") and _plugin.overrideM8:
+                        _plugin.delayM9Active = False
                         _plugin._logger.debug('Turning ON Air Assist')
                         subprocess.Popen(_plugin.m8Command, shell=True)
                 # M9 (air assist off) processing - work in progress
                 if _plugin.coolant == "M9" and _plugin.overrideM9:
-                        _plugin._logger.debug('Turning OFF Air Assist')
-                        subprocess.Popen(_plugin.m9Command, shell=True)
+                        if not _plugin.delayM9:
+                            _plugin._logger.debug('Turning OFF Air Assist')
+                            subprocess.Popen(_plugin.m9Command, shell=True)
+                        else:
+                            _plugin.coolant = "M8"  # revert coolant state
+                            _plugin._logger.debug('Delaying OFF Air Assist command until Idle state detected')
+                            _plugin.delayM9Active = True
             _plugin._logger.debug("parser state indicates [%s] coolant state", state)
         elif state.startswith("F"):
             _plugin.grblSpeed = round(float(state.replace("F", "")))

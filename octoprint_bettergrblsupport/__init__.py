@@ -29,6 +29,7 @@
 #
 from __future__ import absolute_import
 from pydoc import Helper
+from turtle import delay
 
 from octoprint.events import Events
 from shutil import copyfile
@@ -84,6 +85,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.overrideM8 = False
         self.overrideM9 = False
+        self.delayM9 = True
+
+        self.M9DelayActive = False
+        
         self.m8Command = ""
         self.m9Command = ""
 
@@ -252,6 +257,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             framingPercentOfMaxSpeed = float(25),
             overrideM8 = False,
             overrideM9 = False,
+            delayM9 = True,
             m8Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c on",
             m9Command = "/home/pi/bin/tplink_smartplug.py -t air-assist.shellware.com -c off",
             ignoreErrors = False,
@@ -337,6 +343,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.overrideM8 = self._settings.get_boolean(["overrideM8"])
         self.overrideM9 = self._settings.get_boolean(["overrideM9"])
+        self.delayM9 = self._settings.get_boolean(["delayM9"])
         self.m8Command = self._settings.get(["m8Command"])
         self.m9Command = self._settings.get(["m9Command"])
 
@@ -852,6 +859,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if cmd.upper() in ("M7", "M8"):
                 self.coolant = cmd.upper()
                 self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
+                self.M9DelayActive = False
 
                 if self.overrideM8 and cmd.upper() == "M8":
                     self._logger.debug('Turning ON Air Assist')
@@ -860,13 +868,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # M9 (air assist off) processing - work in progress
             if cmd.upper() == "M9":
-                self.coolant = cmd.upper()
-                self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
+                if not self.delayM9:
+                    self.coolant = cmd.upper()
+                    self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coolant=self.coolant))
 
                 if self.overrideM9:
-                    self._logger.debug('Turning OFF Air Assist')
-                    subprocess.Popen(self.m9Command, shell=True)
-
+                    if not self.delayM9:
+                        self._logger.debug('Turning OFF Air Assist')
+                        subprocess.Popen(self.m9Command, shell=True)
+                    else:
+                        self.M9DelayActive = True
+                        self._logger.debug('Delaying OFF Air Assist command until Idle')   
                     # return (None,)
 
         # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
