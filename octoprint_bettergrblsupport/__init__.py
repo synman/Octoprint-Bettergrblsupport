@@ -29,7 +29,6 @@
 #
 from __future__ import absolute_import
 from pydoc import Helper
-from turtle import delay
 
 from octoprint.events import Events
 from shutil import copyfile
