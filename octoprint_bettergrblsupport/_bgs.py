@@ -813,7 +813,7 @@ def process_parser_status_msg(_plugin, msg):
         elif state in ("M3", "M4", "M5"):
             _plugin._logger.debug("parser state indicates [%s] spindle state", state)
         elif state in ("M7", "M8", "M9"):
-            if state.upper() != _plugin.coolant:
+            if state.upper() != _plugin.coolant and not _plugin.delayM9Active:
                 _plugin.coolant = state.upper()
                 # M8 (air assist on) processing - work in progress
                 if _plugin.coolant in ("M7", "M8") and _plugin.overrideM8:
