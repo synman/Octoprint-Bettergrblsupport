@@ -629,10 +629,10 @@ def process_grbl_status_msg(_plugin, msg):
     else:
         _plugin.grblState = str(match.groups(1)[0])
 
-    if _plugin.grblState == "Idle" and _plugin.M9PauseActive:
+    if _plugin.grblState == "Idle" and _plugin.M9DelayActive:
         _plugin._logger.debug('Turning OFF Air Assist')
         subprocess.Popen(_plugin.m9Command, shell=True)
-        _plugin.M9PauseActive = False   
+        _plugin.M9DelayActive = False   
         _plugin.coolant = "M9"     
 
     _plugin.grblX = float(match.groups(1)[1])
