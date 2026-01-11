@@ -276,7 +276,7 @@
 			<br>
 			<h4>Grbl Options</h4>
 			<hr>
-			<label class="control-label">Air Assist Overrides</label>
+			<label class="control-label">Air Assist (Coolant) Overrides</label>
 			<br>
 			<div class="controls">
 				<label class="checkbox">
@@ -297,6 +297,9 @@
 				<label>And Execute:</label>
 				<input type="text" class="input-block-level"
 					data-bind="value: settings.plugins.bettergrblsupport.m9Command, event: { focus: function(d, e) {$root.handleFocus(e, 'target', $data) } }">
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.delayM9"> Delay sending until Idle
+				</label>
 				<br><br>
 				<!-- /ko -->
 			</div>
