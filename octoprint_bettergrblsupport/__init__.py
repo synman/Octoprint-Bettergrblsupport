@@ -641,8 +641,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if "fluidYaml" in data or "fluidSettings" in data:
                 # save our fluid config
                 if "fluidYaml" in data:
-                    self.fluidConfig = data.get("fluidYaml")
-                    self.fluidYaml = yaml.safe_load(data.get("fluidYaml"))
+                    self.fluidConfig = data.get("fluidYaml").replace("NO PIN", "NO_PIN")
+                    self.fluidYaml = yaml.safe_load(self.fluidConfig)
 
                     if self.fluidSettings.get("HTTP/Enable").upper() == "ON":
                         try:
