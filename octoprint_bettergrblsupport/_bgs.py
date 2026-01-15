@@ -1700,9 +1700,9 @@ def get_axes_max_rates(_plugin):
 
     try:
         if is_grbl_fluidnc(_plugin):
-            xf = float(_plugin.fluidYaml.get("axes", {}).get("x", {}).get("max_rate_mm_per_min"))
-            yf = float(_plugin.fluidYaml.get("axes", {}).get("y", {}).get("max_rate_mm_per_min"))
-            zf = float(_plugin.fluidYaml.get("axes", {}).get("z", {}).get("max_rate_mm_per_min"))
+            xf = float(_plugin.fluidSettings.get("Grbl/MaxRate/X"))
+            yf = float(_plugin.fluidSettings.get("Grbl/MaxRate/Y"))
+            zf = float(_plugin.fluidSettings.get("Grbl/MaxRate/Z"))
         else:
             xf = float(_plugin.grblSettings.get(110)[0])
             yf = float(_plugin.grblSettings.get(111)[0])
@@ -1726,9 +1726,9 @@ def get_axes_limits(_plugin):
 
     try:
         if is_grbl_fluidnc(_plugin):
-            xl = float(_plugin.fluidYaml.get("axes", {}).get("x", {}).get("max_travel_mm"))
-            yl = float(_plugin.fluidYaml.get("axes", {}).get("y", {}).get("max_travel_mm"))
-            zl = float(_plugin.fluidYaml.get("axes", {}).get("z", {}).get("max_travel_mm"))
+            xl = float(_plugin.fluidSettings.get("Grbl/MaxTravel/X"))
+            yl = float(_plugin.fluidSettings.get("Grbl/MaxTravel/Y"))
+            zl = float(_plugin.fluidSettings.get("Grbl/MaxTravel/Z"))
         else:
             xl = float(_plugin.grblSettings.get(130)[0])
             yl = float(_plugin.grblSettings.get(131)[0])
