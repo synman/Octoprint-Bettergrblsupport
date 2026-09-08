@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Written by:  Shell M. Shrader (https://github.com/synman/Octoprint-Bettergrblsupport)
 # Copyright [2021] [Shell M. Shrader]
@@ -46,7 +45,7 @@ xyProbe = None
 def load_grbl_descriptions(_plugin):
     path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
 
-    f = open(path + "grbl_errors.txt", 'r')
+    f = open(path + "grbl_errors.txt")
 
     for line in f:
         match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
@@ -54,7 +53,7 @@ def load_grbl_descriptions(_plugin):
             _plugin.grblErrors[int(match.groups(1)[0])] = match.groups(1)[1]
             # _plugin._logger.debug("matching error id: [%d] to description: [%s]", int(match.groups(1)[0]), match.groups(1)[1])
 
-    f = open(path + "grbl_alarms.txt", 'r')
+    f = open(path + "grbl_alarms.txt")
 
     for line in f:
         match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
@@ -62,7 +61,7 @@ def load_grbl_descriptions(_plugin):
             _plugin.grblAlarms[int(match.groups(1)[0])] = match.groups(1)[1]
             # _plugin._logger.debug("matching alarm id: [%d] to description: [%s]", int(match.groups(1)[0]), match.groups(1)[1])
 
-    f = open(path + "grbl_settings.txt", 'r')
+    f = open(path + "grbl_settings.txt")
 
     for line in f:
         match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
@@ -80,7 +79,7 @@ def load_grbl_settings(_plugin):
         for setting in _plugin.grblSettingsText.split("||"):
             if len(setting.strip()) > 0:
 
-                _plugin._logger.debug("load_grbl_settings=[{}]".format(setting))
+                _plugin._logger.debug(f"load_grbl_settings=[{setting}]")
 
                 set = setting.split("|")
                 if set is not None:
@@ -93,9 +92,9 @@ def save_grbl_settings(_plugin):
 
     ret = ""
     for id, data in sorted(_plugin.grblSettings.items(), key=lambda x: int(x[0])):
-        ret = ret + "{}|{}|{}||".format(id, data[0], data[1])
+        ret = ret + f"{id}|{data[0]}|{data[1]}||"
 
-    _plugin._logger.debug("save_grbl_settings=[{}]".format(ret))
+    _plugin._logger.debug(f"save_grbl_settings=[{ret}]")
 
     _plugin.grblSettingsText = ret
 
@@ -103,7 +102,7 @@ def save_grbl_settings(_plugin):
 
 
 def cleanup_due_to_uninstall(_plugin, remove_profile=True):
-    _plugin._logger.debug("_bgs: cleanup_due_to_uninstall remove_profile=[{}]".format(remove_profile))
+    _plugin._logger.debug(f"_bgs: cleanup_due_to_uninstall remove_profile=[{remove_profile}]")
 
     # re-enable model size detection, sd card support
     _plugin._settings.global_set_boolean(["feature", "modelSizeDetection"], True)
@@ -277,10 +276,10 @@ def on_event(_plugin, event, payload):
                         Events.CONNECTING, Events.CONNECTED, Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
 
     if event not in subscribed_events and payload is not None and payload.get("state_id") not in ("PAUSING", "STARTING"):
-        _plugin._logger.debug('event [{}] payload [{}] received but not subscribed - discarding'.format(event, payload))
+        _plugin._logger.debug(f'event [{event}] payload [{payload}] received but not subscribed - discarding')
         return
 
-    _plugin._logger.debug("_bgs: on_event event=[{}] payload=[{}]".format(event, payload))
+    _plugin._logger.debug(f"_bgs: on_event event=[{event}] payload=[{payload}]")
 
     # our plugin is being uninstalled
     if event in (Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN) and payload["id"] == _plugin._identifier:
@@ -462,7 +461,7 @@ def on_event(_plugin, event, payload):
 
 
 def do_framing(_plugin, data):
-    _plugin._logger.debug("_bgs: do_framing data=[{}]".format(data))
+    _plugin._logger.debug(f"_bgs: do_framing data=[{data}]")
 
     origin = data.get("origin").strip()
     length = float(data.get("length")) * _plugin.invertY
@@ -509,11 +508,11 @@ def send_frame_init_gcode(_plugin):
         send_command_now(_plugin._printer, _plugin._logger, "CANCELJOG")
 
     # Linear mode, feedrate f% of max
-    _plugin._printer.commands("G1 F{}".format(f))
+    _plugin._printer.commands(f"G1 F{f}")
 
     # turn on laser in weak mode if laser mode enabled
     if is_laser_mode(_plugin):
-        _plugin._printer.commands("M3 S{}".format(_plugin.weakLaserValue))
+        _plugin._printer.commands(f"M3 S{_plugin.weakLaserValue}")
 
     _plugin.grblState = "Jog"
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Jog"))
@@ -525,7 +524,7 @@ def send_frame_end_gcode(_plugin):
     queue_cmds_and_send(_plugin, ["M5 S0 G0"])
 
 def send_bounding_box_upper_left(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_upper_left y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_upper_left y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -535,7 +534,7 @@ def send_bounding_box_upper_left(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y, f))
 
 def send_bounding_box_upper_center(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_upper_center y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_upper_center y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -546,7 +545,7 @@ def send_bounding_box_upper_center(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2, f))
 
 def send_bounding_box_upper_right(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_upper_right y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_upper_right y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -556,7 +555,7 @@ def send_bounding_box_upper_right(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x, f))
 
 def send_bounding_box_center_left(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_center_left y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_center_left y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -567,7 +566,7 @@ def send_bounding_box_center_left(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2, f))
 
 def send_bounding_box_center(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_center y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_center y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -579,7 +578,7 @@ def send_bounding_box_center(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2, y / 2 * -1, f))
 
 def send_bounding_box_center_right(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_center_right y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_center_right y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -590,7 +589,7 @@ def send_bounding_box_center_right(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 Y{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", y / 2 * -1, f))
 
 def send_bounding_box_lower_left(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_lower_left y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_lower_left y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -600,7 +599,7 @@ def send_bounding_box_lower_left(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x * -1, f))
 
 def send_bounding_box_lower_center(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_lower_center y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_lower_center y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -611,7 +610,7 @@ def send_bounding_box_lower_center(_plugin, y, x):
     _plugin._printer.commands("{}G91 G21 X{:f} F{}".format("$J=" if is_grbl_one_dot_one(_plugin) else "G1 ", x / 2 * -1, f))
 
 def send_bounding_box_lower_right(_plugin, y, x):
-    _plugin._logger.debug("_bgs: send_bounding_box_lower_right y=[{}] x=[{}]".format(y, x))
+    _plugin._logger.debug(f"_bgs: send_bounding_box_lower_right y=[{y}] x=[{x}]")
 
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
@@ -632,7 +631,7 @@ def toggle_weak(_plugin):
 
     if _plugin.grblPowerLevel == 0:
         # turn on laser in weak mode
-        _plugin._printer.commands("G1 F{} M3 S{:.2f}".format(f, _plugin.weakLaserValue))
+        _plugin._printer.commands(f"G1 F{f} M3 S{_plugin.weakLaserValue:.2f}")
         add_notifications(_plugin, ["Weak laser enabled"])
         res = "Laser Off"
     else:
@@ -727,7 +726,7 @@ def process_grbl_status_msg(_plugin, msg):
 
 
 def process_grbl_alarm(_plugin, msg):
-    error = int(0)
+    error = 0
     desc = msg
 
     match = re.search(r'alarm:\ *(-?[\d.]+)', msg.lower())
@@ -736,7 +735,7 @@ def process_grbl_alarm(_plugin, msg):
         desc = _plugin.grblAlarms.get(error)
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
-                                                                    title="Grbl Alarm #{} Received".format(error),
+                                                                    title=f"Grbl Alarm #{error} Received",
                                                                     text=desc,
                                                                     hide=True,
                                                                     delay=10000,
@@ -769,7 +768,7 @@ def process_grbl_alarm(_plugin, msg):
 
 
 def process_grbl_error(_plugin, msg):
-    error = int(0)
+    error = 0
     desc = msg
 
     match = re.search(r'error:\ *(-?[\d.]+)', msg.lower())
@@ -778,7 +777,7 @@ def process_grbl_error(_plugin, msg):
 
         desc = _plugin.grblErrors.get(error)
         if desc is None:
-            desc = "Grbl Error #{} - Error description not available".format(error)
+            desc = f"Grbl Error #{error} - Error description not available"
 
     # hack to suppress errors on connect
     if time.monotonic() - _plugin.whenConnected < 20:
@@ -789,7 +788,7 @@ def process_grbl_error(_plugin, msg):
         return "ok "
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
-                                                                    title="Grbl Error #{} Received".format(error),
+                                                                    title=f"Grbl Error #{error} Received",
                                                                     text=desc,
                                                                     hide=True,
                                                                     delay=10000,
@@ -925,9 +924,9 @@ def do_xy_probe(_plugin, axes, sessionId):
 
     gcode = [
                 "G21",
-                "G0 G91 X{} F{}".format(distance, xyf),
-                "G0 G91 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
-                "G38.2 X{} F200".format(distance * -1)
+                f"G0 G91 X{distance} F{xyf}",
+                f"G0 G91 Z{15 * _plugin.invertZ * -1} F{zf}",
+                f"G38.2 X{distance * -1} F200"
             ]
     axis = "X"
 
@@ -937,19 +936,19 @@ def do_xy_probe(_plugin, axes, sessionId):
 
         gcode = [
                     "G21",
-                    "G0 G91 Y{} F{}".format(distance, xyf),
-                    "G0 G91 Z{} F{}".format(15 * _plugin.invertZ * -1, zf),
-                    "G38.2 Y{} F200".format(distance * -1)
+                    f"G0 G91 Y{distance} F{xyf}",
+                    f"G0 G91 Z{15 * _plugin.invertZ * -1} F{zf}",
+                    f"G38.2 Y{distance * -1} F200"
                 ]
         axis = "Y"
 
     elif len(xyProbe._results) > 1 or (len(xyProbe._results) > 0 and axis in ("X", "Y")):
         if axes == "XY":
-            text = "X/Y Axis Home has been calculated and set to machine position: X[<B>{:.3f}</B>] Y[<B>{:.3f}</B>]".format(xyProbe._results[0], xyProbe._results[1])
-            _plugin._printer.commands(["G0 G90 X0 Y0 F{}".format(xyf), "G91"])
+            text = f"X/Y Axis Home has been calculated and set to machine position: X[<B>{xyProbe._results[0]:.3f}</B>] Y[<B>{xyProbe._results[1]:.3f}</B>]"
+            _plugin._printer.commands([f"G0 G90 X0 Y0 F{xyf}", "G91"])
         else:
-            text = "{} Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>]]".format(axes, xyProbe._results[0])
-            _plugin._printer.commands(["G0 G90 {}0 F{}".format(axes, xyf), "G91"])
+            text = f"{axes} Axis Home has been calculated and set to machine position: [<B>{xyProbe._results[0]:.3f}</B>]]"
+            _plugin._printer.commands([f"G0 G90 {axes}0 F{xyf}", "G91"])
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                          sessionId=xyProbe._sessionId,
@@ -978,7 +977,7 @@ def do_xy_probe(_plugin, axes, sessionId):
 
 def xy_probe_hook(_plugin, result, position, axis):
     global xyProbe
-    _plugin._logger.debug("_bgs: xy_probe_hook result=[{}] position=[{}] axis=[{}] sessionId=[{}]".format(result, position, axis, xyProbe._sessionId))
+    _plugin._logger.debug(f"_bgs: xy_probe_hook result=[{result}] position=[{position}] axis=[{axis}] sessionId=[{xyProbe._sessionId}]")
 
     # did we have a problem?
     if result == 0:
@@ -986,7 +985,7 @@ def xy_probe_hook(_plugin, result, position, axis):
         xyProbe = None
         return
 
-    notification = "X/Y Probe: [{}] axis result [{:.3f}]".format(axis, position)
+    notification = f"X/Y Probe: [{axis}] axis result [{position:.3f}]"
     add_notifications(_plugin, [notification])
 
     # defer commands and setup of the next step
@@ -994,7 +993,7 @@ def xy_probe_hook(_plugin, result, position, axis):
 
 def defer_do_xy_probe(_plugin, position, axis, sessionId):
     global xyProbe
-    _plugin._logger.debug("_bgs: defer_do_xy_probe sessionId=[{}]".format(sessionId))
+    _plugin._logger.debug(f"_bgs: defer_do_xy_probe sessionId=[{sessionId}]")
 
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     _plugin._printer.commands("?")
@@ -1019,9 +1018,9 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
 
     # set home for our current axis and travel back to where we started
     _plugin._printer.commands([
-            "G10 P{} L2 {}{:f}".format(program, axis, position),
-            "G0 {}{} Z{} F{}".format(axis, 10 * originInvert * invert, 15 * _plugin.invertZ, zf),
-            "G0 G90 {}{} F{}".format(axis, 10 * originInvert * invert * -1, xyf),
+            f"G10 P{program} L2 {axis}{position:f}",
+            f"G0 {axis}{10 * originInvert * invert} Z{15 * _plugin.invertZ} F{zf}",
+            f"G0 G90 {axis}{10 * originInvert * invert * -1} F{xyf}",
             "G91"
         ])
 
@@ -1032,7 +1031,7 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
 
 
 def do_simple_zprobe(_plugin, sessionId):
-    _plugin._logger.debug("_bgs: do_simple_zprobe sessionId=[{}]".format(sessionId))
+    _plugin._logger.debug(f"_bgs: do_simple_zprobe sessionId=[{sessionId}]")
 
     global zProbe
 
@@ -1046,7 +1045,7 @@ def do_simple_zprobe(_plugin, sessionId):
     zTravel = zl if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
     zTravel = zTravel * -1 * _plugin.invertZ
 
-    gcode = "G91 G21 G38.2 Z{} F100".format(zTravel)
+    gcode = f"G91 G21 G38.2 Z{zTravel} F100"
     zProbe._locations = [{"gcode": gcode,  "action": "simple_zprobe", "location": "Current"}]
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_zprobe",
@@ -1055,7 +1054,7 @@ def do_simple_zprobe(_plugin, sessionId):
 
 def simple_zprobe_hook(_plugin, result, position):
     global zProbe
-    _plugin._logger.debug("_bgs: simple_zprobe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, zProbe._sessionId))
+    _plugin._logger.debug(f"_bgs: simple_zprobe_hook result=[{result}] position=[{position}] sessionId=[{zProbe._sessionId}]")
 
     sessionId = zProbe._sessionId
 
@@ -1072,7 +1071,7 @@ def simple_zprobe_hook(_plugin, result, position):
 
         type="simple_notify"
         title="Single Point Z-Probe"
-        text = "Z Axis Home has been calculated and set to machine position: [<B>{:.3f}</B>]".format(z0)
+        text = f"Z Axis Home has been calculated and set to machine position: [<B>{z0:.3f}</B>]"
         notify_type="info"
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type=type,
@@ -1097,7 +1096,7 @@ def defer_simple_z_probe(_plugin, z0):
     program = int(float(_plugin.grblCoordinateSystem.replace("G", "")))
     program = -53 + program
 
-    _plugin._printer.commands(["G91", "G21", "G10 P{} L2 Z{:f}".format(program, z0), "G0 Z{}".format(_plugin.zProbeEndPos * _plugin.invertZ)])
+    _plugin._printer.commands(["G91", "G21", f"G10 P{program} L2 Z{z0:f}", f"G0 Z{_plugin.zProbeEndPos * _plugin.invertZ}"])
 
     # update our offsets
     _plugin.offsets[_plugin.grblCoordinateSystem]["z"] = z0
@@ -1107,7 +1106,7 @@ def defer_simple_z_probe(_plugin, z0):
 
 def do_multipoint_zprobe(_plugin, sessionId):
     global zProbe
-    _plugin._logger.debug("_bgs: do_multipoint_zprobe step=[{}] sessionId=[{}]".format(zProbe._step + 1 if zProbe is not None else 0, sessionId))
+    _plugin._logger.debug(f"_bgs: do_multipoint_zprobe step=[{zProbe._step + 1 if zProbe is not None else 0}] sessionId=[{sessionId}]")
 
     if zProbe is None:
         zProbe = ZProbe(_plugin, multipoint_zprobe_hook, sessionId)
@@ -1129,128 +1128,128 @@ def do_multipoint_zprobe(_plugin, sessionId):
 
         if origin == "grblTopLeft":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Left"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width, feedrate), "action": "move", "location": "Top Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Right"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length * -1, feedrate), "action": "move", "location": "Bottom Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Right"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width * -1, feedrate), "action": "move", "location": "Bottom Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Left"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2, feedrate), "action": "move", "location": "Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Top Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width:f} F{feedrate}", "action": "move", "location": "Top Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Right"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length * -1:f} F{feedrate}", "action": "move", "location": "Bottom Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width * -1:f} F{feedrate}", "action": "move", "location": "Bottom Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Top Left"},
                                 ]
         elif origin == "grblTopCenter":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2 * -1, feedrate), "action": "move", "location": "Center Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Right"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Center Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Left"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2, feedrate), "action": "move", "location": "Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length / 2, feedrate), "action": "move", "location": "Top Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Center Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} F{feedrate}", "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length / 2:f} F{feedrate}", "action": "move", "location": "Top Center"},
                                 ]
         elif origin == "grblTopRight":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Right"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length * -1, feedrate), "action": "move", "location": "Bottom Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Right"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width * -1, feedrate), "action": "move", "location": "Bottom Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Left"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length, feedrate), "action": "move", "location": "Top Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Left"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2 * -1, feedrate), "action": "move", "location": "Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2, feedrate), "action": "move", "location": "Top Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Right"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length * -1:f} F{feedrate}", "action": "move", "location": "Bottom Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width * -1:f} F{feedrate}", "action": "move", "location": "Bottom Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Left"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length:f} F{feedrate}", "action": "move", "location": "Top Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Top Right"},
                                 ]
         elif origin == "grblCenterLeft":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Left"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2, feedrate), "action": "move", "location": "Top Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2 * -1, feedrate), "action": "move", "location": "Center Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Right"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Center"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length / 2, feedrate), "action": "move", "location": "Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2 * -1, feedrate), "action": "move", "location": "Center Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Top Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Center"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length / 2:f} F{feedrate}", "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center Left"},
                                 ]
         elif origin == "grblCenter":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Top Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Left"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2, feedrate), "action": "move", "location": "Top Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Center"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2, feedrate), "action": "move", "location": "Top Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Right"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length / 2 * -1, feedrate), "action": "move", "location": "Center Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Right"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Right"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2 * -1, feedrate), "action": "move", "location": "Bottom Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Center"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2 * -1, feedrate), "action": "move", "location": "Bottom Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Left"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length / 2, feedrate), "action": "move", "location": "Center Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Left"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2, feedrate), "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Top Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} F{feedrate}", "action": "move", "location": "Top Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} F{feedrate}", "action": "move", "location": "Top Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Right"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Right"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Left"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length / 2:f} F{feedrate}", "action": "move", "location": "Center Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} F{feedrate}", "action": "move", "location": "Center"},
                                 ]
         elif origin == "grblCenterRight":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Right"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Center Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Left"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2, feedrate), "action": "move", "location": "Top Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Center"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length / 2 * -1, feedrate), "action": "move", "location": "Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2, feedrate), "action": "move", "location": "Center Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Center Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Top Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Center"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} F{feedrate}", "action": "move", "location": "Center Right"},
                                 ]
         elif origin == "grblBottomLeft":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Left"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length, feedrate), "action": "move", "location": "Top Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Left"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width, feedrate), "action": "move", "location": "Top Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Right"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length * -1, feedrate), "action": "move", "location": "Bottom Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Right"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Left"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length:f} F{feedrate}", "action": "move", "location": "Top Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width:f} F{feedrate}", "action": "move", "location": "Top Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Right"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length * -1:f} F{feedrate}", "action": "move", "location": "Bottom Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Left"},
                                 ]
         elif origin == "grblBottomCenter":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2, feedrate), "action": "move", "location": "Center Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Left"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2, feedrate), "action": "move", "location": "Top Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2 * -1, feedrate), "action": "move", "location": "Center Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center Right"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width / 2 * -1, feedrate), "action": "move", "location": "Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Center Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2:f} F{feedrate}", "action": "move", "location": "Top Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Center"},
                                 ]
         elif origin == "grblBottomRight":
             zProbe._locations = [
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Right"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width * -1, feedrate), "action": "move", "location": "Bottom Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Bottom Left"},
-                                    {"gcode": "{}G91 G21 Y{:f} F{}".format(preamble, length, feedrate), "action": "move", "location": "Top Left"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Left"},
-                                    {"gcode": "{}G91 G21 X{:f} F{}".format(preamble, width, feedrate), "action": "move", "location": "Top Right"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Top Right"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2 * -1, length / 2 * -1, feedrate), "action": "move", "location": "Center"},
-                                    {"gcode": "G91 G21 G38.2 Z{} F100".format(zTravel),  "action": "probe", "location": "Center"},
-                                    {"gcode": "{}G91 G21 X{:f} Y{:f} F{}".format(preamble, width / 2, length / 2 * -1, feedrate), "action": "move", "location": "Bottom Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width * -1:f} F{feedrate}", "action": "move", "location": "Bottom Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Bottom Left"},
+                                    {"gcode": f"{preamble}G91 G21 Y{length:f} F{feedrate}", "action": "move", "location": "Top Left"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Left"},
+                                    {"gcode": f"{preamble}G91 G21 X{width:f} F{feedrate}", "action": "move", "location": "Top Right"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Top Right"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2 * -1:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Center"},
+                                    {"gcode": f"G91 G21 G38.2 Z{zTravel} F100",  "action": "probe", "location": "Center"},
+                                    {"gcode": f"{preamble}G91 G21 X{width / 2:f} Y{length / 2 * -1:f} F{feedrate}", "action": "move", "location": "Bottom Right"},
                                 ]
         else:
             # we shouldn't be here
@@ -1267,7 +1266,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
             program = int(float(_plugin.grblCoordinateSystem.replace("G", "")))
             program = -53 + program
 
-            queue_cmds_and_send(_plugin, ["G10 P{} L2 Z{:f}".format(program, position)])
+            queue_cmds_and_send(_plugin, [f"G10 P{program} L2 Z{position:f}"])
 
             # update our offsets
             _plugin.offsets[_plugin.grblCoordinateSystem]["z"] = position
@@ -1301,7 +1300,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
 
 def multipoint_zprobe_hook(_plugin, result, position):
     global zProbe
-    _plugin._logger.debug("_bgs: multipoint_zprobe_hook result=[{}] position=[{}] sessionId=[{}]".format(result, position, zProbe._sessionId))
+    _plugin._logger.debug(f"_bgs: multipoint_zprobe_hook result=[{result}] position=[{position}] sessionId=[{zProbe._sessionId}]")
 
     # did we have a problem?
     if result == 0:
@@ -1310,7 +1309,7 @@ def multipoint_zprobe_hook(_plugin, result, position):
         return
     else:
         location = zProbe.getCurrentLocation()['location']
-        notification = "Z-Probe [{}] location result [{:.3f}]".format(location, position)
+        notification = f"Z-Probe [{location}] location result [{position:.3f}]"
         add_notifications(_plugin, [notification])
 
         # max z feed rate -- we'll do 50% of it
@@ -1323,7 +1322,7 @@ def multipoint_zprobe_hook(_plugin, result, position):
 
 def defer_do_multipoint_zprobe(_plugin, sessionId):
     global zProbe
-    _plugin._logger.debug("_bgs: defer_do_multipoint_zprobe sessionId=[{}]".format(sessionId))
+    _plugin._logger.debug(f"_bgs: defer_do_multipoint_zprobe sessionId=[{sessionId}]")
 
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     _plugin._printer.commands("?")
@@ -1334,7 +1333,7 @@ def defer_do_multipoint_zprobe(_plugin, sessionId):
 
 def multipoint_zprobe_move(_plugin):
     global zProbe
-    _plugin._logger.debug("_bgs: multipoint_zprobe_move sessionId=[{}]".format(zProbe._sessionId))
+    _plugin._logger.debug(f"_bgs: multipoint_zprobe_move sessionId=[{zProbe._sessionId}]")
 
     # setup the next step
     do_multipoint_zprobe(_plugin, zProbe._sessionId)
@@ -1398,7 +1397,7 @@ def auto_cooldown_monitor(_plugin):
 
 
 def queue_cmds_and_send(_plugin, cmds, wait=False):
-    _plugin._logger.debug("_bgs: queue_cmds_and_send cmds=[{}] wait=[{}]".format(cmds, wait))
+    _plugin._logger.debug(f"_bgs: queue_cmds_and_send cmds=[{cmds}] wait=[{wait}]")
 
     for cmd in cmds:
         _plugin._logger.debug("queuing command [%s] wait=%r", cmd, wait)
@@ -1418,7 +1417,7 @@ def wait_for_empty_cmd_queue(_plugin):
 
 
 def add_notifications(_plugin, notifications):
-    _plugin._logger.debug("_bgs: add_notifications notifications=[{}]".format(notifications))
+    _plugin._logger.debug(f"_bgs: add_notifications notifications=[{notifications}]")
 
     if zProbe is not None:
         zProbe.notify(notifications)
@@ -1443,7 +1442,7 @@ def generate_metadata_for_file(_plugin, filename, notify=False, force=False):
     if timestamp is None or created > timestamp:
         force = True
 
-    _plugin._logger.debug("_bgs: generate_metadata_for_file filename=[{}] notify=[{}] force=[{}] processing=[{}] length=[{}] width=[{}] origin=[{}]".format(filename, notify, force, processing, length, width, origin))
+    _plugin._logger.debug(f"_bgs: generate_metadata_for_file filename=[{filename}] notify=[{notify}] force=[{force}] processing=[{processing}] length=[{length}] width=[{width}] origin=[{origin}]")
 
     if length is None or width is None or origin is None or force:
         _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_width")
@@ -1463,13 +1462,13 @@ def generate_metadata_for_file(_plugin, filename, notify=False, force=False):
                                                                                   origin=origin))
 
 def defer_generate_metadata_for_file(_plugin, filename, notify):
-    _plugin._logger.debug("_bgs: defer_generate_metadata_for_file filename=[{}] notify=[{}]".format(filename, notify))
+    _plugin._logger.debug(f"_bgs: defer_generate_metadata_for_file filename=[{filename}] notify=[{notify}]")
 
     try:
         file = _plugin._file_manager.path_on_disk("local", filename)
         created = os.path.getctime(file)
 
-        f = open(file, 'r')
+        f = open(file)
 
         minX = float("inf")
         minY = float("inf")
@@ -1524,12 +1523,12 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
                 x = float(match.groups(1)[0]) if positioning == 0 else x + float(match.groups(1)[0])
                 if x < minX:
                     if not underX and x < -1:
-                        _plugin._logger.debug("underX x=[{}]".format(x))
+                        _plugin._logger.debug(f"underX x=[{x}]")
                         underX = True
                     minX = x
                 if x > maxX:
                     if not overX and x > 1:
-                        _plugin._logger.debug("overX x=[{}]".format(x))
+                        _plugin._logger.debug(f"overX x=[{x}]")
                         overX = True
                     maxX = x
 
@@ -1539,12 +1538,12 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
                 y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
                 if y < minY:
                     if not underY and y <= -1:
-                        _plugin._logger.debug("underY y=[{}]".format(y))
+                        _plugin._logger.debug(f"underY y=[{y}]")
                         underY = True
                     minY = y
                 if y > maxY:
                     if not overY and y > 1:
-                        _plugin._logger.debug("overY y=[{}]".format(y))
+                        _plugin._logger.debug(f"overY y=[{y}]")
                         overY = True
                     maxY = y
 
@@ -1582,7 +1581,7 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
 
         _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_processing")
 
-        _plugin._logger.debug('finished reading file=[{}] length=[{}] width=[{}] origin=[{}] positioning=[{}] time=[{}]'.format(filename, length, width, origin, positioning, timer() - start))
+        _plugin._logger.debug(f'finished reading file=[{filename}] length=[{length}] width=[{width}] origin=[{origin}] positioning=[{positioning}] time=[{timer() - start}]')
 
         if notify:
             _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_frame_size",
@@ -1590,10 +1589,10 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
                                                                              width=width,
                                                                              origin=origin))
     except BaseException as e:
-        _plugin._logger.error("defer_generate_metadata_for_file: [{}]".format(str(e)))
+        _plugin._logger.error(f"defer_generate_metadata_for_file: [{str(e)}]")
 
 def wait_for_metadata_processing(_plugin, filename, notify):
-    _plugin._logger.debug("_bgs: wait_for_metadata_processing filename=[{}] notify=[{}]".format(filename, notify))
+    _plugin._logger.debug(f"_bgs: wait_for_metadata_processing filename=[{filename}] notify=[{notify}]")
 
     metadata = _plugin._file_manager.get_metadata("local", filename)
     processing = True if metadata.get("bgs_processing") == "true" else False
@@ -1618,34 +1617,34 @@ def wait_for_metadata_processing(_plugin, filename, notify):
 def is_laser_mode(_plugin):
     try:
         if not is_grbl_fluidnc(_plugin):
-            _plugin._logger.debug("_bgs: is_laser_mode={}".format(int(float(_plugin.grblSettings.get(32)[0])) != 0))
+            _plugin._logger.debug(f"_bgs: is_laser_mode={int(float(_plugin.grblSettings.get(32)[0])) != 0}")
             return int(float(_plugin.grblSettings.get(32)[0])) != 0
         else:
             return int(float(_plugin.fluidSettings.get("Grbl/LaserMode", 0.0))) != 0
     except Exception as e:
-        _plugin._logger.warn("_bgs: is_laser_mode: {}".format(e))
+        _plugin._logger.warn(f"_bgs: is_laser_mode: {e}")
 
     return False
 
 def is_grbl_one_dot_one(_plugin):
     oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion
-    _plugin._logger.debug("_bgs: is_grbl_one_dot_one result=[{}]".format(oneDotOne))
+    _plugin._logger.debug(f"_bgs: is_grbl_one_dot_one result=[{oneDotOne}]")
     return oneDotOne
 
 def is_grbl_esp32(_plugin):
     oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion and "VER:1.1" not in _plugin.grblVersion
-    _plugin._logger.debug("_bgs: is_grbl_esp32 result=[{}]".format(oneDotOne))
+    _plugin._logger.debug(f"_bgs: is_grbl_esp32 result=[{oneDotOne}]")
     return oneDotOne
 
 def is_grbl_fluidnc(_plugin):
     oneDotOne = " FLUIDNC " in _plugin.grblVersion.upper()
-    _plugin._logger.debug("_bgs: is_grbl_fluidnc result=[{}]".format(oneDotOne))
+    _plugin._logger.debug(f"_bgs: is_grbl_fluidnc result=[{oneDotOne}]")
     return oneDotOne
 
 def is_latin_encoding_available(_plugin):
     octoprintVersion = _plugin.octoprintVersion
     latinEncoding = int(octoprintVersion.split(".")[0]) > 1 or int(octoprintVersion.split(".")[1]) >= 8
-    _plugin._logger.debug("_bgs: is_latin_encoding_available result=[{}]".format(latinEncoding))
+    _plugin._logger.debug(f"_bgs: is_latin_encoding_available result=[{latinEncoding}]")
     return latinEncoding
 
 
@@ -1662,7 +1661,7 @@ def send_command_now(printer, logger, cmd, waitTime=0):
         printer.commands(cmd, force=True)
         logger.debug("_bgs: send_command")
     except Exception as e:
-        logger.error("_bgs: send_command_now: %s" % e)
+        logger.error("_bgs: send_command_now: %s", e)
 
 
 def defer_resuming_status_reports(_plugin, waitTime, showFinalize):
@@ -1681,16 +1680,16 @@ def update_fluid_config(_plugin):
     _plugin._logger.debug("_bgs: update_fluid_config")
 
     configName = _plugin.fluidSettings.get("Config/Filename", "config.yaml")
-    _plugin._printer.commands("$LocalFS/Delete={}".format(configName))
+    _plugin._printer.commands(f"$LocalFS/Delete={configName}")
 
     for key, value in _plugin.fluidYaml.items():
         process_fluid_config_item(_plugin, key, value)
 
-    queue_cmds_and_send(_plugin, ["$CD={}".format(configName)])
+    queue_cmds_and_send(_plugin, [f"$CD={configName}"])
     
 def process_fluid_config_item(_plugin, key, value, path=""):
     if isinstance(value, dict):
-        path = "{}{}/".format(path, key)
+        path = f"{path}{key}/"
         for child_key, child_value in value.items():
             process_fluid_config_item(_plugin, child_key, child_value, path)
     else:
@@ -1748,9 +1747,9 @@ def get_axes_max_rates(_plugin):
             yf = float(_plugin.grblSettings.get(111)[0])
             zf = float(_plugin.grblSettings.get(112)[0])
     except Exception as e:
-        _plugin._logger.warn("_bgs: get_axes_max_rates: {}".format(e))
+        _plugin._logger.warn(f"_bgs: get_axes_max_rates: {e}")
 
-    _plugin._logger.debug("_bgs: get_axes_max_rates x={} y={} z={}".format(xf, yf, zf))
+    _plugin._logger.debug(f"_bgs: get_axes_max_rates x={xf} y={yf} z={zf}")
     return xf, yf, zf
 
 
@@ -1783,16 +1782,16 @@ def get_axes_limits(_plugin):
         _plugin._settings.set(["control_distance"], distance)
         _plugin._settings.save(trigger_event=True)
     except Exception as e:
-        _plugin._logger.warn("_bgs: get_axes_limits: {}".format(e))
+        _plugin._logger.warn(f"_bgs: get_axes_limits: {e}")
 
-    _plugin._logger.debug("_bgs: get_axes_limits x={} y={} z={} distance={}".format(xl, yl, zl, distance))
+    _plugin._logger.debug(f"_bgs: get_axes_limits x={xl} y={yl} z={zl} distance={distance}")
     return xl, yl, zl
 
 def babystep_offset(_plugin, program, axis, increment):
     pgm = int(program.replace("G", "")) - 53
     newvalue = _plugin.offsets[program][axis.lower()] + increment
 
-    _plugin._printer.commands("G10 L2 P{} {}{}".format(pgm, axis.upper(), newvalue))
+    _plugin._printer.commands(f"G10 L2 P{pgm} {axis.upper()}{newvalue}")
 
     # update our offsets
     _plugin.offsets[program][axis] = newvalue

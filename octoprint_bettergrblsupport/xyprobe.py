@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Written by:  Shell M. Shrader (https://github.com/synman/Octoprint-Bettergrblsupport)
 # Copyright [2021] [Shell M. Shrader]
@@ -37,7 +36,7 @@ class XyProbe:
 
 
     def __init__(self, _plugin, _hook, _axes, _sessionId):
-        _plugin._logger.debug("XyProbe: __init__ sessionId=[{}]".format(_sessionId))
+        _plugin._logger.debug(f"XyProbe: __init__ sessionId=[{_sessionId}]")
 
         self._plugin = _plugin
         self._hook = _hook
@@ -46,7 +45,7 @@ class XyProbe:
 
 
     def notify(self, notifications):
-        self._plugin._logger.debug("XyProbe: notify notifications=[{}] step=[{}] sessionId=[{}]".format(notifications, self._step, self._sessionId))
+        self._plugin._logger.debug(f"XyProbe: notify notifications=[{notifications}] step=[{self._step}] sessionId=[{self._sessionId}]")
 
         for notification in notifications:
             # [PRB:0.000,0.000,0.000:0]
@@ -80,7 +79,7 @@ class XyProbe:
 
 
     def teardown(self):
-        self._plugin._logger.debug("XyProbe: teardown sessionId=[{}]".format(self._sessionId))
+        self._plugin._logger.debug(f"XyProbe: teardown sessionId=[{self._sessionId}]")
 
         self._hook = None
         self._results.clear()

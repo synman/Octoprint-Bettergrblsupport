@@ -11,7 +11,7 @@ description = "Extends Octoprint to support GRBL based laser engravers and CNC m
 authors = [
     { name = "Shell M. Shrader", email = "shell@shellware.com" },
 ]
-requires-python = ">=2.7,<4"
+requires-python = ">=3.7,<4"
 dependencies = []
 dynamic = [
     "license",
