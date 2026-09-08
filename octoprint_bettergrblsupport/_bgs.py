@@ -35,6 +35,7 @@ import subprocess
 
 from timeit import default_timer as timer
 from octoprint.events import Events
+from octoprint.util.version import is_octoprint_compatible
 
 from .zprobe import ZProbe
 from .xyprobe import XyProbe
@@ -177,7 +178,7 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set(["appearance", "components", "order", "sidebar"], orderedSidebar)
 
     # add pretty much all of grbl to long running commands list
-    longCmds = _plugin._settings.global_get(["serial", "longRunningCommands"])
+    longCmds = _plugin._settings.global_get(serial_settings_path(["longRunningCommands"]))
     if longCmds is None:
         longCmds = []
 
@@ -239,11 +240,11 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if "M30" in longCmds:
         longCmds.remove("M30")
 
-    _plugin._settings.global_set(["serial", "longRunningCommands"], longCmds)
-    _plugin._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 5)
-    _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], False)
-    _plugin._settings.global_set(["serial", "encoding"], "ascii")
-    _plugin._settings.global_set_boolean(["serial", "sanityCheckTools"], True)
+    _plugin._settings.global_set(serial_settings_path(["longRunningCommands"]), longCmds)
+    _plugin._settings.global_set(serial_settings_path(["maxCommunicationTimeouts", "long"]), 5)
+    set_never_send_checksum(_plugin, False)
+    _plugin._settings.global_set(serial_settings_path(["encoding"]), "ascii")
+    _plugin._settings.global_set_boolean(serial_settings_path(["sanityCheckTools"]), True)
 
     _plugin._settings.global_set(["terminalFilters"], _plugin.octo_filters)
     
@@ -1646,6 +1647,17 @@ def is_latin_encoding_available(_plugin):
     latinEncoding = int(octoprintVersion.split(".")[0]) > 1 or int(octoprintVersion.split(".")[1]) >= 8
     _plugin._logger.debug(f"_bgs: is_latin_encoding_available result=[{latinEncoding}]")
     return latinEncoding
+
+def serial_settings_path(path):
+    if is_octoprint_compatible(">=2"):
+        return ["plugins", "serial_connector"] + path
+    return ["serial"] + path
+
+def set_never_send_checksum(_plugin, value):
+    if is_octoprint_compatible(">=2"):
+        _plugin._settings.global_set(["plugins", "serial_connector", "sendChecksum"], "never" if value else "print")
+    else:
+        _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], value)
 
 
 def do_fake_ack(printer, logger):

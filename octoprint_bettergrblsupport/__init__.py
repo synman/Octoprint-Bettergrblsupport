@@ -357,7 +357,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # hardcoded global settings -- should revisit how I manage these
         self._settings.global_set_boolean(["feature", "modelSizeDetection"], not self.disableModelSizeDetection)
         self._settings.global_set_boolean(["feature", "sdSupport"], False)
-        self._settings.global_set_boolean(["serial", "neverSendChecksum"], self.neverSendChecksum)
+        _bgs.set_never_send_checksum(self, self.neverSendChecksum)
 
         self.autoSleep = self._settings.get_boolean(["autoSleep"])
         self.autoSleepInterval = round(float(self._settings.get(["autoSleepInterval"])))
@@ -391,7 +391,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.fluidSettings = self._settings.get(["fluidSettings"])
 
         if self.neverSendChecksum:
-            self._settings.global_set(["serial", "checksumRequiringCommands"], [])
+            self._settings.global_set(_bgs.serial_settings_path(["checksumRequiringCommands"]), [])
 
         # initialize config.yaml disabled plugins list
         disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
@@ -470,7 +470,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set(["appearance", "components", "order", "sidebar"], orderedSidebar)
 
         # add pretty much all of grbl to long running commands list
-        longCmds = self._settings.global_get(["serial", "longRunningCommands"])
+        longCmds = self._settings.global_get(_bgs.serial_settings_path(["longRunningCommands"]))
         if longCmds is None:
             longCmds = []
 
@@ -532,13 +532,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if "M30" not in longCmds:
             longCmds.append("M30")
 
-        self._settings.global_set(["serial", "longRunningCommands"], longCmds)
+        self._settings.global_set(_bgs.serial_settings_path(["longRunningCommands"]), longCmds)
 
-        self._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 0)
-        self._settings.global_set(["serial", "maxCommunicationTimeouts", "idle"], 0)
+        self._settings.global_set(_bgs.serial_settings_path(["maxCommunicationTimeouts", "long"]), 0)
+        self._settings.global_set(_bgs.serial_settings_path(["maxCommunicationTimeouts", "idle"]), 0)
 
-        self._settings.global_set(["serial", "encoding"], "latin_1")
-        self._settings.global_set_boolean(["serial", "sanityCheckTools"], False)
+        self._settings.global_set(_bgs.serial_settings_path(["encoding"]), "latin_1")
+        self._settings.global_set_boolean(_bgs.serial_settings_path(["sanityCheckTools"]), False)
 
         self._settings.global_set(["terminalFilters"], self.bgsFilters)
 
