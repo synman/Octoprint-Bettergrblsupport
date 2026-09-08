@@ -588,7 +588,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 profile = self._settings.global_get_basefolder("printerProfiles") + os.path.sep + "_bgs.profile"
                 if os.path.exists(profile):
                     os.remove(profile)                
-                self.settings.set_boolean(["profile_fixed"], True)
+                self._settings.set_boolean(["profile_fixed"], True)
 
             orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
             if "plugin_bettergrblsupport" in orderedTabs:
