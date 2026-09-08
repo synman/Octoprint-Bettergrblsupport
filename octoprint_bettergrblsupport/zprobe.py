@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Written by:  Shell M. Shrader (https://github.com/synman/Octoprint-Bettergrblsupport)
 # Copyright [2021] [Shell M. Shrader]
@@ -26,7 +25,6 @@
 # https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface#grbl-push-messages
 # https://reprap.org/wiki/G-codeimport os
 #
-from . import _bgs
 
 class ZProbe:
     _plugin = None
@@ -38,7 +36,7 @@ class ZProbe:
 
 
     def __init__(self, _plugin, _hook, _sessionId):
-        _plugin._logger.debug("ZProbe: __init__ sessionId=[{}]".format(_sessionId))
+        _plugin._logger.debug(f"ZProbe: __init__ sessionId=[{_sessionId}]")
 
         self._plugin = _plugin
         self._hook = _hook
@@ -46,7 +44,7 @@ class ZProbe:
 
 
     def notify(self, notifications):
-        self._plugin._logger.debug("ZProbe: notify notifications=[{}] sessionId=[{}]".format(notifications, self._sessionId))
+        self._plugin._logger.debug(f"ZProbe: notify notifications=[{notifications}] sessionId=[{self._sessionId}]")
 
         for notification in notifications:
             # [PRB:0.000,0.000,0.000:0]
@@ -64,12 +62,12 @@ class ZProbe:
                 self._hook(self._plugin, result, position)
 
     def getCurrentLocation(self):
-        self._plugin._logger.debug("ZProbe: getCurrentLocation step=[{}] location=[{}] sessionId=[{}]".format(self._step, self._locations[self._step], self._sessionId))
+        self._plugin._logger.debug(f"ZProbe: getCurrentLocation step=[{self._step}] location=[{self._locations[self._step]}] sessionId=[{self._sessionId}]")
         return self._locations[self._step]
 
 
     def resultByCalc(self, calculation):
-        self._plugin._logger.debug("ZProbe: resultByCalc calc=[{}] sessionId=[{}]".format(calculation, self._sessionId))
+        self._plugin._logger.debug(f"ZProbe: resultByCalc calc=[{calculation}] sessionId=[{self._sessionId}]")
         ordered = sorted(self._results, key = lambda i: i["position"])
 
         zProbeOffset = self._plugin.zProbeOffset * self._plugin.invertZ * -1
@@ -92,7 +90,7 @@ class ZProbe:
 
 
     def teardown(self):
-        self._plugin._logger.debug("ZProbe: teardown sessionId=[{}]".format(self._sessionId))
+        self._plugin._logger.debug(f"ZProbe: teardown sessionId=[{self._sessionId}]")
 
         self._hook = None
         self._plugin = None
