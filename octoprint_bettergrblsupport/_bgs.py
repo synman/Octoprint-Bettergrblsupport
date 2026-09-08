@@ -26,19 +26,16 @@
 # https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface#grbl-push-messages
 # https://reprap.org/wiki/G-codeimport os
 #
-from operator import truediv
 import os
 import time
 import math
 
 import re
-import requests
 import threading
 import subprocess
 
 from timeit import default_timer as timer
 from octoprint.events import Events
-from octoprint.access.permissions import Permissions
 
 from .zprobe import ZProbe
 from .xyprobe import XyProbe
@@ -53,7 +50,7 @@ def load_grbl_descriptions(_plugin):
 
     for line in f:
         match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
-        if not match is None:
+        if match is not None:
             _plugin.grblErrors[int(match.groups(1)[0])] = match.groups(1)[1]
             # _plugin._logger.debug("matching error id: [%d] to description: [%s]", int(match.groups(1)[0]), match.groups(1)[1])
 
@@ -61,7 +58,7 @@ def load_grbl_descriptions(_plugin):
 
     for line in f:
         match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
-        if not match is None:
+        if match is not None:
             _plugin.grblAlarms[int(match.groups(1)[0])] = match.groups(1)[1]
             # _plugin._logger.debug("matching alarm id: [%d] to description: [%s]", int(match.groups(1)[0]), match.groups(1)[1])
 
@@ -69,7 +66,7 @@ def load_grbl_descriptions(_plugin):
 
     for line in f:
         match = re.search(r"^(-?[\d\.]+)[\ ]+(-?[\S\ ]*)", line)
-        if not match is None:
+        if match is not None:
             _plugin.grblSettingsNames[int(match.groups(1)[0])] = match.groups(1)[1]
             # _plugin._logger.debug("matching setting id: [%d] to description: [%s]", int(match.groups(1)[0]), match.groups(1)[1])
 
@@ -79,14 +76,14 @@ def load_grbl_settings(_plugin):
 
     _plugin.grblSettingsText = _plugin._settings.get(["grblSettingsText"])
 
-    if not _plugin.grblSettingsText is None:
+    if _plugin.grblSettingsText is not None:
         for setting in _plugin.grblSettingsText.split("||"):
             if len(setting.strip()) > 0:
 
                 _plugin._logger.debug("load_grbl_settings=[{}]".format(setting))
 
                 set = setting.split("|")
-                if not set is None:
+                if set is not None:
                     _plugin.grblSettings.update({int(set[0]): [set[1], _plugin.grblSettingsNames.get(int(set[0]))]})
     return
 
@@ -118,16 +115,16 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     orderedTabs = _plugin._settings.global_get(["appearance", "components", "order", "tab"])
     orderedSidebar = _plugin._settings.global_get(["appearance", "components", "order", "sidebar"])
 
-    if disabledPlugins == None:
+    if disabledPlugins is None:
         disabledPlugins = []
 
-    if disabledTabs == None:
+    if disabledTabs is None:
         disabledTabs = []
 
-    if orderedTabs == None:
+    if orderedTabs is None:
         orderedTabs = []
 
-    if orderedSidebar == None:
+    if orderedSidebar is None:
         orderedSidebar = []
 
     # re-enable the printer safety check plugin
@@ -182,39 +179,66 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
 
     # add pretty much all of grbl to long running commands list
     longCmds = _plugin._settings.global_get(["serial", "longRunningCommands"])
-    if longCmds == None: longCmds = []
+    if longCmds is None:
+        longCmds = []
 
-    if "$H" in longCmds: longCmds.remove("$H")
-    if "G92" in longCmds: longCmds.remove("G92")
-    if "G30" in longCmds: longCmds.remove("G30")
-    if "G53" in longCmds: longCmds.append("G53")
-    if "G54" in longCmds: longCmds.remove("G54")
+    if "$H" in longCmds:
+        longCmds.remove("$H")
+    if "G92" in longCmds:
+        longCmds.remove("G92")
+    if "G30" in longCmds:
+        longCmds.remove("G30")
+    if "G53" in longCmds:
+        longCmds.append("G53")
+    if "G54" in longCmds:
+        longCmds.remove("G54")
 
-    if "G20" in longCmds: longCmds.remove("G20")
-    if "G21" in longCmds: longCmds.remove("G21")
+    if "G20" in longCmds:
+        longCmds.remove("G20")
+    if "G21" in longCmds:
+        longCmds.remove("G21")
 
-    if "G90" in longCmds: longCmds.remove("G90")
-    if "G91" in longCmds: longCmds.remove("G91")
+    if "G90" in longCmds:
+        longCmds.remove("G90")
+    if "G91" in longCmds:
+        longCmds.remove("G91")
 
-    if "G38.1" in longCmds: longCmds.remove("G38.1")
-    if "G38.2" in longCmds: longCmds.remove("G38.2")
-    if "G38.3" in longCmds: longCmds.remove("G38.3")
-    if "G38.4" in longCmds: longCmds.remove("G38.4")
-    if "G38.5" in longCmds: longCmds.remove("G38.5")
+    if "G38.1" in longCmds:
+        longCmds.remove("G38.1")
+    if "G38.2" in longCmds:
+        longCmds.remove("G38.2")
+    if "G38.3" in longCmds:
+        longCmds.remove("G38.3")
+    if "G38.4" in longCmds:
+        longCmds.remove("G38.4")
+    if "G38.5" in longCmds:
+        longCmds.remove("G38.5")
 
-    if "G0" in longCmds: longCmds.remove("G0")
-    if "G1" in longCmds: longCmds.remove("G1")
-    if "G2" in longCmds: longCmds.remove("G2")
-    if "G3" in longCmds: longCmds.remove("G3")
-    if "G4" in longCmds: longCmds.remove("G4")
+    if "G0" in longCmds:
+        longCmds.remove("G0")
+    if "G1" in longCmds:
+        longCmds.remove("G1")
+    if "G2" in longCmds:
+        longCmds.remove("G2")
+    if "G3" in longCmds:
+        longCmds.remove("G3")
+    if "G4" in longCmds:
+        longCmds.remove("G4")
 
-    if "M3" in longCmds: longCmds.remove("M3")
-    if "M4" in longCmds: longCmds.remove("M4")
-    if "M5" in longCmds: longCmds.remove("M5")
-    if "M7" in longCmds: longCmds.remove("M7")
-    if "M8" in longCmds: longCmds.remove("M8")
-    if "M9" in longCmds: longCmds.remove("M9")
-    if "M30" in longCmds: longCmds.remove("M30")
+    if "M3" in longCmds:
+        longCmds.remove("M3")
+    if "M4" in longCmds:
+        longCmds.remove("M4")
+    if "M5" in longCmds:
+        longCmds.remove("M5")
+    if "M7" in longCmds:
+        longCmds.remove("M7")
+    if "M8" in longCmds:
+        longCmds.remove("M8")
+    if "M9" in longCmds:
+        longCmds.remove("M9")
+    if "M30" in longCmds:
+        longCmds.remove("M30")
 
     _plugin._settings.global_set(["serial", "longRunningCommands"], longCmds)
     _plugin._settings.global_set(["serial", "maxCommunicationTimeouts", "long"], 5)
@@ -238,7 +262,8 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     currentConnectedScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "afterPrinterConnected"))
 
     if os.path.exists(oldConnectedScript):
-        if os.path.exists(currentConnectedScript): os.remove(currentConnectedScript)
+        if os.path.exists(currentConnectedScript):
+            os.remove(currentConnectedScript)
         os.rename(oldConnectedScript, currentConnectedScript)
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="restart_required"))
@@ -306,7 +331,7 @@ def on_event(_plugin, event, payload):
     if event == Events.PRINT_STARTED:
         if "HOLD" in _plugin.grblState.upper():
             send_command_now(_plugin._printer, _plugin._logger, "~")
-        elif not _plugin.grblState.upper() in ("IDLE", "CHECK", "RUN"):
+        elif _plugin.grblState.upper() not in ("IDLE", "CHECK", "RUN"):
             # we have to stop this
             _plugin._logger.warning("print started but grbl state is [%s], cancelling print", _plugin.grblState)
             _plugin._printer.cancel_print()
@@ -649,13 +674,13 @@ def process_grbl_status_msg(_plugin, msg):
         _plugin.grblA = float(match.groups(1)[4])
         
     match = re.search(r'.*\|Pn:([XYZABPDHRS]+)', msg)
-    if not match is None:
+    if match is not None:
         _plugin.grblActivePins = match.groups(1)[0]
     else:
         _plugin.grblActivePins = "None"
 
     match = re.search(r'.*\|FS:(-?[\d\.]+),(-?[\d\.]+)', msg)
-    if not match is None:
+    if match is not None:
         _plugin.grblSpeed = round(float(match.groups(1)[0]))
         _plugin.grblPowerLevel = float(match.groups(1)[1])
 
@@ -706,7 +731,7 @@ def process_grbl_alarm(_plugin, msg):
     desc = msg
 
     match = re.search(r'alarm:\ *(-?[\d.]+)', msg.lower())
-    if not match is None:
+    if match is not None:
         error = int(match.groups(1)[0])
         desc = _plugin.grblAlarms.get(error)
 
@@ -748,17 +773,20 @@ def process_grbl_error(_plugin, msg):
     desc = msg
 
     match = re.search(r'error:\ *(-?[\d.]+)', msg.lower())
-    if not match is None:
+    if match is not None:
         error = int(match.groups(1)[0])
 
         desc = _plugin.grblErrors.get(error)
-        if desc is None: desc = "Grbl Error #{} - Error description not available".format(error)
+        if desc is None:
+            desc = "Grbl Error #{} - Error description not available".format(error)
 
     # hack to suppress errors on connect
-    if time.monotonic() - _plugin.whenConnected < 20: return "ok "
+    if time.monotonic() - _plugin.whenConnected < 20:
+        return "ok "
 
     # lets not deal with file not found
-    if error == 65: return "ok "
+    if error == 65:
+        return "ok "
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                     title="Grbl Error #{} Received".format(error),
@@ -858,7 +886,7 @@ def defer_do_xyz_probe(_plugin, sessionId):
     do_simple_zprobe(_plugin, sessionId)
 
     # wait for the z probe to run out of scope
-    while zProbe != None:
+    while zProbe is not None:
         time.sleep(1)
 
     do_xy_probe(_plugin, "XY", sessionId)
@@ -866,7 +894,7 @@ def defer_do_xyz_probe(_plugin, sessionId):
 
 def do_xy_probe(_plugin, axes, sessionId):
     global xyProbe
-    _plugin._logger.debug("_bgs: do_xy_probe step=[{}] axes=[{}] sessionId=[{}]".format(xyProbe._step if xyProbe != None else "N/A", axes, sessionId))
+    _plugin._logger.debug("_bgs: do_xy_probe step=[{}] axes=[{}] sessionId=[{}]".format(xyProbe._step if xyProbe is not None else "N/A", axes, sessionId))
 
     frameOrigin = _plugin._settings.get(["frame_origin"])
 
@@ -881,9 +909,10 @@ def do_xy_probe(_plugin, axes, sessionId):
                                                                        notify_type="notice"))
         return
 
-    if xyProbe == None:
+    if xyProbe is None:
         xyProbe = XyProbe(_plugin, xy_probe_hook, axes, sessionId)
-        if axes == "Y": xyProbe._step = 0
+        if axes == "Y":
+            xyProbe._step = 0
 
     xyProbeTravel = float(_plugin._settings.get(["xyProbeTravel"]))
 
@@ -970,7 +999,8 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
     _plugin.grblCmdQueue.append("%%% eat me %%%")
     _plugin._printer.commands("?")
     wait_for_empty_cmd_queue(_plugin)
-    if xyProbe == None: return
+    if xyProbe is None:
+        return
 
     xf, yf, zf = get_axes_max_rates(_plugin)
     xyf = min([xf, yf]) * (_plugin.framingPercentOfMaxSpeed * .01)
@@ -1006,7 +1036,7 @@ def do_simple_zprobe(_plugin, sessionId):
 
     global zProbe
 
-    if not zProbe == None:
+    if zProbe is not None:
         zProbe.teardown()
         zProbe = None
 
@@ -1077,9 +1107,9 @@ def defer_simple_z_probe(_plugin, z0):
 
 def do_multipoint_zprobe(_plugin, sessionId):
     global zProbe
-    _plugin._logger.debug("_bgs: do_multipoint_zprobe step=[{}] sessionId=[{}]".format(zProbe._step + 1 if zProbe != None else 0, sessionId))
+    _plugin._logger.debug("_bgs: do_multipoint_zprobe step=[{}] sessionId=[{}]".format(zProbe._step + 1 if zProbe is not None else 0, sessionId))
 
-    if zProbe == None:
+    if zProbe is None:
         zProbe = ZProbe(_plugin, multipoint_zprobe_hook, sessionId)
 
     zProbe._step+=1
@@ -1299,7 +1329,7 @@ def defer_do_multipoint_zprobe(_plugin, sessionId):
     _plugin._printer.commands("?")
     wait_for_empty_cmd_queue(_plugin)
 
-    if zProbe != None:
+    if zProbe is not None:
         do_multipoint_zprobe(_plugin, sessionId)
 
 def multipoint_zprobe_move(_plugin):
@@ -1316,11 +1346,11 @@ def grbl_alarm_or_error_occurred(_plugin):
 
     _plugin._logger.debug("_bgs: grbl_alarm_or_error_occurred")
 
-    if zProbe != None:
+    if zProbe is not None:
         zProbe.teardown()
         zProbe = None
 
-    if xyProbe != None:
+    if xyProbe is not None:
         xyProbe.teardown()
         xyProbe = None
 
@@ -1390,9 +1420,9 @@ def wait_for_empty_cmd_queue(_plugin):
 def add_notifications(_plugin, notifications):
     _plugin._logger.debug("_bgs: add_notifications notifications=[{}]".format(notifications))
 
-    if not zProbe is None:
+    if zProbe is not None:
         zProbe.notify(notifications)
-    if not xyProbe is None:
+    if xyProbe is not None:
         xyProbe.notify(notifications)
 
     for notification in notifications:
@@ -1462,7 +1492,8 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
 
         for line in f:
             # skip comments / etc
-            if line.upper().lstrip().startswith((";", "(", "%")): continue
+            if line.upper().lstrip().startswith((";", "(", "%")):
+                continue
 
             # save our G command for shorthand post processors
             if line.upper().lstrip().startswith("G"):
@@ -1489,7 +1520,7 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
             # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
             match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
             # _plugin._logger.debug("command=[{}]".format(command))
-            if not match is None:
+            if match is not None:
                 x = float(match.groups(1)[0]) if positioning == 0 else x + float(match.groups(1)[0])
                 if x < minX:
                     if not underX and x < -1:
@@ -1504,7 +1535,7 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
 
             # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
             match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
-            if not match is None:
+            if match is not None:
                 y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
                 if y < minY:
                     if not underY and y <= -1:
@@ -1521,19 +1552,28 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
         width = math.ceil(maxX - minX)
 
         # bottom
-        if overY and not underY and overX and not underX: origin = "grblBottomLeft"
-        if overY and not underY and overX and underX: origin = "grblBottomCenter"
-        if overY and not underY and not overX and underX: origin = "grblBottomRight"
+        if overY and not underY and overX and not underX:
+            origin = "grblBottomLeft"
+        if overY and not underY and overX and underX:
+            origin = "grblBottomCenter"
+        if overY and not underY and not overX and underX:
+            origin = "grblBottomRight"
 
         # center
-        if overY and underY and overX and not underX: origin = "grblCenterLeft"
-        if overY and underY and overX and underX: origin = "grblCenter"
-        if overY and underY and not overX and underX: origin = "grblCenterRight"
+        if overY and underY and overX and not underX:
+            origin = "grblCenterLeft"
+        if overY and underY and overX and underX:
+            origin = "grblCenter"
+        if overY and underY and not overX and underX:
+            origin = "grblCenterRight"
 
         # top
-        if not overY and underY and overX and not underX: origin = "grblTopLeft"
-        if not overY and underY and overX and underX: origin = "grblTopCenter"
-        if not overY and underY and not overX and underX: origin = "grblTopRight"
+        if not overY and underY and overX and not underX:
+            origin = "grblTopLeft"
+        if not overY and underY and overX and underX:
+            origin = "grblTopCenter"
+        if not overY and underY and not overX and underX:
+            origin = "grblTopRight"
 
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_length", length, overwrite=True)
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_width", width, overwrite=True)
@@ -1654,7 +1694,7 @@ def process_fluid_config_item(_plugin, key, value, path=""):
         for child_key, child_value in value.items():
             process_fluid_config_item(_plugin, child_key, child_value, path)
     else:
-        if not value is None and not "PIN" in key.upper() and not "MOTOR" in path.upper() and not is_spindle(path):
+        if value is not None and "PIN" not in key.upper() and "MOTOR" not in path.upper() and not is_spindle(path):
             _plugin._printer.commands("$/{}{}={}".format(path, key, value.replace("null", "")))
 
 def is_spindle(path):

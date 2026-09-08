@@ -26,7 +26,6 @@
 # https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface#grbl-push-messages
 # https://reprap.org/wiki/G-codeimport os
 #
-from . import _bgs
 
 class XyProbe:
     _plugin = None

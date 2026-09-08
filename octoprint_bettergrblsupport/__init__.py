@@ -28,7 +28,6 @@
 # http://wiki.fluidnc.com/en/home
 #
 from __future__ import absolute_import
-from pydoc import Helper
 
 from octoprint.events import Events
 from shutil import copyfile
@@ -37,14 +36,12 @@ from . import _bgs
 
 import octoprint.plugin
 
-import sys
 import os
 import time
 import subprocess
 import threading
 
 import re
-import logging
 import json
 import flask
 import yaml
@@ -390,7 +387,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.autoReportInterval = self._settings.get(["autoReportInterval"])
 
         fluidYaml = self._settings.get(["fluidYaml"])
-        if not fluidYaml is None and len(fluidYaml) > 0:
+        if fluidYaml is not None and len(fluidYaml) > 0:
             self.fluidYaml = yaml.safe_load(fluidYaml)
 
         self.fluidSettings = self._settings.get(["fluidSettings"])
@@ -400,22 +397,22 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # initialize config.yaml disabled plugins list
         disabledPlugins = self._settings.global_get(["plugins", "_disabled"])
-        if disabledPlugins == None:
+        if disabledPlugins is None:
             disabledPlugins = []
 
         # initialize config.yaml disabled tabs list
         disabledTabs = self._settings.global_get(["appearance", "components", "disabled", "tab"])
-        if disabledTabs == None:
+        if disabledTabs is None:
             disabledTabs = []
 
         # initialize config.yaml ordered sidebar list
         orderedSidebar = self._settings.global_get(["appearance", "components", "order", "sidebar"])
-        if orderedSidebar == None:
+        if orderedSidebar is None:
             orderedSidebar = []
 
         # initialize ordered tabs
         orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
-        if orderedTabs == None:
+        if orderedTabs is None:
             orderedTabs = []
 
         # disable the printer safety check plugin
@@ -476,40 +473,66 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # add pretty much all of grbl to long running commands list
         longCmds = self._settings.global_get(["serial", "longRunningCommands"])
-        if longCmds == None:
+        if longCmds is None:
             longCmds = []
 
-        if not "$H" in longCmds: longCmds.append("$H")
-        if not "G92" in longCmds: longCmds.append("G92")
-        if not "G30" in longCmds: longCmds.append("G30")
-        if not "G53" in longCmds: longCmds.append("G53")
-        if not "G54" in longCmds: longCmds.append("G54")
+        if "$H" not in longCmds:
+            longCmds.append("$H")
+        if "G92" not in longCmds:
+            longCmds.append("G92")
+        if "G30" not in longCmds:
+            longCmds.append("G30")
+        if "G53" not in longCmds:
+            longCmds.append("G53")
+        if "G54" not in longCmds:
+            longCmds.append("G54")
 
-        if not "G20" in longCmds: longCmds.append("G20")
-        if not "G21" in longCmds: longCmds.append("G21")
+        if "G20" not in longCmds:
+            longCmds.append("G20")
+        if "G21" not in longCmds:
+            longCmds.append("G21")
 
-        if not "G90" in longCmds: longCmds.append("G90")
-        if not "G91" in longCmds: longCmds.append("G91")
+        if "G90" not in longCmds:
+            longCmds.append("G90")
+        if "G91" not in longCmds:
+            longCmds.append("G91")
 
-        if not "G38.1" in longCmds: longCmds.append("G38.1")
-        if not "G38.2" in longCmds: longCmds.append("G38.2")
-        if not "G38.3" in longCmds: longCmds.append("G38.3")
-        if not "G38.4" in longCmds: longCmds.append("G38.4")
-        if not "G38.5" in longCmds: longCmds.append("G38.5")
+        if "G38.1" not in longCmds:
+            longCmds.append("G38.1")
+        if "G38.2" not in longCmds:
+            longCmds.append("G38.2")
+        if "G38.3" not in longCmds:
+            longCmds.append("G38.3")
+        if "G38.4" not in longCmds:
+            longCmds.append("G38.4")
+        if "G38.5" not in longCmds:
+            longCmds.append("G38.5")
 
-        if not "G0" in longCmds: longCmds.append("G0")
-        if not "G1" in longCmds: longCmds.append("G1")
-        if not "G2" in longCmds: longCmds.append("G2")
-        if not "G3" in longCmds: longCmds.append("G3")
-        if not "G4" in longCmds: longCmds.append("G4")
+        if "G0" not in longCmds:
+            longCmds.append("G0")
+        if "G1" not in longCmds:
+            longCmds.append("G1")
+        if "G2" not in longCmds:
+            longCmds.append("G2")
+        if "G3" not in longCmds:
+            longCmds.append("G3")
+        if "G4" not in longCmds:
+            longCmds.append("G4")
 
-        if not "M3" in longCmds: longCmds.append("M3")
-        if not "M4" in longCmds: longCmds.append("M4")
-        if not "M5" in longCmds: longCmds.append("M5")
-        if not "M7" in longCmds: longCmds.append("M7")
-        if not "M8" in longCmds: longCmds.append("M8")
-        if not "M9" in longCmds: longCmds.append("M9")
-        if not "M30" in longCmds: longCmds.append("M30")
+        if "M3" not in longCmds:
+            longCmds.append("M3")
+        if "M4" not in longCmds:
+            longCmds.append("M4")
+        if "M5" not in longCmds:
+            longCmds.append("M5")
+        if "M7" not in longCmds:
+            longCmds.append("M7")
+        if "M8" not in longCmds:
+            longCmds.append("M8")
+        if "M9" not in longCmds:
+            longCmds.append("M9")
+        if "M30" not in longCmds:
+            longCmds.append("M30")
 
         self._settings.global_set(["serial", "longRunningCommands"], longCmds)
 
@@ -560,10 +583,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
     def on_settings_migrate(self, target, current):
         self._logger.debug("__init__: on_settings_migrate target=[{}] current=[{}]".format(target, current))
 
-        if current == None or current != target:
+        if current is None or current != target:
             if not self._settings.get_boolean(["profile_fixed"]):
                 profile = self._settings.global_get_basefolder("printerProfiles") + os.path.sep + "_bgs.profile"
-                if os.path.exists(profile): os.remove(profile)                
+                if os.path.exists(profile):
+                    os.remove(profile)                
                 self.settings.set_boolean(["profile_fixed"], True)
 
             orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
@@ -600,7 +624,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.remove(["customControls"])
 
             self._settings.save()
-            self._logger.info("Migrated to settings v%d from v%d", target, 1 if current == None else current)
+            self._logger.info("Migrated to settings v%d from v%d", target, 1 if current is None else current)
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="restart_required"))
 
     def on_settings_save(self, data):
@@ -614,11 +638,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             offsetX = float (self.originXOffset)
             offsetY = float (self.originYOffset)
             offsetZ = float (self.originZOffset)
-            if "originXOffset" in data: offsetX = float(data["originXOffset"])
-            if "originYOffset" in data: offsetY = float(data["originYOffset"])
-            if "originZOffset" in data: offsetZ = float(data["originZOffset"])
-            if offsetX == 0.0 and offsetY == 0.0 and offsetZ == 0.0: data["originOffsets"] = False
-            if data["originOffsets"] == False:
+            if "originXOffset" in data:
+                offsetX = float(data["originXOffset"])
+            if "originYOffset" in data:
+                offsetY = float(data["originYOffset"])
+            if "originZOffset" in data:
+                offsetZ = float(data["originZOffset"])
+            if offsetX == 0.0 and offsetY == 0.0 and offsetZ == 0.0:
+                data["originOffsets"] = False
+            if not data["originOffsets"]:
                 data["originXOffset"] = 0.0
                 data["originYOffset"] = 0.0
                 data["originZOffset"] = 0.0
@@ -658,7 +686,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                             r = requests.post(url, files=files)
                             r.close()
 
-                            if not "fluidSettings" in data:
+                            if "fluidSettings" not in data:
                                 self._printer.commands("$Bye")
                         except Exception as e:
                             self._logger.warn("__init__: on_settings_save unable to save fluid config: {}".format(e))
@@ -1001,7 +1029,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             cmd = "$+" if _bgs.is_grbl_esp32(self) else self.helloCommand
 
             # in the unlikely event our hello command has been remapped
-            if not cmd.upper() in self.trackedCmds:
+            if cmd.upper() not in self.trackedCmds:
                 self.trackedCmds.append(cmd.upper())
 
         # Wait for moves to finish before turning off the spindle
@@ -1212,7 +1240,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     threading.Thread(target=_bgs.send_command_now, kwargs={"printer": self._printer, "logger": self._logger, "cmd": "?", "waitTime": 2}).start()
 
             ignoreList = ("[MSG:'$H'|'$X' to unlock]", "[MSG:INFO: '$H'|'$X' to unlock]")
-            if not line.rstrip("\r").rstrip("\n").strip() in ignoreList:
+            if line.rstrip("\r").rstrip("\n").strip() not in ignoreList:
                 # auto reset
                 # if "reset to continue" in line.lower():
                     # TODO:  this may not be wise any longer
@@ -1237,7 +1265,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         # add to our lastResponse if this is not an acknowledgment
-        if not "ok" in line.lower() and len(self.lastRequest) > 0:
+        if "ok" not in line.lower() and len(self.lastRequest) > 0:
             lastResponse = line.rstrip().rstrip("\r").rstrip("\n")
             self.lastResponse = self.lastResponse + lastResponse + "\n" 
 
@@ -1438,7 +1466,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "feedRate":
             feedRate = float(data.get("feed_rate"))
-            if not feedRate in (0, 100):
+            if feedRate not in (0, 100):
                 self.feedRate = feedRate * .01
                 # sending our current feedrate ensures grbl uses the new feedrate
                 # now rather than wait for it to be sent -- it could be a while for
@@ -1453,7 +1481,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "plungeRate":
             plungeRate = float(data.get("plunge_rate"))
-            if not plungeRate in (0, 100):
+            if plungeRate not in (0, 100):
                 self.plungeRate = plungeRate * .01
             else:
                 self.plungeRate = float(0)
@@ -1463,7 +1491,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         if command == "powerRate":
             powerRate = float(data.get("power_rate"))
-            if not powerRate in (0, 100):
+            if powerRate not in (0, 100):
                 self.powerRate = powerRate * .01
                 # sending our current powerRate ensures grbl uses the new powerRate
                 # now rather than wait for it to be sent -- it could be a while for
@@ -1491,7 +1519,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 
 
         # catch-all (TODO: should revisit state management) for validating printer State
-        if not self._printer.is_ready() or not self.grblState in ("Idle", "Jog", "Check"):
+        if not self._printer.is_ready() or self.grblState not in ("Idle", "Jog", "Check"):
             self._logger.debug("ignoring move related command - printer is not available")
             return
 
@@ -1535,9 +1563,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif axis == "XY":
                     self._printer.commands(f"G0 G90 X{0 if not self.originOffsets else self.originXOffset} Y{0 if not self.originOffsets else self.originYOffset}")
                 elif axis == "A":
-                    self._printer.commands(f"G0 G90 A0")
+                    self._printer.commands("G0 G90 A0")
                 elif axis == "B":
-                    self._printer.commands(f"G0 G90 B0")
+                    self._printer.commands("G0 G90 B0")
                 else:
                     self._printer.commands(f"G0 G90 X{0 if not self.originOffsets else self.originXOffset} Y{0 if not self.originOffsets else self.originYOffset} Z{0 if not self.originOffsets else self.originZOffset} {extra_axes}")
 
@@ -1679,7 +1707,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # for details.
 
         useDevChannel = self._settings.get_boolean(["useDevChannel"])
-        checkout_folder = os.path.dirname(os.path.realpath(sys.executable))
 
         # dev channel check
         if useDevChannel:
