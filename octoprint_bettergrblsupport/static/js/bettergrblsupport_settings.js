@@ -62,6 +62,7 @@ $(function() {
               new PNotify({
                 title: "Grbl Settings Update",
                 text: "$" + id + " has been set to " + value,
+                text_escape: true,
                 hide: true,
                 animation: "fade",
                 animateSpeed: "slow",
@@ -78,6 +79,7 @@ $(function() {
               new PNotify({
                 title: "Grbl setting update failed!",
                 text: data.responseText,
+                text_escape: true,
                 hide: true,
                 buttons: {
                   sticker: false,
@@ -122,6 +124,7 @@ $(function() {
             new PNotify({
               title: "Grbl Settings Backup",
               text: data.responseText,
+              text_escape: true,
               hide: true,
               buttons: {
                 sticker: false,
@@ -159,6 +162,7 @@ $(function() {
             new PNotify({
               title: "Grbl Settings Restore",
               text: data.responseText,
+              text_escape: true,
               hide: true,
               buttons: {
                 sticker: false,

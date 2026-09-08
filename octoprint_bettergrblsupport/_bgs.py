@@ -25,6 +25,7 @@
 # https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface#grbl-push-messages
 # https://reprap.org/wiki/G-codeimport os
 #
+import html
 import os
 import time
 import math
@@ -737,7 +738,7 @@ def process_grbl_alarm(_plugin, msg):
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                     title=f"Grbl Alarm #{error} Received",
-                                                                    text=desc,
+                                                                    text=html.escape(desc),
                                                                     hide=True,
                                                                     delay=10000,
                                                                     notify_type="notice"))
@@ -790,7 +791,7 @@ def process_grbl_error(_plugin, msg):
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                     title=f"Grbl Error #{error} Received",
-                                                                    text=desc,
+                                                                    text=html.escape(desc),
                                                                     hide=True,
                                                                     delay=10000,
                                                                     notify_type="error"))
