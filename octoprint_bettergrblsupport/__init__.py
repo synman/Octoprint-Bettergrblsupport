@@ -134,8 +134,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.autoCooldownFrequency = 60
         self.autoCooldownDuration = 15
 
-        self.notifyFrameSize = True
-
         self.invertX = 1
         self.invertY = 1
         self.invertZ = 1
@@ -145,8 +143,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.trackedCmds = ["$CD", "$CONFIG/DUMP", "$$", "$+", "$S", "M115", "$SETTINGS/LIST", "$I", "$BUILD/INFO", "$G", "$GCODE/MODES", "$#"]
         self.lastRequest = []
         self.lastResponse = ""
-
-        self.grblConfig = None
 
         self.fluidSettings = None
         self.fluidConfig = None
@@ -370,8 +366,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
         self.invertZ = -1 if self._settings.get_boolean(["invertZ"]) else 1
         self._logger.debug(f"axis inversion X=[{self.invertX}] Y=[{self.invertY}] Z=[{self.invertZ}]")
-
-        self.notifyFrameSize = self._settings.get_boolean(["notifyFrameSize"])
 
         self.hasA = self._settings.get_boolean(["hasA"])
         self.hasB = self._settings.get_boolean(["hasB"])
@@ -1324,7 +1318,6 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # grbl settings received
             if lastRequest.upper() in ("$$", "$+", "M115"): 
-                self.grblConfig = lastResponse.split("\n")
                 self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
                 # lets populate our x,y,z limits (namely set distance)

@@ -1660,12 +1660,6 @@ def set_never_send_checksum(_plugin, value):
         _plugin._settings.global_set_boolean(["serial", "neverSendChecksum"], value)
 
 
-def do_fake_ack(printer, logger):
-    time.sleep(1)
-    printer.fake_ack()
-    logger.debug("_bgs: do_fake_ack")
-
-
 def send_command_now(printer, logger, cmd, waitTime=0):
     try:
         if waitTime > 0:
