@@ -1,0 +1,42 @@
+[build-system]
+requires = [
+    "setuptools>=68",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Better-Grbl-Support"
+version = "2.3.3rc6"
+description = "Extends Octoprint to support GRBL based laser engravers and CNC machines"
+authors = [
+    { name = "Shell M. Shrader", email = "shell@shellware.com" },
+]
+requires-python = ">=2.7,<4"
+dependencies = []
+dynamic = [
+    "license",
+]
+
+[project.entry-points."octoprint.plugin"]
+bettergrblsupport = "octoprint_bettergrblsupport"
+
+[project.urls]
+Homepage = "https://github.com/synman/OctoPrint-Bettergrblsupport"
+
+[project.optional-dependencies]
+develop = [
+    "go-task-bin",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = [
+    "octoprint_bettergrblsupport",
+    "octoprint_bettergrblsupport.*",
+]
