@@ -645,15 +645,24 @@ def toggle_weak(_plugin):
 
 
 def process_grbl_status_msg(_plugin, msg):
-    match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+),?(-?[\d\.]+)?,?(-?[\d\.]+)?', msg)
-    response = 'X:{1} Y:{2} Z:{3} E:0 {original}'.format(*match.groups(), original=msg)
-    
+    # Z, A and B are optional -- 2-axis machines (e.g. lasers) report only X and Y
+    match = re.search(r'<(-?[^,]+)[,|][WM]Pos:(-?[\d\.]+),(-?[\d\.]+)(?:,(-?[\d\.]+))?(?:,(-?[\d\.]+))?(?:,(-?[\d\.]+))?', msg)
+    if match is None:
+        _plugin._logger.debug("unrecognized status report: %s", msg)
+        return msg
+
+    state, x, y, z, a, b = match.groups()
+    if z is None:
+        z = "0.000"
+
+    response = f'X:{x} Y:{y} Z:{z} E:0 {msg}'
+
     _plugin.grblMode = "MPos" if "MPos" in msg else "WPos" if "WPos" in msg else "N/A"
     
     if _plugin.is_printing and _plugin.grblState == "Idle":
         _plugin.grblState = "Run"
     else:
-        _plugin.grblState = str(match.groups(1)[0])
+        _plugin.grblState = str(state)
 
     if _plugin.grblState == "Idle" and _plugin.M9DelayActive:
         _plugin._logger.debug('Turning OFF Air Assist')
@@ -661,19 +670,20 @@ def process_grbl_status_msg(_plugin, msg):
         _plugin.M9DelayActive = False   
         _plugin.coolant = "M9"     
 
-    _plugin.grblX = float(match.groups(1)[1])
-    _plugin.grblY = float(match.groups(1)[2])
-    _plugin.grblZ = float(match.groups(1)[3])
+    _plugin.grblX = float(x)
+    _plugin.grblY = float(y)
+    _plugin.grblZ = float(z)
 
-    if match.groups(1)[5]:
-        _plugin.grblA = float(match.groups(1)[4])
-        _plugin.grblB = float(match.groups(1)[5])
-        
-    if match.groups(1)[4] and not match.groups(1)[5] and _plugin.hasB:
-        _plugin.grblB = float(match.groups(1)[4]) 
-    else:
-        _plugin.grblA = float(match.groups(1)[4])
-        
+    if b is not None:
+        _plugin.grblA = float(a)
+        _plugin.grblB = float(b)
+    elif a is not None:
+        # a lone 4th axis is B when the machine is configured with B
+        if _plugin.hasB:
+            _plugin.grblB = float(a)
+        else:
+            _plugin.grblA = float(a)
+
     match = re.search(r'.*\|Pn:([XYZABPDHRS]+)', msg)
     if match is not None:
         _plugin.grblActivePins = match.groups(1)[0]
