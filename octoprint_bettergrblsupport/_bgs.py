@@ -744,7 +744,10 @@ def process_grbl_alarm(_plugin, msg):
     match = re.search(r'alarm:\ *(-?[\d.]+)', msg.lower())
     if match is not None:
         error = int(match.groups(1)[0])
+
         desc = _plugin.grblAlarms.get(error)
+        if desc is None:
+            desc = f"Grbl Alarm #{error} - Alarm description not available"
 
     _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                     title=f"Grbl Alarm #{error} Received",
@@ -753,7 +756,7 @@ def process_grbl_alarm(_plugin, msg):
                                                                     delay=10000,
                                                                     notify_type="notice"))
 
-    _plugin._logger.warning("alarm received: %d: %s", error, _plugin.grblAlarms.get(error))
+    _plugin._logger.warning("alarm received: %d: %s", error, desc)
 
     # inform _bgs in case it has something going on (probing)
     grbl_alarm_or_error_occurred(_plugin)
