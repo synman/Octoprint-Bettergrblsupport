@@ -247,8 +247,9 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     _plugin._settings.global_set(serial_settings_path(["encoding"]), "ascii")
     _plugin._settings.global_set_boolean(serial_settings_path(["sanityCheckTools"]), True)
 
-    _plugin._settings.global_set(["terminalFilters"], _plugin.octo_filters)
-    
+    # drop our override so OctoPrint's own defaults (correct for whichever version is running) apply again
+    _plugin._settings.global_remove(["terminalFilters"])
+
     _plugin._settings.save()
 
     # remove scripts/gcode/afterPrintCancelled because it does stupid stuff with tools
@@ -1661,6 +1662,39 @@ def is_latin_encoding_available(_plugin):
     latinEncoding = int(octoprintVersion.split(".")[0]) > 1 or int(octoprintVersion.split(".")[1]) >= 8
     _plugin._logger.debug(f"_bgs: is_latin_encoding_available result=[{latinEncoding}]")
     return latinEncoding
+
+# OctoPrint 1.x logs "Send: " / "Recv: ", 2.x logs ">>> " / "<<< " -- the filters match both
+_TERMINAL_PREFIXES = {
+    "1.x": ("Send: ", "Recv: "),
+    "2.x": (">>> ", "<<< "),
+    "both": ("(Send: |>>> )", "(Recv: |<<< )"),
+}
+
+_TERMINAL_FILTER_TEMPLATES = [
+    ("Suppress status report requests", "^{send}\\?$"),
+    ("Suppress acknowledgement responses", "^{recv}ok$"),
+    ("Suppress status report responses", "^{recv}<.*[\\x2c|][WM]Pos:.+"),
+    ("Suppress blank responses", "^{recv}$"),
+]
+
+def bgs_terminal_filters(prefixes="both"):
+    send, recv = _TERMINAL_PREFIXES[prefixes]
+    return [{"name": name, "regex": template.format(send=send, recv=recv)} for name, template in _TERMINAL_FILTER_TEMPLATES]
+
+def normalize_active_filters(_plugin):
+    # active filters are saved by regex, so selections saved by older releases (1.x-only regexes)
+    # no longer match a filter -- map them to the current regex
+    current = [f["regex"] for f in bgs_terminal_filters()]
+    variants = {}
+    for prefixes in _TERMINAL_PREFIXES:
+        for old, new in zip((f["regex"] for f in bgs_terminal_filters(prefixes)), current):
+            variants[old] = new
+
+    activeFilters = _plugin._settings.get(["activeFilters"]) or []
+    normalized = [variants.get(f, f) for f in activeFilters]
+    if normalized != activeFilters:
+        _plugin._logger.debug(f"_bgs: normalize_active_filters {activeFilters} -> {normalized}")
+        _plugin._settings.set(["activeFilters"], normalized)
 
 def serial_settings_path(path):
     if is_octoprint_compatible(">=2"):
