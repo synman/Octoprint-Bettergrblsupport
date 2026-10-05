@@ -96,6 +96,7 @@ $(function () {
               new PNotify({
                 title: "Framing failed!",
                 text: error,
+                text_escape: true,
                 hide: true,
                 buttons: {
                   sticker: false,
@@ -128,6 +129,7 @@ $(function () {
               new PNotify({
                 title: "Frame Size Computed",
                 text: "Dimensions are " + length + "L x " + width + "W",
+                text_escape: true,
                 hide: true,
                 animation: "fade",
                 animateSpeed: "slow",

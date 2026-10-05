@@ -102,6 +102,7 @@ $(function() {
                         new PNotify({
                             title: "Laser action failed!",
                             text: data.responseText,
+                            text_escape: true,
                             hide: true,
                             buttons: {
                                 sticker: false,
@@ -166,6 +167,7 @@ $(function() {
                             new PNotify({
                                 title: "Unable to Move!",
                                 text: data["res"],
+                                text_escape: true,
                                 hide: true,
                                 buttons: {
                                     sticker: false,
@@ -180,6 +182,7 @@ $(function() {
                         new PNotify({
                             title: "Move Head failed!",
                             text: data.responseText,
+                            text_escape: true,
                             hide: true,
                             buttons: {
                                 sticker: false,
@@ -212,6 +215,7 @@ $(function() {
                                                 new PNotify({
                                                     title: "Unable to unlock machine!",
                                                     text: data.responseText,
+                                                    text_escape: true,
                                                     hide: true,
                                                     buttons: {
                                                         sticker: false,
@@ -249,7 +253,9 @@ $(function() {
                     function(data, status) {
                         new PNotify({
                             title: "Unable to send command: " + command,
+                            title_escape: true,
                             text: data.responseText,
+                            text_escape: true,
                             hide: true,
                             buttons: {
                                 sticker: false,
@@ -309,7 +315,9 @@ $(function() {
                 if (self.settings.settings.plugins.action_command_notification.enable_popups()) {
                     new PNotify({
                         title: gettext("Machine Notification"),
+                        title_escape: true,
                         text: data.message,
+                        text_escape: true,
                         hide: false,
                         icon: "fa fa-bell-o",
                         buttons: {
@@ -429,6 +437,7 @@ $(function() {
                 if (data.sessionId == undefined || data.sessionId == self.sessionId) {
                     new PNotify({
                         title: data.title,
+                        title_escape: true,
                         text: data.text,
                         hide: data.hide,
                         animation: "fade",
@@ -472,7 +481,7 @@ $(function() {
                     return
                   }
 
-                  text = "Select <B>PROCEED</B> to initiate an X/Y Probe for the [" + data.axis + "] axis.  Please ensure the probe is positioned properly before proceeding.";
+                  text = "Select <B>PROCEED</B> to initiate an X/Y Probe for the [" + _.escape(data.axis) + "] axis.  Please ensure the probe is positioned properly before proceeding.";
 
                   new PNotify({
                       title: "X/Y Probe",
@@ -502,6 +511,7 @@ $(function() {
                                                     new PNotify({
                                                         title: "Unable to cancel Multipoint Z-Probe",
                                                         text: data.responseText,
+                                                        text_escape: true,
                                                         hide: true,
                                                         buttons: {
                                                             sticker: false,
@@ -560,6 +570,7 @@ $(function() {
                                                     new PNotify({
                                                         title: "Unable to cancel Single Point Z-Probe",
                                                         text: data.responseText,
+                                                        text_escape: true,
                                                         hide: true,
                                                         buttons: {
                                                             sticker: false,
@@ -591,9 +602,9 @@ $(function() {
                     }
 
                     if (instruction.action == "probe") {
-                        text = "Select <B>PROCEED</B> to initiate Z-Probe once the machine has reached the [<B>" + instruction.location + "</B>] location, and you are ready to continue.";
+                        text = "Select <B>PROCEED</B> to initiate Z-Probe once the machine has reached the [<B>" + _.escape(instruction.location) + "</B>] location, and you are ready to continue.";
                     } else {
-                        text = "Your machine is ready to move to the [<B>" + instruction.location + "</B>] location.  Select <B>PROCEED</B> when you are ready to continue.";
+                        text = "Your machine is ready to move to the [<B>" + _.escape(instruction.location) + "</B>] location.  Select <B>PROCEED</B> when you are ready to continue.";
                     }
 
                     new PNotify({
@@ -627,6 +638,7 @@ $(function() {
                                                     new PNotify({
                                                         title: "Unable to cancel Multipoint Z-Probe",
                                                         text: data.responseText,
+                                                        text_escape: true,
                                                         hide: true,
                                                         buttons: {
                                                             sticker: false,

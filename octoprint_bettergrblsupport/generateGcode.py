@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 #
 # Written by:  Shell M. Shrader (https://github.com/synman/Octoprint-Bettergrblsupport)
 # Copyright [2021] [Shell M. Shrader]
@@ -65,15 +64,15 @@ def SideToSideAndOutAndBack():
     print("%")
     print("% Side To Side")
     print("%")
-    print("%%% Z DEPTH = {} %%%".format(depth))
+    print(f"%%% Z DEPTH = {depth} %%%")
     print("%")
-    print("G1 Z-{} F{}".format(depth, plunge))
+    print(f"G1 Z-{depth} F{plunge}")
 
     for a in range(0, int(round(length / axis2inc))):
-        print(";% y={}".format(a * axis2inc))
-        print("G1 X{} F{}".format(width / 2 * axis1sign, feed))
-        print("G1 X{} F{}".format(width / 2 * axis1sign, feed))
-        print("G1 Y{} F{}".format(axis2inc, feed))
+        print(f";% y={a * axis2inc}")
+        print(f"G1 X{width / 2 * axis1sign} F{feed}")
+        print(f"G1 X{width / 2 * axis1sign} F{feed}")
+        print(f"G1 Y{axis2inc} F{feed}")
         axis1sign = axis1sign * -1
 
     axis1sign = 1
@@ -88,19 +87,19 @@ def SideToSideAndOutAndBack():
     print("G0 X0 Y0")
 
     print("M3 S16000")
-    print("G1 Z0 F{}".format(plunge))
+    print(f"G1 Z0 F{plunge}")
     print("G91")
 
     print("%")
-    print("%%% Z DEPTH = {} %%%".format(depth))
+    print(f"%%% Z DEPTH = {depth} %%%")
     print("%")
-    print("G1 Z-{} F{}".format(depth, plunge))
+    print(f"G1 Z-{depth} F{plunge}")
 
     for a in range(0, int(round(width / axis2inc))):
-        print(";% x={}".format(a * axis2inc))
-        print("G1 Y{} F{}".format(length / 2 * axis1sign, feed))
-        print("G1 Y{} F{}".format(length / 2 * axis1sign, feed))
-        print("G1 X{} F{}".format(axis2inc, feed))
+        print(f";% x={a * axis2inc}")
+        print(f"G1 Y{length / 2 * axis1sign} F{feed}")
+        print(f"G1 Y{length / 2 * axis1sign} F{feed}")
+        print(f"G1 X{axis2inc} F{feed}")
         axis1sign = axis1sign * -1
 
 # def box():
@@ -124,7 +123,7 @@ width = 495
 print("M3 S16000")
 print("G21")
 print("G90")
-print("G1 Z0 F{}".format(plunge))
+print(f"G1 Z0 F{plunge}")
 print("G91")
 
 # gridDown()
