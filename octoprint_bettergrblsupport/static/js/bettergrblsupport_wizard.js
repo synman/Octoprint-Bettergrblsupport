@@ -60,9 +60,12 @@ $(function() {
   //     elements: [ /* ... */ ]
   // });
 
+  // the wizard container is bound by OctoPrint's own wizard view model (custom_bindings is False for
+  // this template and it has no bindings of its own): binding it a second time throws, so this
+  // view model binds to no element
   OCTOPRINT_VIEWMODELS.push([
     BettergrblsupportWizardViewModel,
     [ "settingsViewModel", "loginStateViewModel" ],
-      "#bettergrblsupport_wizard"
+    []
     ]);
 });

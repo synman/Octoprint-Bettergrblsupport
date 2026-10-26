@@ -29,18 +29,36 @@ $(function() {
       };
 
       self.grblSettings = ko.observableArray([]);
+
+      // the message of an error answer ({"error": ...}), else its raw text
+      self.errorText = function(xhr) {
+        try {
+          var error = JSON.parse(xhr.responseText).error;
+          if (error) return error;
+        } catch (e) {}
+        return xhr.responseText;
+      };
+
+      self.findGrblSetting = function(id) {
+        var items = self.grblSettings();
+        for (var i in items) {
+          if (items[i].id == id) return items[i];
+        }
+        return undefined;
+      };
+
+      // value is the row's observable; the table keeps the last value Grbl confirmed in oldvalue
       self.updateSetting = function(id, value, oldvalue) {
+        var item = self.findGrblSetting(id);
+        if (item == undefined) return;
+        var newvalue = ko.unwrap(value);
+
         if (self.is_printing()) {
-          for (var i in self.grblSettings()) {
-            if (self.grblSettings()[i].id == id) {
-               self.grblSettings()[i].value = oldvalue;
-               break;
-            }
-          }
+          item.value(oldvalue);
           return;
         }
 
-        if (value != oldvalue) {
+        if (newvalue != oldvalue) {
           $.ajax({
             url: API_BASEURL + "plugin/bettergrblsupport",
             type: "POST",
@@ -48,20 +66,16 @@ $(function() {
             data: JSON.stringify({
               command: "updateGrblSetting",
               id: id,
-              value: value
+              value: newvalue
             }),
             contentType: "application/json; charset=UTF-8",
             success: function(data) {
-              for (var i in self.grblSettings()) {
-                if (self.grblSettings()[i].id == id) {
-                   self.grblSettings()[i].oldvalue = value;
-                   break;
-                }
-              }
+              // Grbl acknowledged it
+              item.oldvalue = newvalue;
 
               new PNotify({
                 title: "Grbl Settings Update",
-                text: "$" + id + " has been set to " + value,
+                text: "$" + id + " has been set to " + newvalue,
                 text_escape: true,
                 hide: true,
                 animation: "fade",
@@ -76,9 +90,12 @@ $(function() {
               });
             },
             error: function (data, status) {
+              // Grbl refused it (or never answered): the table goes back to the last confirmed value
+              item.value(oldvalue);
+
               new PNotify({
                 title: "Grbl setting update failed!",
-                text: data.responseText,
+                text: "$" + id + ": " + self.errorText(data),
                 text_escape: true,
                 hide: true,
                 buttons: {
@@ -87,13 +104,6 @@ $(function() {
                 },
                 type: "error"
               });
-
-              for (var i in self.grblSettings()) {
-                if (self.grblSettings()[i].id == id) {
-                   self.grblSettings()[i].value = oldvalue;
-                   break;
-                }
-              }
             }
           });
         }
@@ -109,6 +119,9 @@ $(function() {
           }),
           contentType: "application/json; charset=UTF-8",
           success: function(data) {
+            // the new backup enables Restore without waiting for the settings to be re-read
+            self.settings.plugins.bettergrblsupport.grblSettingsBackup(data["res"]);
+
             new PNotify({
               title: "Grbl Settings Backup",
               text: "The backup has been completed successfully.",
@@ -188,13 +201,14 @@ $(function() {
           self.pushGrblSettings(settingsText);
         }
 
+        // test the new value: a page opened before Grbl ever reported its settings starts with null
         self.settings.plugins.bettergrblsupport.grblSettingsText.subscribe(function(newValue) {
-          if (settingsText != null) {
+          if (newValue != null) {
             self.pushGrblSettings(newValue);
           }
         });
 
-        self.probeEnabled(self.settings.plugins.bettergrblsupport.zprobeMethod() == "NONE");
+        self.probeEnabled(self.settings.plugins.bettergrblsupport.zprobeMethod() != "NONE");
         self.isMultiPoint(self.settings.plugins.bettergrblsupport.zprobeMethod() == "MULTI");
 
         self.settings.plugins.bettergrblsupport.zprobeMethod.subscribe(function(newValue) {
@@ -224,7 +238,7 @@ $(function() {
 
           self.grblSettings.push({
               id: setting[0],
-              value: setting[1],
+              value: ko.observable(setting[1]),
               oldvalue: setting[1],
               description: setting[2]
           });

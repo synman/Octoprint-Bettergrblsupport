@@ -33,9 +33,11 @@ import math
 import re
 import threading
 import subprocess
+import requests
 
 from timeit import default_timer as timer
 from octoprint.events import Events
+from octoprint.settings import default_settings
 from octoprint.util.version import is_octoprint_compatible
 
 from .zprobe import ZProbe
@@ -43,6 +45,9 @@ from .xyprobe import XyProbe
 
 zProbe = None
 xyProbe = None
+# set when a probe is torn down by an alarm/error/cancel instead of finishing, so a probe that chains another
+# (the X/Y probe after the Z probe) can tell the difference and stop
+zProbeAborted = False
 
 def load_grbl_descriptions(_plugin):
     path = os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "static" + os.path.sep + "txt" + os.path.sep
@@ -190,7 +195,7 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
     if "G30" in longCmds:
         longCmds.remove("G30")
     if "G53" in longCmds:
-        longCmds.append("G53")
+        longCmds.remove("G53")
     if "G54" in longCmds:
         longCmds.remove("G54")
 
@@ -242,13 +247,20 @@ def cleanup_due_to_uninstall(_plugin, remove_profile=True):
         longCmds.remove("M30")
 
     _plugin._settings.global_set(serial_settings_path(["longRunningCommands"]), longCmds)
+    # OctoPrint's own defaults: idle 2 and long 5
+    _plugin._settings.global_set(serial_settings_path(["maxCommunicationTimeouts", "idle"]), 2)
     _plugin._settings.global_set(serial_settings_path(["maxCommunicationTimeouts", "long"]), 5)
     set_never_send_checksum(_plugin, False)
     _plugin._settings.global_set(serial_settings_path(["encoding"]), "ascii")
     _plugin._settings.global_set_boolean(serial_settings_path(["sanityCheckTools"]), True)
 
-    # drop our override so OctoPrint's own defaults (correct for whichever version is running) apply again
-    _plugin._settings.global_remove(["terminalFilters"])
+    # take our filters out of the terminal filters; the user's own stay. When none is left, drop the override
+    # so OctoPrint's own defaults (correct for whichever version is running) apply again
+    remaining = user_terminal_filters(_plugin._settings.global_get(["terminalFilters"]))
+    if remaining:
+        _plugin._settings.global_set(["terminalFilters"], remaining)
+    else:
+        _plugin._settings.global_remove(["terminalFilters"])
 
     _plugin._settings.save()
 
@@ -306,13 +318,19 @@ def on_event(_plugin, event, payload):
 
         _plugin.connectionState = event
         _plugin.whenConnected = time.monotonic()
+        _plugin.userCommandSinceConnect = False
         _plugin.autoSleepTimer = time.monotonic()
 
         _plugin.is_operational = True
         _plugin._settings.set_boolean(["is_operational"], _plugin.is_operational)
 
         _plugin.fluidConfig = None
+        _plugin.grblMCode = "M5"
+        # a restore owed by a probe on the previous connection is not this controller's: it starts from its own state
+        _plugin.pendingDistanceRestore = None
         _plugin._printer.commands(["$I", "$G", "$#"])
+        # don't leave grblState at N/A until the next scheduled poll
+        schedule_status_refresh(_plugin, 0.5)
 
     # Disconnecting & Disconnected
     if event in (Events.DISCONNECTING, Events.DISCONNECTED):
@@ -331,6 +349,12 @@ def on_event(_plugin, event, payload):
 
     # 'PrintStarted'
     if event == Events.PRINT_STARTED:
+        _plugin.cancelling = False
+
+        # the cached state lags the controller (e.g. a print started right after $X): ask before judging it
+        if _plugin.grblState.upper() not in ("IDLE", "CHECK", "RUN") and "HOLD" not in _plugin.grblState.upper():
+            refresh_grbl_state(_plugin)
+
         if "HOLD" in _plugin.grblState.upper():
             send_command_now(_plugin._printer, _plugin._logger, "~")
         elif _plugin.grblState.upper() not in ("IDLE", "CHECK", "RUN"):
@@ -358,8 +382,15 @@ def on_event(_plugin, event, payload):
     # Print ended (finished / failed / cancelled)
     if event in (Events.PRINT_CANCELLED, Events.PRINT_DONE, Events.PRINT_FAILED):
         _plugin._logger.debug(f"handling event [{event}]")
-        _plugin.grblState = "Idle"
-        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
+        _plugin.pauseHoldActive = False
+        # the next job starts with the spindle off (end of program / soft reset), whatever this one last set
+        _plugin.grblMCode = "M5"
+
+        # a cancel is still stopping the machine: its own status reports decide the state, not this event
+        if not _plugin.cancelMotionActive:
+            _plugin.cancelling = False
+            _plugin.grblState = "Idle"
+            _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Idle"))
 
         _plugin.is_printing = False
         _plugin._settings.set_boolean(["is_printing"], _plugin.is_printing)
@@ -368,62 +399,56 @@ def on_event(_plugin, event, payload):
         _plugin.feedRate = 0
         _plugin.plungeRate = 0
         _plugin.powerRate = 0
+        # the next job's feed and power come from its own lines: never resume or override with this job's values.
+        # Reset here, not at PrintStarted, which can arrive after the next job's first lines have been sent.
+        _plugin.grblJobFeed = float(0)
+        _plugin.grblJobPower = float(0)
 
         return
 
     # Print Cancelling
     if event == Events.PRINT_CANCELLING:
         _plugin._logger.debug("cancelling job")
-
-        if "HOLD" in _plugin.grblState.upper():
-            send_command_now(_plugin._printer, _plugin._logger, ["~", "M5"])
-        else:
-            send_command_now(_plugin._printer, _plugin._logger, ["M5"])
+        _plugin.cancelling = True
+        _plugin.cancelMotionActive = True
+        _plugin.pauseHoldActive = False
+        threading.Thread(target=cancel_motion, args=(_plugin,), daemon=True).start()
 
     # Print Pausing
     if payload is not None and payload.get("state_id") == "PAUSING":
         _plugin._logger.debug("pausing job")
 
-        pausedPower = _plugin.grblPowerLevel
-        pausedPositioning = _plugin.positioning
-        pausedSpeed = _plugin.grblSpeed
-        pausedGrblMCode = _plugin.grblMCode
+        strategy, why = pause_strategy(_plugin)
+        _plugin._logger.info("pause: strategy [%s] (%s)", strategy, why)
 
-        pauseScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "afterPrintPaused"))
-        resumeScript = os.path.realpath(os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode", "beforePrintResumed"))
+        if strategy == "park":
+            # the safety-door realtime byte: the firmware stops, retracts, switches the spindle off and (on resume)
+            # restores it and plunges back. An alarmed controller ignores it.
+            send_realtime(_plugin, b"\x84")
+            if _plugin.grblState.upper() != "ALARM":
+                set_grbl_state(_plugin, "Door:2")
+            _plugin.parkStartZ = _plugin.grblZ
+        elif strategy in ("laser", "hold"):
+            send_realtime(_plugin, b"!")
+            if _plugin.grblState.upper() != "ALARM":
+                set_grbl_state(_plugin, "Hold:1")
 
-        with open(pauseScript, 'w') as file:
-            # turn off laser/spindle
-            file.write("M5\n")
-            # retract Z 5 if not laser mode
-            if not is_laser_mode(_plugin):
-                file.write("G91 G0 Z5\n")
-            # start feed hold
-            file.write("!\n")
+        if strategy != "drain":
+            # a held or parked planner never acknowledges the line OctoPrint last sent
+            _plugin.pauseHoldActive = True
+            threading.Thread(target=finish_pause_hold, args=(_plugin,), daemon=True).start()
 
-        with open(resumeScript, 'w') as file:
-            # release feed hold
-            file.write("~\n")
-            # reset our M-code
-            file.write(f"{pausedGrblMCode}\n")
-            # reset our spindle speed / power 
-            file.write(f"S{pausedPower}\n")
-            # reset our feedrate
-            file.write(f"F{pausedSpeed}\n")
-            # reset our positioning mode
-            file.write("G91\n" if pausedPositioning == 1 else "G90\n")
-            # move our spindle back down 5
-            if not is_laser_mode(_plugin):
-                file.write("G4 P10\n")
-                file.write("G91 G0 Z-5\n")
+        write_pause_resume_scripts(_plugin, strategy)
 
     # Print Paused
     if event == Events.PRINT_PAUSED:
         _plugin._logger.debug("paused job")
+        _plugin.pauseHoldActive = False
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
+        _plugin.pauseHoldActive = False
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
 
@@ -461,6 +486,329 @@ def on_event(_plugin, event, payload):
         return
 
     return
+
+
+def truthy(value):
+    return str(value).strip().lower() in ("true", "yes", "on", "1")
+
+
+def parking_available(_plugin):
+    """``(True, why)`` when the controller parks on a safety-door event (realtime 0x84), else ``(False, why not)``.
+
+    Read from what was fetched at connect, with no query at pause time: Grbl's ``[OPT:`` letters (``$I``) and
+    ``$22`` / ``$32`` (``$$``), FluidNC's ``$CD`` config. A ``$/parking/enable`` typed in the terminal is stale
+    until the next connect or config save. ``P`` in a FluidNC ``[OPT:`` is always there (``PH``), so it is never
+    consulted for FluidNC. Grbl_Esp32's OPT letters are assumed to mirror Grbl's (not verified).
+    """
+    if is_grbl_fluidnc(_plugin):
+        config = _plugin.fluidYaml if isinstance(_plugin.fluidYaml, dict) else {}
+        parking = config.get("parking") or {}
+        if not truthy(parking.get("enable")):
+            return False, "FluidNC parking: enable is not true"
+        axis = str(parking.get("axis") or "Z").lower()
+        homing = ((config.get("axes") or {}).get(axis) or {}).get("homing")
+        try:
+            homed = isinstance(homing, dict) and int(homing.get("cycle", 0)) >= 0
+        except (TypeError, ValueError):
+            homed = False
+        if not homed:
+            return False, f"FluidNC axis {axis} has no homing cycle, which parking needs"
+        return True, f"FluidNC parking enabled on axis {axis}"
+
+    letters = re.search(r"\[OPT:([^,\]\s]*)", _plugin.grblVersion or "")
+    if letters is None or "P" not in letters.group(1):
+        return False, "the firmware build has no parking ([OPT: without P)"
+    try:
+        homing = float((_plugin.grblSettings.get(22) or ["0"])[0]) != 0
+    except (TypeError, ValueError):
+        homing = False
+    if not homing:
+        return False, "homing is disabled ($22=0), which parking needs"
+    return True, "Grbl build with parking and $22 homing enabled"
+
+
+def pause_strategy(_plugin):
+    """How this pause stops the machine: ``(strategy, reason)``, decided once at PAUSING.
+
+    * ``laser``: laser mode (``$32``/``Grbl/LaserMode``): ``!`` alone, the controller switches the beam off while held.
+    * ``park``: the parking setting is on and the controller can park: ``0x84``, firmware retract and restore.
+    * ``hold``: no parking, setting says instant hold: ``!`` and the spindle-stop override, no Z lift.
+    * ``drain``: no parking, the default: let the planner run dry, stop the spindle, lift Z; resume restores both.
+    Pre-1.1 Grbl has neither feed-hold spindle control nor parking and always drains.
+    """
+    if not (is_grbl_one_dot_one(_plugin) or is_grbl_fluidnc(_plugin)):
+        return "drain", "pre-1.1 Grbl cannot hold with the spindle or park"
+    if is_laser_mode(_plugin):
+        return "laser", "laser mode: ! alone"
+    mode = "hold" if _plugin.pauseMode == "hold" else "drain"
+    if _plugin.pauseParking:
+        parks, why = parking_available(_plugin)
+        if parks:
+            return "park", why
+        return mode, f"parking is enabled but unavailable: {why}"
+    return mode, "parking is off"
+
+
+_G_WORD = re.compile(r"G(\d+(?:\.\d+)?)")
+_G_COMMENT = re.compile(r"\(.*?\)|;.*")
+_F_WORD = re.compile(r"(?<![A-Z])F\s*(-?\d+(?:\.\d*)?|-?\.\d+)")
+_S_WORD = re.compile(r"(?<![A-Z])S\s*(-?\d+(?:\.\d*)?|-?\.\d+)")
+
+
+def track_modal_state(_plugin, cmd, job=True):
+    """Follow the parser's distance mode, units and motion mode from a line as it is sent to the controller.
+
+    OctoPrint suppresses status requests while a job runs, so the sent lines are the only live source. Only
+    G-words that really change Grbl's parser state count: a ``$J=`` jog leaves it alone (its own G91 is local to
+    the jog), G90.1/G91.1 are the arc-centre mode (a different modal group from G90/G91), and text inside a
+    comment is not a word. Returns True when the distance mode was set, so the caller can tell the browser.
+
+    The feed rate and the spindle speed / laser power are followed too, as the F and S words of the job's own
+    lines, in the job's units and before any override is applied (``grblJobFeed``, ``grblJobPower``). ``job`` is
+    False for a line that is not part of the job (a jog, a probe or framing move, the line an override change
+    sends): those change the parser's modal state but are not what a pause has to put back, and one that went
+    back through the sending hook would be overridden a second time. A status report's ``FS:`` feed is not a
+    substitute: it is always mm/min (unless ``$13=1``) whatever G20/G21 says, and it carries the override.
+    """
+    line = cmd.upper().strip()
+    if line.startswith("$"):
+        return False
+
+    distance = False
+    code = _G_COMMENT.sub("", line)
+    if job:
+        feed = _F_WORD.findall(code)
+        if feed:
+            _plugin.grblJobFeed = float(feed[-1])
+        power = _S_WORD.findall(code)
+        if power:
+            _plugin.grblJobPower = float(power[-1])
+    for word in _G_WORD.findall(code):
+        number = float(word)
+        if number == 90 or number == 91:
+            _plugin.positioning = int(number) - 90
+            distance = True
+        elif number == 20 or number == 21:
+            _plugin.grblUnits = "G%d" % number
+        elif number in (0, 1, 2, 3, 38.2, 38.3, 38.4, 38.5, 80):
+            _plugin.grblMotionMode = "G%s" % (("%d" % number) if number == int(number) else str(number))
+    return distance
+
+
+def write_pause_resume_scripts(_plugin, strategy):
+    scripts = os.path.join(_plugin._settings.global_get_basefolder("scripts"), "gcode")
+    pauseScript = os.path.realpath(os.path.join(scripts, "afterPrintPaused"))
+    resumeScript = os.path.realpath(os.path.join(scripts, "beforePrintResumed"))
+
+    laser = is_laser_mode(_plugin)
+
+    if strategy in ("laser", "hold"):
+        # The machine is already in feed hold and G-code (M5, a Z retract) would only be queued behind the
+        # held planner, so the scripts hold nothing for the planner. Laser mode switches the laser off by
+        # itself during a hold; for a spindle use Grbl's spindle-stop override, which only works while held.
+        # The cycle start (~) restores the spindle and resumes; no modal state was changed, so none is restored.
+        with open(pauseScript, 'w') as file:
+            if strategy == "hold":
+                file.write("TOGGLESPINDLE\n")
+        with open(resumeScript, 'w') as file:
+            file.write("~\n")
+        return
+
+    if strategy == "park":
+        # The firmware retracts and stops the spindle by itself. Its cycle start is ignored until it reports
+        # Door:0, so PARKRESUME (see resume_from_park) holds the ~ back until then.
+        with open(pauseScript, 'w'):
+            pass
+        with open(resumeScript, 'w') as file:
+            file.write("PARKRESUME\n")
+        return
+
+    # drain: OctoPrint has already waited for the planner to run dry (its M400 became a dwell), so these lines run on
+    # an idle machine. No feed hold here: a `!` right behind the lift would stop it a few steps in and the lift would
+    # only run after the resume.
+    # the job's own power, as the feed below: grblPowerLevel carries the override, which the resume line gets again
+    # A job that set no S of its own runs at the last known level, which already carries the power override (the
+    # sending hook multiplied it); take the override back out so the resume line gets it once, not twice.
+    pausedPower = _plugin.grblJobPower
+    if not pausedPower:
+        pausedPower = _plugin.grblPowerLevel / _plugin.powerRate if _plugin.powerRate else _plugin.grblPowerLevel
+    pausedPositioning = _plugin.positioning
+    # the job's own feed rate, in the job's units: _plugin.grblSpeed also takes the controller's FS: value, which is mm/min
+    pausedSpeed = _plugin.grblJobFeed
+    pausedGrblMCode = _plugin.grblMCode
+    restoreDistanceMode = "G91\n" if pausedPositioning == 1 else "G90\n"
+    # The lift and the plunge are 5 mm. Grbl reads the Z word in the job's units, so an inch job (G20) has to be
+    # switched to millimetres around them, and back after.
+    inches = getattr(_plugin, "grblUnits", "G21") == "G20"
+    # Z moves leave Grbl in G0. G0 and G1 can be written back bare; G2/G3 cannot (error:26, no axis words), so a
+    # job paused inside an arc mode gets no restore and relies on the arc lines repeating their G word.
+    pausedMotionMode = getattr(_plugin, "grblMotionMode", "G0")
+    restoreMotionMode = pausedMotionMode if pausedMotionMode in ("G0", "G1") else None
+    # a bare G1 with no feed rate set is error:22; the feed rate is tracked from the sent lines and is 0 when it never was
+    if restoreMotionMode == "G1" and not pausedSpeed > 0:
+        restoreMotionMode = None
+    if restoreMotionMode is None and pausedMotionMode in ("G2", "G3"):
+        _plugin._logger.warning("pause: paused in %s, which cannot be restored without axis words; the next arc line must repeat it", pausedMotionMode)
+
+    with open(pauseScript, 'w') as file:
+        # turn off laser/spindle
+        file.write("M5\n")
+        if not laser:
+            # retract Z 5 away from the work, then put the distance mode (and units) back: the Z move leaves Grbl in G91.
+            # Away from the work is the jog's "up": +Z, or -Z with Invert Z on (see jog in __init__.py)
+            if inches:
+                file.write("G21\n")
+            file.write(f"G91 G0 Z{5 * _plugin.invertZ}\n")
+            file.write(restoreDistanceMode)
+            if inches:
+                file.write("G20\n")
+
+    with open(resumeScript, 'w') as file:
+        # reset our M-code
+        file.write(f"{pausedGrblMCode}\n")
+        # reset our spindle speed / power
+        file.write(f"S{pausedPower}\n")
+        # reset our feedrate
+        file.write(f"F{pausedSpeed}\n")
+        if not laser:
+            # let the spindle come up to speed, move back down 5
+            file.write("G4 P10\n")
+            if inches:
+                file.write("G21\n")
+            file.write(f"G91 G0 Z{-5 * _plugin.invertZ}\n")
+        # reset our positioning mode, the Z move above leaves Grbl in G91
+        file.write(restoreDistanceMode)
+        if not laser:
+            if inches:
+                file.write("G20\n")
+            # the Z moves also left the motion mode at G0: a job line with no G word of its own would rapid
+            if restoreMotionMode == "G1":
+                file.write("G1\n")
+
+
+def resume_from_park(_plugin, timeout=60.0):
+    """The cycle start for a parked pause. The controller ignores ``~`` until its retract is complete and the
+    door is closed (it reports ``Door:0``), so wait for that before sending it. Returns True when it was sent.
+
+    ``Door:1`` (a real door switch still open) and ``Door:2`` (still retracting) keep waiting; ``Door:3`` means a
+    restore is already running. Any other state is not a parked machine: a hold gets its ``~``, anything else
+    (alarm, reset) has nothing to resume. The wait ends at a cancel, and after ``timeout`` the ``~`` goes out anyway
+    (the controller drops it harmlessly if it is not ready), with a warning.
+    """
+    end = time.monotonic() + timeout
+    while time.monotonic() < end and not _plugin.cancelling:
+        # the controller's own word from a fresh report: grblState can be overwritten by a PrintResumed event meanwhile
+        refresh_grbl_state(_plugin, 0.5)
+        state = _plugin.grblReportedState.upper()
+        if state in ("DOOR:1", "DOOR:2"):
+            time.sleep(0.1)
+            continue
+        if state == "DOOR:3":
+            return False
+        if state != "DOOR:0" and not state.startswith("HOLD"):
+            _plugin._logger.info("resume: controller is [%s], not parked: no cycle start sent", _plugin.grblReportedState)
+            return False
+        moved = _plugin.grblZ - _plugin.parkStartZ
+        if state == "DOOR:0":
+            if moved:
+                _plugin._logger.info("resume: parking moved Z by %.3f to %.3f", moved, _plugin.grblZ)
+            else:
+                _plugin._logger.warning("resume: parking did not move Z (still %.3f): the tool was already above the "
+                                        "controller's parking target, or parking is not active", _plugin.grblZ)
+        send_realtime(_plugin, b"~")
+        schedule_status_refresh(_plugin)
+        return True
+
+    if _plugin.cancelling:
+        return False
+    _plugin._logger.warning("resume: no Door:0 within %.0fs (state [%s]), sending the cycle start anyway", timeout, _plugin.grblReportedState)
+    send_realtime(_plugin, b"~")
+    schedule_status_refresh(_plugin)
+    return True
+
+
+def finish_pause_hold(_plugin):
+    """Let OctoPrint finish pausing a machine that is in feed hold.
+
+    A planner that is full never accepts the line OctoPrint last sent while it is held, so that line's `ok`
+    never comes and OctoPrint's send loop (which would send the position request, then the pause script)
+    waits for it. Grbl keeps what it already holds, so acknowledging on its behalf only lets the next
+    commands queue up behind it.
+    """
+    while _plugin._printer.is_pausing() and _plugin.pauseHoldActive:
+        time.sleep(0.5)
+        if _plugin._printer.is_pausing() and _plugin.pauseHoldActive:
+            _plugin._logger.debug("_bgs: finish_pause_hold: acknowledging for the held planner")
+            fake_ack(_plugin)
+
+
+def fake_ack(_plugin):
+    printer = _plugin._printer
+    # renamed in OctoPrint 2.0; the old name is only a deprecation shim there
+    (getattr(printer, "repair_communication", None) or printer.fake_ack)()
+
+
+def cancel_motion(_plugin):
+    """Stop motion for a cancel: feed hold, wait until the machine has stopped, then soft reset.
+
+    The reset flushes the planner (so buffered moves stop cutting) and switches off the spindle and laser.
+    Resetting while still decelerating raises ALARM:3 and loses position, resetting after the hold has
+    completed does not; hence the wait. The decision is made on fresh status reports, never on grblState as
+    cached, which can still say Run when the machine was paused seconds ago.
+    """
+    _plugin._logger.debug("_bgs: cancel_motion")
+
+    # an alarmed machine ignores a hold (a critical alarm ignores status requests too): nothing to wait for
+    alarmed = _plugin.grblState.upper() == "ALARM"
+
+    send_realtime(_plugin, b"!")
+    if not alarmed:
+        set_grbl_state(_plugin, "Hold:1")
+
+    # a parked pause (Door:2 retracting, Door:3 restoring) is still moving: a reset during a parking motion is an
+    # aborted cycle (ALARM:3), so give it longer than a plain deceleration
+    started = time.monotonic()
+    limit = 0 if alarmed else 10
+    in_door = False
+    while time.monotonic() < started + limit:
+        if refresh_grbl_state(_plugin, 0.5):
+            state = _plugin.grblState.upper()
+            if state in ("DOOR:2", "DOOR:3"):
+                limit = 30
+                in_door = True
+            elif in_door and state in ("RUN", "HOLD:1"):
+                # the controller ignores `!` while in a door state, and when its restore finishes it resumes the
+                # held job by itself: hold again, or the cancel would wait for the planner to run dry
+                in_door = False
+                send_realtime(_plugin, b"!")
+            if state not in ("RUN", "JOG", "HOLD:1", "HOME", "DOOR:2", "DOOR:3"):
+                break
+        time.sleep(0.1)
+    else:
+        if not alarmed:
+            _plugin._logger.warning("cancel: machine did not report a completed hold within %ds, resetting anyway", limit)
+
+    send_realtime(_plugin, b"\x18")
+
+    # a reset restores Grbl's default modal state and discards whatever was outstanding
+    _plugin.positioning = 0
+    _plugin.grblUnits = "G21"
+    _plugin.grblMotionMode = "G0"
+    _plugin.grblJobFeed = float(0)
+    _plugin.grblJobPower = float(0)
+    _plugin.pendingDistanceRestore = None
+    _plugin.grblMCode = "M5"
+    _plugin.lastRequest = []
+    _plugin.lastResponse = ""
+    _plugin.grblCmdQueue.clear()
+    queue_cmds_and_send(_plugin, ["$G"])
+
+    # leftovers of the resume script may still be queued in OctoPrint: let them be dropped, then take the
+    # state from the controller (a reset can leave it in Alarm, e.g. with homing required)
+    time.sleep(1.0)
+    _plugin.cancelling = False
+    _plugin.cancelMotionActive = False
+    refresh_grbl_state(_plugin)
 
 
 def do_framing(_plugin, data):
@@ -517,8 +865,7 @@ def send_frame_init_gcode(_plugin):
     if is_laser_mode(_plugin):
         _plugin._printer.commands(f"M3 S{_plugin.weakLaserValue}")
 
-    _plugin.grblState = "Jog"
-    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Jog"))
+    start_jog_guard(_plugin)
 
 def send_frame_end_gcode(_plugin):
     _plugin._logger.debug("_bgs: send_frame_end_gcode")
@@ -653,6 +1000,8 @@ def process_grbl_status_msg(_plugin, msg):
         return msg
 
     state, x, y, z, a, b = match.groups()
+    # the controller reports one position value per axis it has
+    _plugin.hasZ = z is not None
     if z is None:
         z = "0.000"
 
@@ -660,10 +1009,25 @@ def process_grbl_status_msg(_plugin, msg):
 
     _plugin.grblMode = "MPos" if "MPos" in msg else "WPos" if "WPos" in msg else "N/A"
     
+    reported = str(state)
+    if _plugin.jogGuardUntil:
+        if reported.upper().startswith("JOG"):
+            _plugin.jogSeen = True
+        elif reported.upper() == "IDLE" and not _plugin.jogSeen and time.monotonic() < _plugin.jogGuardUntil:
+            reported = "Jog"
+        else:
+            _plugin.jogGuardUntil = 0
+
     if _plugin.is_printing and _plugin.grblState == "Idle":
         _plugin.grblState = "Run"
     else:
-        _plugin.grblState = str(state)
+        _plugin.grblState = reported
+
+    _plugin.grblReportedState = str(state)
+    _plugin.grblStatusSeq += 1
+    # a queued status request is answered: let the command queue go on
+    _plugin.grblQueueHold = 0
+    release_queued_command(_plugin)
 
     if _plugin.grblState == "Idle" and _plugin.M9DelayActive:
         _plugin._logger.debug('Turning OFF Air Assist')
@@ -685,7 +1049,7 @@ def process_grbl_status_msg(_plugin, msg):
         else:
             _plugin.grblA = float(a)
 
-    match = re.search(r'.*\|Pn:([XYZABPDHRS]+)', msg)
+    match = re.search(r'.*\|Pn:([A-Z]+)', msg)
     if match is not None:
         _plugin.grblActivePins = match.groups(1)[0]
     else:
@@ -718,6 +1082,7 @@ def process_grbl_status_msg(_plugin, msg):
                                                                     a=_plugin.grblA,
                                                                     b=_plugin.grblB,
                                                                     pins=_plugin.grblActivePins,
+                                                                    hasZ=_plugin.hasZ,
                                                                     speed=_plugin.grblSpeed,
                                                                     power=_plugin.grblPowerLevel,
                                                                     coord=_plugin.grblCoordinateSystem,
@@ -759,8 +1124,14 @@ def process_grbl_alarm(_plugin, msg):
 
     _plugin._logger.warning("alarm received: %d: %s", error, desc)
 
-    # inform _bgs in case it has something going on (probing)
-    grbl_alarm_or_error_occurred(_plugin)
+    # an updateGrblSetting request cannot be answered by a machine in alarm
+    resolve_setting_waiter(_plugin, False, f"Grbl alarm {error}: {desc}")
+
+    # inform _bgs in case it has something going on (probing); the controller now rejects G-code until $X
+    grbl_alarm_or_error_occurred(_plugin, locked=True)
+
+    # a critical alarm (1, 2) silences Grbl, status requests included, until it is reset: no report will correct this
+    set_grbl_state(_plugin, "Alarm")
 
     # clear out any pending queued Commands
     if len(_plugin.grblCmdQueue) > 0:
@@ -783,6 +1154,14 @@ def process_grbl_alarm(_plugin, msg):
     return "ok " + desc
 
 
+def drop_errored_request(_plugin):
+    """An error is the complete answer to one line. When that line was a tracked one, its entry is the oldest in
+    lastRequest and the partial response collected so far is not its own: retire both."""
+    if _plugin.lastRequest:
+        _plugin.lastRequest.pop(0)
+    _plugin.lastResponse = ""
+
+
 def process_grbl_error(_plugin, msg):
     error = 0
     desc = msg
@@ -795,8 +1174,15 @@ def process_grbl_error(_plugin, msg):
         if desc is None:
             desc = f"Grbl Error #{error} - Error description not available"
 
-    # hack to suppress errors on connect
-    if time.monotonic() - _plugin.whenConnected < 20:
+    # an updateGrblSetting request is waiting for this answer: it reports the error itself
+    if resolve_setting_waiter(_plugin, False, f"Grbl error {error}: {desc}"):
+        return "ok "
+
+    # suppress the errors that answer the connect handshake, but nothing the user asked for
+    if time.monotonic() - _plugin.whenConnected < 20 and not _plugin.userCommandSinceConnect:
+        # the error is that handshake line's whole answer: retire its tracked request, or it stays at the head of
+        # the FIFO and every later reply is filed under the wrong command
+        drop_errored_request(_plugin)
         return "ok "
 
     # lets not deal with file not found
@@ -843,6 +1229,7 @@ def process_parser_status_msg(_plugin, msg):
             _plugin._logger.debug("parser state indicates [%s] distance mode", "absolute" if _plugin.positioning == 0 else "relative")
 
         elif state in ("G0", "G1", "G2", "G3", "G38.2", "G38.3", "G38.4", "G38.5", "G80"):
+            _plugin.grblMotionMode = state
             _plugin._logger.debug("parser state indicates [%s] motion mode", state)
         elif state in ("G54", "G55", "G56", "G57", "G58", "G59"):
             _plugin.grblCoordinateSystem = state
@@ -850,6 +1237,7 @@ def process_parser_status_msg(_plugin, msg):
         elif state in ("G17", "G18", "G19"):
             _plugin._logger.debug("parser state indicates [%s] plane selected", state)
         elif state in ("G20", "G21"):
+            _plugin.grblUnits = state
             _plugin._logger.debug("parser state indicates [%s] uom active", "metric" if state == "G21" else "imperial")
         elif state in ("G93", "G94"):
             _plugin._logger.debug("parser state indicates [%s] feed rate mode", state)
@@ -897,17 +1285,29 @@ def do_xyz_probe(_plugin, sessionId):
 def defer_do_xyz_probe(_plugin, sessionId):
     global zProbe
     global xyProbe
+    global zProbeAborted
 
+    # the Z probe hands the mode and the units back, but its restore may still be queued when the X/Y probe starts:
+    # take them now
+    priorPositioning = _plugin.positioning
+    priorUnits = _plugin.grblUnits
+
+    zProbeAborted = False
     do_simple_zprobe(_plugin, sessionId)
 
     # wait for the z probe to run out of scope
     while zProbe is not None:
         time.sleep(1)
 
-    do_xy_probe(_plugin, "XY", sessionId)
+    # a Z probe that alarmed or was cancelled leaves nothing to start an X/Y probe on
+    if zProbeAborted:
+        _plugin._logger.debug("_bgs: defer_do_xyz_probe z probe aborted, not starting the X/Y probe")
+        return
+
+    do_xy_probe(_plugin, "XY", sessionId, priorPositioning, priorUnits)
 
 
-def do_xy_probe(_plugin, axes, sessionId):
+def do_xy_probe(_plugin, axes, sessionId, priorPositioning=None, priorUnits=None):
     global xyProbe
     _plugin._logger.debug("_bgs: do_xy_probe step=[{}] axes=[{}] sessionId=[{}]".format(xyProbe._step if xyProbe is not None else "N/A", axes, sessionId))
 
@@ -926,6 +1326,9 @@ def do_xy_probe(_plugin, axes, sessionId):
 
     if xyProbe is None:
         xyProbe = XyProbe(_plugin, xy_probe_hook, axes, sessionId)
+        # the probe runs in relative mode (G91) and millimetres (G21): remember what it must hand back
+        xyProbe._priorPositioning = _plugin.positioning if priorPositioning is None else priorPositioning
+        xyProbe._priorUnits = _plugin.grblUnits if priorUnits is None else priorUnits
         if axes == "Y":
             xyProbe._step = 0
 
@@ -959,12 +1362,14 @@ def do_xy_probe(_plugin, axes, sessionId):
         axis = "Y"
 
     elif len(xyProbe._results) > 1 or (len(xyProbe._results) > 0 and axis in ("X", "Y")):
+        restore = "G91" if xyProbe._priorPositioning == 1 else "G90"
+        units = xyProbe._priorUnits
         if axes == "XY":
             text = f"X/Y Axis Home has been calculated and set to machine position: X[<B>{xyProbe._results[0]:.3f}</B>] Y[<B>{xyProbe._results[1]:.3f}</B>]"
-            _plugin._printer.commands([f"G0 G90 X0 Y0 F{xyf}", "G91"])
+            _plugin._printer.commands([f"G0 G90 X0 Y0 F{xyf}", restore, units])
         else:
             text = f"{axes} Axis Home has been calculated and set to machine position: [<B>{xyProbe._results[0]:.3f}</B>]]"
-            _plugin._printer.commands([f"G0 G90 {axes}0 F{xyf}", "G91"])
+            _plugin._printer.commands([f"G0 G90 {axes}0 F{xyf}", restore, units])
 
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                          sessionId=xyProbe._sessionId,
@@ -997,8 +1402,7 @@ def xy_probe_hook(_plugin, result, position, axis):
 
     # did we have a problem?
     if result == 0:
-        xyProbe.teardown()
-        xyProbe = None
+        grbl_alarm_or_error_occurred(_plugin)
         return
 
     notification = f"X/Y Probe: [{axis}] axis result [{position:.3f}]"
@@ -1032,16 +1436,17 @@ def defer_do_xy_probe(_plugin, position, axis, sessionId):
     program = int(float(_plugin.grblCoordinateSystem.replace("G", "")))
     program = -53 + program
 
-    # set home for our current axis and travel back to where we started
+    # set home for our current axis and travel back to where we started, then back to the distance mode the probe
+    # found (the next step asks for G91 itself)
     _plugin._printer.commands([
             f"G10 P{program} L2 {axis}{position:f}",
             f"G0 {axis}{10 * originInvert * invert} Z{15 * _plugin.invertZ} F{zf}",
             f"G0 G90 {axis}{10 * originInvert * invert * -1} F{xyf}",
-            "G91"
+            "G91" if xyProbe._priorPositioning == 1 else "G90"
         ])
 
     # update our offsets
-    _plugin.offsets[_plugin.grblCoordinateSystem][axis] = position
+    _plugin.offsets[_plugin.grblCoordinateSystem][axis.lower()] = position
 
     do_xy_probe(_plugin, xyProbe._axes, sessionId)
 
@@ -1056,6 +1461,9 @@ def do_simple_zprobe(_plugin, sessionId):
         zProbe = None
 
     zProbe = ZProbe(_plugin, simple_zprobe_hook, sessionId)
+    # the probe runs in relative mode (G91) and millimetres (G21): remember what it must hand back
+    zProbe._priorPositioning = _plugin.positioning
+    zProbe._priorUnits = _plugin.grblUnits
 
     xl, yl, zl = get_axes_limits(_plugin)
     zTravel = zl if _plugin.zProbeTravel == 0 else _plugin.zProbeTravel
@@ -1080,6 +1488,12 @@ def simple_zprobe_hook(_plugin, result, position):
     notify_type = ""
 
     z0 = position + _plugin.zProbeOffset * _plugin.invertZ * -1
+
+    # no contact (a probe that raises ALARM:5 is already torn down; this is the one that does not): stop and hand
+    # the distance mode back instead of waiting on a result that will not come
+    if result == 0:
+        grbl_alarm_or_error_occurred(_plugin)
+        return
 
     if result == 1:
         # defer commands because we are out of sync
@@ -1112,7 +1526,10 @@ def defer_simple_z_probe(_plugin, z0):
     program = int(float(_plugin.grblCoordinateSystem.replace("G", "")))
     program = -53 + program
 
-    _plugin._printer.commands(["G91", "G21", f"G10 P{program} L2 Z{z0:f}", f"G0 Z{_plugin.zProbeEndPos * _plugin.invertZ}"])
+    # the retract is relative; then back to the distance mode the probe found
+    restore = "G91" if zProbe is not None and zProbe._priorPositioning == 1 else "G90"
+    units = zProbe._priorUnits if zProbe is not None else "G21"
+    _plugin._printer.commands(["G91", "G21", f"G10 P{program} L2 Z{z0:f}", f"G0 Z{_plugin.zProbeEndPos * _plugin.invertZ}", restore, units])
 
     # update our offsets
     _plugin.offsets[_plugin.grblCoordinateSystem]["z"] = z0
@@ -1126,6 +1543,9 @@ def do_multipoint_zprobe(_plugin, sessionId):
 
     if zProbe is None:
         zProbe = ZProbe(_plugin, multipoint_zprobe_hook, sessionId)
+        # every move runs in relative mode (G91) and millimetres (G21): remember what it must hand back
+        zProbe._priorPositioning = _plugin.positioning
+        zProbe._priorUnits = _plugin.grblUnits
 
     zProbe._step+=1
 
@@ -1282,7 +1702,7 @@ def do_multipoint_zprobe(_plugin, sessionId):
             program = int(float(_plugin.grblCoordinateSystem.replace("G", "")))
             program = -53 + program
 
-            queue_cmds_and_send(_plugin, [f"G10 P{program} L2 Z{position:f}"])
+            queue_cmds_and_send(_plugin, [f"G10 P{program} L2 Z{position:f}"] + probe_restore_commands(zProbe._priorPositioning, zProbe._priorUnits))
 
             # update our offsets
             _plugin.offsets[_plugin.grblCoordinateSystem]["z"] = position
@@ -1320,8 +1740,7 @@ def multipoint_zprobe_hook(_plugin, result, position):
 
     # did we have a problem?
     if result == 0:
-        zProbe.teardown()
-        zProbe = None
+        grbl_alarm_or_error_occurred(_plugin)
         return
     else:
         location = zProbe.getCurrentLocation()['location']
@@ -1355,19 +1774,64 @@ def multipoint_zprobe_move(_plugin):
     do_multipoint_zprobe(_plugin, zProbe._sessionId)
 
 
-def grbl_alarm_or_error_occurred(_plugin):
+# An interrupted probe leaves the parser in G38.2. G0 is the motion mode every finished probe path ends in (its last
+# lines are G0 moves), and it is valid without axis words; restoring a prior G1 would need a known feed rate and a
+# prior arc mode cannot be restored bare (see write_pause_resume_scripts), so G0 is the one safe choice.
+PROBE_MOTION_RESTORE = "G0"
+
+
+def probe_restore_commands(positioning, units):
+    """The lines that hand the parser back what a probe changed: the distance mode (0 absolute, 1 relative) and the
+    units it forced (G91 / G21 on every probe move) and the motion mode it left (G38.2)."""
+    return ["G91" if positioning == 1 else "G90", units, PROBE_MOTION_RESTORE]
+
+
+def grbl_alarm_or_error_occurred(_plugin, locked=False):
+    """Tear down a probe that was interrupted (alarm, error, no contact, cancel) and hand back the parser state.
+
+    The probes run in G91 and G21 and restore the job's distance mode and units only when they finish. Grbl keeps its
+    parser state through an alarm, so an interrupted probe would leave the machine in G91, in millimetres, and in
+    G38.2. ``locked`` is True when the controller is in alarm and rejects G-code: the restore then waits for the next
+    ``$X`` (see ``send_pending_distance_restore``).
+    """
     global zProbe
     global xyProbe
+    global zProbeAborted
 
     _plugin._logger.debug("_bgs: grbl_alarm_or_error_occurred")
 
+    # the X/Y probe's state is the one from before either probe started
+    prior = None
+    for probe in (xyProbe, zProbe):
+        if probe is not None and prior is None:
+            prior = (probe._priorPositioning, probe._priorUnits)
+
     if zProbe is not None:
+        zProbeAborted = True
         zProbe.teardown()
         zProbe = None
 
     if xyProbe is not None:
         xyProbe.teardown()
         xyProbe = None
+
+    if prior is None:
+        return
+
+    restore = probe_restore_commands(*prior)
+    if locked:
+        _plugin.pendingDistanceRestore = restore
+        _plugin._logger.debug("_bgs: probe interrupted by an alarm, %s goes out after the next unlock", restore)
+    else:
+        _plugin._printer.commands(restore)
+
+
+def send_pending_distance_restore(_plugin):
+    """Send the parser state an alarmed probe could not restore. Called as ``$X`` goes out, so it queues right behind it."""
+    restore = getattr(_plugin, "pendingDistanceRestore", None)
+    if restore:
+        _plugin.pendingDistanceRestore = None
+        _plugin._printer.commands(restore)
 
 
 def activate_auto_cooldown(_plugin):
@@ -1460,7 +1924,7 @@ def generate_metadata_for_file(_plugin, filename, notify=False, force=False):
 
     _plugin._logger.debug(f"_bgs: generate_metadata_for_file filename=[{filename}] notify=[{notify}] force=[{force}] processing=[{processing}] length=[{length}] width=[{width}] origin=[{origin}]")
 
-    if length is None or width is None or origin is None or force:
+    if length is None or width is None or not origin or force:
         _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_width")
         _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_length")
         _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_origin")
@@ -1484,7 +1948,8 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
         file = _plugin._file_manager.path_on_disk("local", filename)
         created = os.path.getctime(file)
 
-        f = open(file)
+        # G-code in the wild carries Latin-1 in comments: a decode error must not cost the whole scan
+        f = open(file, encoding="utf-8", errors="replace")
 
         minX = float("inf")
         minY = float("inf")
@@ -1505,90 +1970,75 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
 
         start = timer()
 
-        for line in f:
-            # skip comments / etc
-            if line.upper().lstrip().startswith((";", "(", "%")):
-                continue
+        with f:
+            for line in f:
+                # skip comments / etc
+                if line.upper().lstrip().startswith((";", "(", "%")):
+                    continue
 
-            # save our G command for shorthand post processors
-            if line.upper().lstrip().startswith("G"):
-                lastGCommand = line.lstrip()[:3] if line.lstrip()[2:3].isnumeric() else line.lstrip()[:2]
+                # save our G command for shorthand post processors
+                if line.upper().lstrip().startswith("G"):
+                    lastGCommand = line.lstrip()[:3] if line.lstrip()[2:3].isnumeric() else line.lstrip()[:2]
 
-            # use our saved G command if our line starts with a coordinate
-            if line.upper().lstrip().startswith(("X", "Y", "Z")):
-                command = lastGCommand.upper() + " " + line.upper().strip()
-            else:
-                command = line.upper().strip()
+                # use our saved G command if our line starts with a coordinate
+                if line.upper().lstrip().startswith(("X", "Y", "Z")):
+                    command = lastGCommand.upper() + " " + line.upper().strip()
+                else:
+                    command = line.upper().strip()
 
-            # only G commands matter (except G53)
-            if not command.upper().lstrip().startswith("G") or "G53" in command.upper():
-                continue
+                # only G commands matter (except G53)
+                if not command.upper().lstrip().startswith("G") or "G53" in command.upper():
+                    continue
 
-            if "G90" in command.upper():
-                # absolute positioning
-                positioning = 0
+                # G90.1 / G91.1 set the arc-centre mode and leave the axis words as they were
+                if re.search(r"G0*90(?![\d.])", command.upper()):
+                    # absolute positioning
+                    positioning = 0
 
-            if "G91" in command.upper():
-                # relative positioning
-                positioning = 1
+                if re.search(r"G0*91(?![\d.])", command.upper()):
+                    # relative positioning
+                    positioning = 1
 
-            # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
-            match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
-            # _plugin._logger.debug("command=[{}]".format(command))
-            if match is not None:
-                x = float(match.groups(1)[0]) if positioning == 0 else x + float(match.groups(1)[0])
-                if x < minX:
-                    if not underX and x < -1:
-                        _plugin._logger.debug(f"underX x=[{x}]")
-                        underX = True
-                    minX = x
-                if x > maxX:
-                    if not overX and x > 1:
-                        _plugin._logger.debug(f"overX x=[{x}]")
-                        overX = True
-                    maxX = x
+                # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
+                match = re.search(r".*[X]\ *(-?[\d.]+).*", command)
+                # _plugin._logger.debug("command=[{}]".format(command))
+                if match is not None:
+                    x = float(match.groups(1)[0]) if positioning == 0 else x + float(match.groups(1)[0])
+                    if x < minX:
+                        if not underX and x < -1:
+                            _plugin._logger.debug(f"underX x=[{x}]")
+                            underX = True
+                        minX = x
+                    if x > maxX:
+                        if not overX and x > 1:
+                            _plugin._logger.debug(f"overX x=[{x}]")
+                            overX = True
+                        maxX = x
 
-            # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
-            match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
-            if match is not None:
-                y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
-                if y < minY:
-                    if not underY and y <= -1:
-                        _plugin._logger.debug(f"underY y=[{y}]")
-                        underY = True
-                    minY = y
-                if y > maxY:
-                    if not overY and y > 1:
-                        _plugin._logger.debug(f"overY y=[{y}]")
-                        overY = True
-                    maxY = y
+                # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
+                match = re.search(r".*[Y]\ *(-?[\d.]+).*", command)
+                if match is not None:
+                    y = float(match.groups(1)[0]) if positioning == 0 else y + float(match.groups(1)[0])
+                    if y < minY:
+                        if not underY and y < -1:
+                            _plugin._logger.debug(f"underY y=[{y}]")
+                            underY = True
+                        minY = y
+                    if y > maxY:
+                        if not overY and y > 1:
+                            _plugin._logger.debug(f"overY y=[{y}]")
+                            overY = True
+                        maxY = y
 
-        length = math.ceil(maxY - minY)
-        width = math.ceil(maxX - minX)
+        # a job without a move on an axis has no extent on it (no min/max were ever set)
+        length = math.ceil(maxY - minY) if minY <= maxY else 0
+        width = math.ceil(maxX - minX) if minX <= maxX else 0
 
-        # bottom
-        if overY and not underY and overX and not underX:
-            origin = "grblBottomLeft"
-        if overY and not underY and overX and underX:
-            origin = "grblBottomCenter"
-        if overY and not underY and not overX and underX:
-            origin = "grblBottomRight"
-
-        # center
-        if overY and underY and overX and not underX:
-            origin = "grblCenterLeft"
-        if overY and underY and overX and underX:
-            origin = "grblCenter"
-        if overY and underY and not overX and underX:
-            origin = "grblCenterRight"
-
-        # top
-        if not overY and underY and overX and not underX:
-            origin = "grblTopLeft"
-        if not overY and underY and overX and underX:
-            origin = "grblTopCenter"
-        if not overY and underY and not overX and underX:
-            origin = "grblTopRight"
+        # where the job sits around the machine origin; an axis the job barely leaves (within 1mm of the origin)
+        # extends positively from it
+        horizontal = "Center" if overX and underX else "Right" if underX else "Left"
+        vertical = "Center" if overY and underY else "Top" if underY else "Bottom"
+        origin = "grblCenter" if horizontal == "Center" and vertical == "Center" else f"grbl{vertical}{horizontal}"
 
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_length", length, overwrite=True)
         _plugin._file_manager.set_additional_metadata("local", filename, "bgs_width", width, overwrite=True)
@@ -1606,6 +2056,8 @@ def defer_generate_metadata_for_file(_plugin, filename, notify):
                                                                              origin=origin))
     except BaseException as e:
         _plugin._logger.error(f"defer_generate_metadata_for_file: [{str(e)}]")
+        # never leave the file marked as being processed
+        _plugin._file_manager.remove_additional_metadata("local", filename, "bgs_processing")
 
 def wait_for_metadata_processing(_plugin, filename, notify):
     _plugin._logger.debug(f"_bgs: wait_for_metadata_processing filename=[{filename}] notify=[{notify}]")
@@ -1643,7 +2095,9 @@ def is_laser_mode(_plugin):
     return False
 
 def is_grbl_one_dot_one(_plugin):
-    oneDotOne = "VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion
+    # True when the controller speaks the Grbl 1.1 protocol (realtime override bytes, $J= jogging, jog cancel):
+    # Grbl 1.1+, Grbl_Esp32 and FluidNC (which reports its own version, VER:3.x).  Pre-1.1 Grbl (VER:1.0) does not.
+    oneDotOne = ("VER:1." in _plugin.grblVersion and "VER:1.0" not in _plugin.grblVersion) or is_grbl_fluidnc(_plugin)
     _plugin._logger.debug(f"_bgs: is_grbl_one_dot_one result=[{oneDotOne}]")
     return oneDotOne
 
@@ -1681,6 +2135,23 @@ def bgs_terminal_filters(prefixes="both"):
     send, recv = _TERMINAL_PREFIXES[prefixes]
     return [{"name": name, "regex": template.format(send=send, recv=recv)} for name, template in _TERMINAL_FILTER_TEMPLATES]
 
+def _bgs_filter_regexes():
+    # every spelling of our filters, from any release: 1.x-only, 2.x-only and the dual-prefix one
+    return {f["regex"] for prefixes in _TERMINAL_PREFIXES for f in bgs_terminal_filters(prefixes)}
+
+def user_terminal_filters(filters):
+    # the user's own filters: neither ours nor OctoPrint's shipped defaults (what terminalFilters reads as
+    # until it is first written, so a fresh install reports them as if the user had chosen them)
+    owned = _bgs_filter_regexes() | {f.get("regex") for f in default_settings.get("terminalFilters", [])}
+    return [f for f in (filters or []) if f.get("regex") not in owned]
+
+def merge_terminal_filters(_plugin):
+    # keep the user's own terminal filters; ours replace OctoPrint's defaults and any older spelling of ours
+    current = _plugin._settings.global_get(["terminalFilters"])
+    merged = user_terminal_filters(current) + bgs_terminal_filters()
+    if merged != current:
+        _plugin._settings.global_set(["terminalFilters"], merged)
+
 def normalize_active_filters(_plugin):
     # active filters are saved by regex, so selections saved by older releases (1.x-only regexes)
     # no longer match a filter -- map them to the current regex
@@ -1695,6 +2166,70 @@ def normalize_active_filters(_plugin):
     if normalized != activeFilters:
         _plugin._logger.debug(f"_bgs: normalize_active_filters {activeFilters} -> {normalized}")
         _plugin._settings.set(["activeFilters"], normalized)
+
+FRAME_ORIGINS = ("grblTopLeft", "grblTopCenter", "grblTopRight", "grblCenterLeft", "grblCenter", "grblCenterRight",
+                 "grblBottomLeft", "grblBottomCenter", "grblBottomRight")
+
+def parse_distance(value, label):
+    """A finite number from a request value, or the message to answer a 400 with."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return f"{label} must be a number"
+    if not math.isfinite(number):
+        return f"{label} must be a finite number"
+    return number
+
+# what OctoPrint and the plugin send while connecting: answers to these are the connect noise
+STARTUP_COMMANDS = ("", "?", "$$", "$+", "$I", "$G", "$#", "$S", "$CD", "$BUILD/INFO", "$SETTINGS/LIST", "$CONFIG/DUMP",
+                    "$GCODE/MODES", "M115", "CAT /SD/CONFIG")
+
+def is_startup_command(cmd):
+    cmd = cmd.strip().upper()
+    # $Report/Interval=<n> is the plugin's own follow-up to the $S download, so its error is not the user's either
+    return cmd in STARTUP_COMMANDS or cmd.startswith(("M110", "M105", "M114", "\x18", "$REPORT/INTERVAL="))
+
+
+class SettingWaiter:
+    """An updateGrblSetting request waiting for Grbl's answer to the `$<id>=<value>` line it sent."""
+    def __init__(self, command):
+        self.command = command
+        self.sent = False
+        self.done = threading.Event()
+        self.accepted = False
+        self.reason = ""
+
+def set_grbl_setting_and_wait(_plugin, setting_id, value, timeout=8):
+    """Send `$<id>=<value>` and wait for Grbl's ok or error. Returns (accepted, reason)."""
+    command = f"${setting_id}={value}"
+    if _plugin.settingWaiter is not None and not _plugin.settingWaiter.done.is_set():
+        return False, "Another Grbl setting update is still waiting for its answer"
+
+    waiter = SettingWaiter(command)
+    _plugin.settingWaiter = waiter
+    try:
+        _plugin._printer.commands(command)
+        if not waiter.done.wait(timeout):
+            return False, f"Grbl did not acknowledge {command} within {timeout} seconds; the value was not changed on screen"
+        return waiter.accepted, waiter.reason
+    finally:
+        _plugin.settingWaiter = None
+
+def note_setting_sent(_plugin, cmd):
+    waiter = _plugin.settingWaiter
+    if waiter is not None and not waiter.sent and cmd.strip() == waiter.command:
+        waiter.sent = True
+
+def resolve_setting_waiter(_plugin, accepted, reason=""):
+    """The next ok / error after the line was sent answers it (OctoPrint has one line in flight). True if claimed."""
+    waiter = _plugin.settingWaiter
+    if waiter is None or not waiter.sent or waiter.done.is_set():
+        return False
+    waiter.accepted = accepted
+    waiter.reason = reason
+    waiter.done.set()
+    return True
+
 
 def serial_settings_path(path):
     if is_octoprint_compatible(">=2"):
@@ -1718,37 +2253,185 @@ def send_command_now(printer, logger, cmd, waitTime=0):
         logger.error("_bgs: send_command_now: %s", e)
 
 
+def send_realtime(_plugin, data):
+    """Write Grbl realtime byte(s) straight to the transport.
+
+    OctoPrint's send loop releases the next line only after the previous one was acknowledged, and Grbl
+    withholds the acknowledgement of a blocking line (G4, M3/M5, ...) until the planner drains or a hold is
+    released, so a realtime byte queued through printer.commands() can sit behind a line that cannot finish.
+    Grbl handles realtime bytes outside its line buffer, so they are safe to write at any time.
+    """
+    printer = _plugin._printer
+    comm = getattr(printer, "_comm", None) or getattr(getattr(printer, "_connection", None), "_comm", None)
+    port = getattr(comm, "_serial", None)
+    shown = data.decode("latin-1").encode("unicode_escape").decode("ascii")
+
+    if port is not None:
+        try:
+            port.write(data)
+            comm._log(("Send: " if not is_octoprint_compatible(">=2") else ">>> ") + shown + " [realtime]")
+            return True
+        except Exception as e:
+            _plugin._logger.error("_bgs: send_realtime: direct write of [%s] failed: %s", shown, e)
+
+    _plugin._logger.warning("_bgs: send_realtime: no direct transport, queueing [%s]", shown)
+    send_command_now(printer, _plugin._logger, data.decode("latin-1"))
+    return False
+
+
+def refresh_grbl_state(_plugin, timeout=1.0):
+    """Ask Grbl for a status report now and wait for the reply, so grblState is fresh. True if one arrived."""
+    seq = _plugin.grblStatusSeq
+    send_realtime(_plugin, b"?")
+
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        if _plugin.grblStatusSeq != seq:
+            return True
+        time.sleep(0.02)
+
+    _plugin._logger.debug("_bgs: refresh_grbl_state: no status report within %.1fs", timeout)
+    return False
+
+
+def schedule_status_refresh(_plugin, delay=0.2):
+    """Request a status report shortly after a command that changes the controller state ($X, ~, !)."""
+    timer = threading.Timer(delay, send_realtime, args=(_plugin, b"?"))
+    timer.daemon = True
+    timer.start()
+
+
+def start_jog_guard(_plugin, duration=2.0):
+    """Mark the machine as jogging until Grbl reports it. Status replies to our own `?` (the CANCELJOG
+    `? 0x85 ?`) are still in flight when we switch to Jog, and would switch it straight back to Idle."""
+    _plugin.jogSeen = False
+    _plugin.jogGuardUntil = time.monotonic() + duration
+    if _plugin.grblState != "Jog":
+        set_grbl_state(_plugin, "Jog")
+
+
+def release_queued_command(_plugin):
+    """Send the next command waiting in grblCmdQueue if the machine is in a state that accepts it.
+
+    A queued status request is a wait point: nothing else leaves the queue until its report arrives (bounded,
+    in case the request is suppressed and no report ever comes). Called on every poll and on every report, so
+    a command waits for the controller's state, not for the next poll.
+    """
+    if (len(_plugin.grblCmdQueue) > 0
+            and _plugin.grblState.upper() in ("IDLE", "HOLD:0", "DOOR:0", "CHECK", "ALARM")
+            and time.monotonic() >= _plugin.grblQueueHold):
+        try:
+            queued = _plugin.grblCmdQueue.pop(0)
+        except IndexError:
+            # another thread (a poll, a status report, the end of a deferred wait) released it first
+            return
+        _plugin._logger.debug('sending queued command [%s] - depth [%d]', queued, len(_plugin.grblCmdQueue) + 1)
+        if queued == _plugin.statusCommand:
+            _plugin.grblQueueHold = time.monotonic() + 2
+        _plugin._printer.commands(queued)
+
+
+def set_grbl_state(_plugin, state):
+    _plugin.grblState = state
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state=state))
+
+
+# a Grbl M-word for spindle state: M3/M4/M5 (leading zeros allowed), never the prefix of M30, M400, M50, M40 ...
+_SPINDLE_MCODE = re.compile(r"M0*([345])(?![0-9.])", re.IGNORECASE)
+_GCODE_COMMENT = re.compile(r"\(.*?\)|;.*")
+
+def spindle_mcode(cmd):
+    """The spindle M-word (M3/M4/M5) a G-code line sets, or None."""
+    found = _SPINDLE_MCODE.findall(_GCODE_COMMENT.sub("", cmd))
+    return f"M{found[-1]}" if found else None
+
+
 def defer_resuming_status_reports(_plugin, waitTime, showFinalize):
+    time.sleep(waitTime)
+    _plugin.noStatusRequests = False
+
     if showFinalize:
+        # the configuration is finalized from here -- the queued $CD= goes out now, not when the save was made
+        release_queued_command(_plugin)
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
                                                                 title="Finalizing Changes. . .",
                                                                     text="Please wait while FluidNC's configuration and settings are finalized.",
                                                                     hide=True,
                                                                 delay=15000,
                                                             notify_type="notice"))
-    time.sleep(waitTime)
-    _plugin.noStatusRequests = False
+
+
+def upload_fluid_config(_plugin):
+    """Upload the new configuration to FluidNC's web server, over the existing file.
+
+    The old file is never deleted first: a delete followed by a failed upload would leave the controller with
+    no configuration at all. The size goes ahead of the file in the "<name>S" form field, which is what
+    WebUIServer.cpp reads: with it the controller refuses a file that cannot fit before it opens (and so
+    truncates) the existing one; without it a write that runs out of space has already emptied the old file.
+    Returns (True, "") when the controller answered 2xx, else (False, why) and the caller falls back to the
+    serial path (update_fluid_config).
+    """
+    name = _plugin.fluidSettings.get("Config/Filename")
+    url = "http://{}:{}/files".format(_plugin.fluidSettings.get("Hostname"), _plugin.fluidSettings.get("HTTP/Port"))
+    content = _plugin.fluidConfig.encode("utf-8")
+
+    try:
+        with requests.post(url, data={f"{name}S": str(len(content))}, files={'file': (name, content)}, timeout=15) as r:
+            if not r.ok:
+                return False, f"{url} answered HTTP {r.status_code}"
+    except Exception as e:
+        return False, f"{url}: {e}"
+
+    return True, ""
 
 
 def update_fluid_config(_plugin):
     _plugin._logger.debug("_bgs: update_fluid_config")
 
     configName = _plugin.fluidSettings.get("Config/Filename", "config.yaml")
-    _plugin._printer.commands(f"$LocalFS/Delete={configName}")
 
-    for key, value in _plugin.fluidYaml.items():
-        process_fluid_config_item(_plugin, key, value)
+    # Build every command before sending any: a value that cannot be serialised must not leave the controller
+    # with half a config.  The existing file is never deleted -- $CD=<file> overwrites it, so if the new config
+    # is not written the old one is still there.
+    try:
+        cmds = fluid_config_commands(_plugin.fluidYaml)
+    except Exception as e:
+        _plugin._logger.error(f"_bgs: update_fluid_config: unable to build FluidNC config commands: {e}")
+        _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="simple_notify",
+                                                                title="FluidNC Configuration Not Saved",
+                                                                text=html.escape(f"The configuration could not be processed ({e}). Nothing was sent to the controller; its existing configuration is unchanged."),
+                                                                hide=False,
+                                                                notify_type="error"))
+        return
+
+    for cmd in cmds:
+        _plugin._printer.commands(cmd)
 
     queue_cmds_and_send(_plugin, [f"$CD={configName}"])
-    
-def process_fluid_config_item(_plugin, key, value, path=""):
+
+
+def fluid_config_commands(yaml_config):
+    cmds = []
+    for key, value in yaml_config.items():
+        process_fluid_config_item(cmds, key, value)
+    return cmds
+
+
+def fluid_config_value(value):
+    # yaml gives us python types: render what FluidNC parses (true/false, plain numbers), not python reprs
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value).replace("null", "")
+
+
+def process_fluid_config_item(cmds, key, value, path=""):
     if isinstance(value, dict):
         path = f"{path}{key}/"
         for child_key, child_value in value.items():
-            process_fluid_config_item(_plugin, child_key, child_value, path)
+            process_fluid_config_item(cmds, child_key, child_value, path)
     else:
         if value is not None and "PIN" not in key.upper() and "MOTOR" not in path.upper() and not is_spindle(path):
-            _plugin._printer.commands("$/{}{}={}".format(path, key, value.replace("null", "")))
+            cmds.append("$/{}{}={}".format(path, key, fluid_config_value(value)))
 
 def is_spindle(path):
     if path.upper().startswith("10V/"):
@@ -1783,23 +2466,27 @@ def is_spindle(path):
     return False
 
         
+def axis_setting(_plugin, fluid_key, grbl_id):
+    """The controller's setting for one axis (a float), or None when it is not known (settings not read yet,
+    or the machine has no such axis)."""
+    if is_grbl_fluidnc(_plugin):
+        value = (_plugin.fluidSettings or {}).get(fluid_key)
+    else:
+        value = (_plugin.grblSettings.get(grbl_id) or [None])[0]
+    return None if value is None else float(value)
+
+
 def get_axes_max_rates(_plugin):
     _plugin._logger.debug("_bgs: get_axes_max_rates")
-    
-    # seed with defaults
+
+    # seed with defaults for whatever the controller has not told us (yet)
     xf = 1000.0
     yf = 1000.0
     zf = 300.0
 
     try:
-        if is_grbl_fluidnc(_plugin):
-            xf = float(_plugin.fluidSettings.get("Grbl/MaxRate/X"))
-            yf = float(_plugin.fluidSettings.get("Grbl/MaxRate/Y"))
-            zf = float(_plugin.fluidSettings.get("Grbl/MaxRate/Z"))
-        else:
-            xf = float(_plugin.grblSettings.get(110)[0])
-            yf = float(_plugin.grblSettings.get(111)[0])
-            zf = float(_plugin.grblSettings.get(112)[0])
+        rates = [axis_setting(_plugin, f"Grbl/MaxRate/{axis}", id) for axis, id in zip("XYZ", (110, 111, 112))]
+        xf, yf, zf = [default if rate is None else rate for rate, default in zip(rates, (xf, yf, zf))]
     except Exception as e:
         _plugin._logger.warn(f"_bgs: get_axes_max_rates: {e}")
 
@@ -1810,7 +2497,7 @@ def get_axes_max_rates(_plugin):
 def get_axes_limits(_plugin):
     _plugin._logger.debug("_bgs: get_axes_limits")
 
-    # seed with defaults
+    # seed with defaults for whatever the controller has not told us (yet)
     xl = 200.0
     yl = 200.0
     zl = 50.0
@@ -1818,23 +2505,25 @@ def get_axes_limits(_plugin):
     distance = 1
 
     try:
-        if is_grbl_fluidnc(_plugin):
-            xl = float(_plugin.fluidSettings.get("Grbl/MaxTravel/X"))
-            yl = float(_plugin.fluidSettings.get("Grbl/MaxTravel/Y"))
-            zl = float(_plugin.fluidSettings.get("Grbl/MaxTravel/Z"))
+        limits = [axis_setting(_plugin, f"Grbl/MaxTravel/{axis}", id) for axis, id in zip("XYZ", (130, 131, 132))]
+
+        if limits[0] is None or limits[1] is None:
+            # settings have not arrived yet: keep the defaults and leave control_distance alone
+            _plugin._logger.debug("_bgs: get_axes_limits: X/Y limits not known yet")
         else:
-            xl = float(_plugin.grblSettings.get(130)[0])
-            yl = float(_plugin.grblSettings.get(131)[0])
-            zl = float(_plugin.grblSettings.get(132)[0])
+            # a machine without a Z axis simply has no Z limit
+            xl, yl = limits[0], limits[1]
+            if limits[2] is not None:
+                zl = limits[2]
 
-        # assign our default distance if it is not already set to the lower of x,y limits
-        distance = float(_plugin._settings.get(["distance"]))
+            # assign our default distance if it is not already set to the lower of x,y limits
+            distance = float(_plugin._settings.get(["distance"]))
 
-        if distance == 0 or distance > min([xl, yl]):
-            distance = float(min([xl, yl]))
+            if distance == 0 or distance > min([xl, yl]):
+                distance = float(min([xl, yl]))
 
-        _plugin._settings.set(["control_distance"], distance)
-        _plugin._settings.save(trigger_event=True)
+            _plugin._settings.set(["control_distance"], distance)
+            _plugin._settings.save(trigger_event=True)
     except Exception as e:
         _plugin._logger.warn(f"_bgs: get_axes_limits: {e}")
 
@@ -1842,10 +2531,22 @@ def get_axes_limits(_plugin):
     return xl, yl, zl
 
 def babystep_offset(_plugin, program, axis, increment):
-    pgm = int(program.replace("G", "")) - 53
-    newvalue = _plugin.offsets[program][axis.lower()] + increment
+    axis = axis.lower()
+    known = _plugin.offsets.get(program, {}).get(axis)
 
-    _plugin._printer.commands(f"G10 L2 P{pgm} {axis.upper()}{newvalue}")
+    if known is None:
+        # The current work offset of this axis is unknown (the axis is not on this machine, or $# has not been
+        # read yet), so an absolute G10 L2 would move the work origin by a guess: send nothing and say so.
+        _plugin._logger.warning(f"_bgs: babystep_offset: no known {axis.upper()} offset for {program}, ignoring M290")
+        if program not in _plugin.offsets:
+            queue_cmds_and_send(_plugin, ["$#"])
+        add_notifications(_plugin, [f"Babystep ignored: {axis.upper()} offset of {program} is not known"])
+        return
+
+    pgm = int(program.replace("G", "")) - 53
+    newvalue = round(known + increment, 3)
+
+    _plugin._printer.commands(f"G10 L2 P{pgm} {axis.upper()}{newvalue:.3f}")
 
     # update our offsets
     _plugin.offsets[program][axis] = newvalue

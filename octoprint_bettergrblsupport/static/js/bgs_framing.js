@@ -120,8 +120,9 @@ $(function () {
             self.width(width);
             self.length(length);
 
-            var origin = document.getElementById(data.origin);
-            origin.checked = true;
+            // a job within a millimetre of the origin may come with no origin: keep the current selection
+            var origin = data.origin ? document.getElementById(data.origin) : null;
+            if (origin != null) origin.checked = true;
 
             doNotify = self.settings.settings.plugins.bettergrblsupport.notifyFrameSize();
 
@@ -143,7 +144,7 @@ $(function () {
               });
             }
 
-            console.log("frame length=" + data.length + " width=" + data.width + " origin=" + origin.id);
+            console.log("frame length=" + data.length + " width=" + data.width + " origin=" + data.origin);
             return
           }
         };

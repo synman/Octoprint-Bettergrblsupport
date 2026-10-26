@@ -32,6 +32,10 @@ class XyProbe:
     _axes = None
     _sessionId = None
     _step = -1
+    # distance mode (0 absolute, 1 relative) to hand back when the probe, which runs in G91, is done
+    _priorPositioning = 0
+    # units (G20 / G21) to hand back as well: the probe moves are all G21
+    _priorUnits = "G21"
     _results=[]
 
 

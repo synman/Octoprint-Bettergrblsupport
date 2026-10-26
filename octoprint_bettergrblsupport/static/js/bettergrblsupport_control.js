@@ -23,6 +23,17 @@ $(function() {
         self.origin_axes = ko.observableArray(["Z", "Y", "X", "XY", "ALL"]);
         self.origin_axis = ko.observable("XY");
 
+        // false when the controller reports no Z axis (2-axis machines): Z controls are hidden
+        self.hasZ = ko.observable(true);
+        self.hasZ.subscribe(function (hasZ) {
+            if (hasZ) {
+                if (self.origin_axes.indexOf("Z") < 0) self.origin_axes.splice(self.origin_axes.indexOf("Y"), 0, "Z");
+            } else {
+                self.origin_axes.remove("Z");
+                if (self.origin_axis() == "Z") self.origin_axis("XY");
+            }
+        });
+
         self.coordinate_systems = ko.observableArray(["G54", "G55", "G56", "G57", "G58", "G59"]);
         self.coordinate_system = ko.observable("G54");
 
@@ -89,12 +100,29 @@ $(function() {
           }
         }
 
+        // a continuous (J) jog runs while the button is held: stop it however the hold ends -- a release anywhere
+        // on the page, a touch that is cancelled, the window losing focus or the page being hidden -- not only
+        // a release over the button
+        $.each(["mouseup", "touchend", "touchcancel", "pointerup", "pointercancel"], function(i, eventName) {
+          window.addEventListener(eventName, function() { self.cancelJog(); }, true);
+        });
+        window.addEventListener("blur", function() { self.cancelJog(); });
+        document.addEventListener("visibilitychange", function() {
+          if (document.hidden) self.cancelJog();
+        });
+
+        // the button label is plain text: set it as text, never by matching it inside innerHTML (the template
+        // wraps the label across lines, which innerText collapses)
+        self.setLaserButtonLabel = function(label) {
+            var btn = document.getElementById("grblLaserButton");
+            if (btn != null) btn.textContent = label;
+        };
+
         self.toggleWeak = function() {
             OctoPrint.simpleApiCommand("bettergrblsupport", "toggleWeak")
                 .done(
                     function(data) {
-                        var btn = document.getElementById("grblLaserButton");
-                        btn.innerHTML = btn.innerHTML.replace(btn.innerText, data["res"]);
+                        if (data != undefined && data["res"]) self.setLaserButtonLabel(data["res"]);
                     }
                 )
                 .fail(
@@ -149,10 +177,6 @@ $(function() {
                     }
                 }
             }
-
-            if (self.operator == "J") {
-
-            }
         };
 
         self.moveHead = function(direction, distance) {
@@ -179,9 +203,11 @@ $(function() {
                     })
                 .fail(
                     function(data, status) {
+                        var message = data.responseText;
+                        try { message = JSON.parse(data.responseText).error || message; } catch (e) {}
                         new PNotify({
                             title: "Move Head failed!",
-                            text: data.responseText,
+                            text: message,
                             text_escape: true,
                             hide: true,
                             buttons: {
@@ -383,6 +409,7 @@ $(function() {
             if (plugin == 'bettergrblsupport' && data.type == 'grbl_state') {
                 if (data.mode != undefined) self.mode(data.mode);
                 if (data.state != undefined) self.state(data.state);
+                if (data.hasZ != undefined) self.hasZ(data.hasZ);
 
                 if (data.x != undefined) self.xPos(Number.parseFloat(data.x).toFixed(2));
                 if (data.y != undefined) self.yPos(Number.parseFloat(data.y).toFixed(2));
@@ -396,16 +423,13 @@ $(function() {
                 if (data.power != undefined) {
                   var newPower = Number.parseFloat(data.power);
                   if (data.state != "Run" && data.power != "N/A" && !self.is_printing()) {
-                    var btn = document.getElementById("grblLaserButton");
-                    var oldPower = Number.parseFloat(self.power);
+                    var oldPower = Number.parseFloat(self.power());
 
-                    if (btn != null) {
-                        if (newPower == 0 && oldPower != 0) {
-                            btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Weak Laser");
-                        } else {
-                            if (oldPower == 0 && newPower != 0) {
-                                btn.innerHTML = btn.innerHTML.replace(btn.innerText, "Laser Off");
-                            }
+                    if (newPower == 0 && oldPower != 0) {
+                        self.setLaserButtonLabel("Weak Laser");
+                    } else {
+                        if (oldPower == 0 && newPower != 0) {
+                            self.setLaserButtonLabel("Laser Off");
                         }
                     }
                   }
@@ -535,10 +559,10 @@ $(function() {
                     var text = "";
                     var confirmActions = self.settings.settings.plugins.bettergrblsupport.zProbeConfirmActions();
 
-                    // if (!confirmActions) {
-                    //   OctoPrint.control.sendGcode(data.gcode);
-                    //   return
-                    // }
+                    if (!confirmActions) {
+                      OctoPrint.control.sendGcode(data.gcode);
+                      return
+                    }
 
                     text = "Select <B>PROCEED</B> to initiate Single Point Z-Probe once the machine is at the desired location, and you are ready to continue.";
 
@@ -833,8 +857,8 @@ $(function() {
                     $("#control-axes-Z").click();
                     break;
                 default:
-                    event.preventDefault();
-                    return false;
+                    // not one of ours: leave the key to the browser (Tab, F5, ...)
+                    return true;
             }
 
             if (button === undefined) {
@@ -860,9 +884,12 @@ $(function() {
 
         $(document).ready(function() {
             $(this).keydown(function(e) {
+                // the controls live on the built-in Control tab; ignore keys typed into a field and browser shortcuts
                 if (OctoPrint.coreui.selectedTab != undefined &&
-                        OctoPrint.coreui.selectedTab == "#tab_plugin_bettergrblsupport" &&
-                        OctoPrint.coreui.browserTabVisible && $(":focus").length == 0) {
+                        OctoPrint.coreui.selectedTab == "#control" &&
+                        OctoPrint.coreui.browserTabVisible &&
+                        !e.ctrlKey && !e.metaKey && !e.altKey &&
+                        !$(document.activeElement).is("input, textarea, select, [contenteditable]")) {
                     self.onKeyDown(undefined, e);
                 }
             });

@@ -31,6 +31,7 @@ from octoprint.events import Events
 from shutil import copyfile
 
 from . import _bgs
+from . import _viewer
 
 import octoprint.plugin
 
@@ -42,12 +43,14 @@ import threading
 import re
 import json
 import flask
-import yaml
 
-import requests
+from octoprint.access.permissions import Permissions
+from octoprint.server.util.flask import no_firstrun_access
+import yaml
 
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
+                              octoprint.plugin.BlueprintPlugin,
                               octoprint.plugin.AssetPlugin,
                               octoprint.plugin.TemplatePlugin,
                               octoprint.plugin.StartupPlugin,
@@ -57,7 +60,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
     def __init__(self): 
         self.hideTempTab = True
-        self.hideGCodeTab = True
+        self.hideGCodeTab = False
         self.helloCommand = "$$"
         self.statusCommand = "?"
         self.dwellCommand = "G4 P0.001"
@@ -97,9 +100,36 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.grblSpeed = float(0)
         self.grblPowerLevel = float(0)
         self.positioning = 0
+        self.grblUnits = "G21"
+        self.grblMotionMode = "G0"
+        # the F word of the last job line, in the job's units (grblSpeed also follows the controller's FS: report)
+        self.grblJobFeed = float(0)
+        # the S word of the last job line, as the job sent it (before the power override)
+        self.grblJobPower = float(0)
+        self.pendingDistanceRestore = None
         self.coolant = "M9"
         self.grblCoordinateSystem = "G54"
-        self.GrblMCode = "M5"
+        self.grblMCode = "M5"
+
+        # status reports received, to tell a fresh one from a stale one
+        self.grblStatusSeq = 0
+        # the state field of the last status report as the controller sent it (grblState is also set by events)
+        self.grblReportedState = ""
+        # time.monotonic() before which a queued status request ("?") is still awaiting its reply
+        self.grblQueueHold = 0
+        # a jog we started is not over until Grbl reports Jog and then something else (or this time passes)
+        self.jogGuardUntil = 0
+        self.jogSeen = False
+        # feed hold sent for a pause (the pause M400 would block in a hold) / cancel in progress
+        self.pauseHoldActive = False
+        # Z when the pause sent the safety-door byte, to tell afterwards whether parking moved it (_bgs.resume_from_park)
+        self.parkStartZ = float(0)
+        # settings: use firmware parking for a pause when the controller has it / what a pause does without it
+        self.pauseParking = False
+        self.pauseMode = "drain"
+        self.cancelling = False
+        # cancel_motion() is still stopping the machine (PrintCancelled fires before it is done)
+        self.cancelMotionActive = False
 
         self.timeRef = 0
 
@@ -111,6 +141,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.ignoreErrors = False
         self.doSmoothie = False
+
+        # errors in the first seconds after connecting answer the connect handshake and are suppressed, until
+        # a command that is not part of that handshake is sent
+        self.userCommandSinceConnect = False
+        # the $<id>=<value> an updateGrblSetting request is waiting on (see _bgs.set_grbl_setting_and_wait)
+        self.settingWaiter = None
 
         self.grblCmdQueue = []
         self.notifications = []
@@ -152,6 +188,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.hasA = False
         self.hasB = False
+        self.hasZ = True    # until a status report says the controller has no Z axis
 
         self.originOffsets = False
         self.originXOffset = 0.0
@@ -171,7 +208,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.bgsFilters = self.bgs_filters
 
-        self.settingsVersion = 8
+        self.settingsVersion = 9
         self.wizardVersion = 23
         
         self.whenConnected = time.monotonic()
@@ -188,7 +225,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         return dict(
             hideTempTab = True,
-            hideGCodeTab = True,
+            hideGCodeTab = False,
+            viewerNormalize = True,
             hello = "$$",
             statusCommand = "?",
             dwellCommand = "G4 P0.001",
@@ -239,6 +277,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             autoCooldown = False,
             autoCooldownFrequency = 60,
             autoCooldownDuration = 15,
+            pauseParking = False,
+            pauseMode = "drain",
             zProbeConfirmActions = True,
             wizard_version = 1,
             invertX = False,
@@ -337,6 +377,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.autoCooldownFrequency = round(float(self._settings.get(["autoCooldownFrequency"])))
         self.autoCooldownDuration = round(float(self._settings.get(["autoCooldownDuration"])))
 
+        self.pauseParking = self._settings.get_boolean(["pauseParking"])
+        self.pauseMode = "hold" if self._settings.get(["pauseMode"]) == "hold" else "drain"
+
         self.invertX = -1 if self._settings.get_boolean(["invertX"]) else 1
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
         self.invertZ = -1 if self._settings.get_boolean(["invertZ"]) else 1
@@ -428,6 +471,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             orderedTabs.insert(0, "control")
             self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
 
+        # ensure the terminal comes before the gcode viewer
+        if "terminal" in orderedTabs and "plugin_gcodeviewer" in orderedTabs and \
+                orderedTabs.index("terminal") > orderedTabs.index("plugin_gcodeviewer"):
+            orderedTabs.remove("terminal")
+            orderedTabs.insert(orderedTabs.index("plugin_gcodeviewer"), "terminal")
+            self._settings.global_set(["appearance", "components", "order", "tab"], orderedTabs)
+            restart_required = True
+
         # ensure i am at the top of the sidebar
         if "plugin_bettergrblsupport" in orderedSidebar:
             orderedSidebar.remove("plugin_bettergrblsupport")
@@ -509,7 +560,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self._settings.global_set(_bgs.serial_settings_path(["encoding"]), "latin_1")
         self._settings.global_set_boolean(_bgs.serial_settings_path(["sanityCheckTools"]), False)
 
-        self._settings.global_set(["terminalFilters"], self.bgsFilters)
+        _bgs.merge_terminal_filters(self)
         _bgs.normalize_active_filters(self)
 
         self._settings.save()
@@ -554,8 +605,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if current is None or current != target:
             if not self._settings.get_boolean(["profile_fixed"]):
                 profile = self._settings.global_get_basefolder("printerProfiles") + os.path.sep + "_bgs.profile"
-                if os.path.exists(profile):
-                    os.remove(profile)                
+                # only a pre-v8 config still needs the stale profile removed; a v8 config already went through
+                # that (2.3.2 crashed right after removing it, so the flag was never persisted) and its profile
+                # may carry the user's own edits
+                if (current is None or current < 8) and os.path.exists(profile):
+                    os.remove(profile)
                 self._settings.set_boolean(["profile_fixed"], True)
 
             orderedTabs = self._settings.global_get(["appearance", "components", "order", "tab"])
@@ -584,6 +638,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             self._settings.set(["dwellCommand"], "G4 P0.001")
             self.dwellCommand = "G4 P0.001"
+
+            # v9: the built-in G-code viewer is Grbl-aware now (normalised copies), so stop hiding it
+            if current is not None and current < 9:
+                self._settings.set_boolean(["hideGCodeTab"], False)
+                self.hideGCodeTab = False
 
             self._settings.remove(["reOrderTabs"])
             self._settings.remove(["hideControlTab"])
@@ -614,7 +673,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 offsetZ = float(data["originZOffset"])
             if offsetX == 0.0 and offsetY == 0.0 and offsetZ == 0.0:
                 data["originOffsets"] = False
-            if not data["originOffsets"]:
+            # a save that carries only some of the fields leaves the others as they are
+            if not data.get("originOffsets", self.originOffsets):
                 data["originXOffset"] = 0.0
                 data["originYOffset"] = 0.0
                 data["originZOffset"] = 0.0
@@ -640,24 +700,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self.fluidConfig = data.get("fluidYaml").replace("NO PIN", "NO_PIN")
                     self.fluidYaml = yaml.safe_load(self.fluidConfig)
 
-                    if self.fluidSettings.get("HTTP/Enable").upper() == "ON":
-                        try:
-                            url = "http://{}:{}/files".format(self.fluidSettings.get("Hostname"), self.fluidSettings.get("HTTP/Port"))
-                            params = {'action': 'delete', 'filename': self.fluidSettings.get("Config/Filename")}
-                            r = requests.get(url, params)
-                            r.close()
-
-                            # lets wait a second for fluid to settle down
-                            time.sleep(1)
-
-                            files = {'file': (self.fluidSettings.get("Config/Filename"), self.fluidConfig)}
-                            r = requests.post(url, files=files)
-                            r.close()
-
+                    if str(self.fluidSettings.get("HTTP/Enable") or "").upper() == "ON":
+                        uploaded, why = _bgs.upload_fluid_config(self)
+                        if uploaded:
                             if "fluidSettings" not in data:
                                 self._printer.commands("$Bye")
-                        except Exception as e:
-                            self._logger.warn(f"__init__: on_settings_save unable to save fluid config: {e}")
+                        else:
+                            self._logger.warn(f"__init__: on_settings_save unable to save fluid config over HTTP ({why}), sending it over the serial line")
                             _bgs.update_fluid_config(self)
                     else: 
                         _bgs.update_fluid_config(self)
@@ -688,9 +737,54 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Define your plugin's asset files to automatically include in the
         # core UI here.
         return dict(js=['js/bettergrblsupport_control.js', 'js/bettergrblsupport_settings.js', 'js/bgs_framing.js', 
-                        'js/bettergrblsupport_wizard.js', 'js/bgs_terminal.js'],
+                        'js/bettergrblsupport_wizard.js', 'js/bgs_terminal.js', 'js/bgs_viewer.js'],
                     css=['css/bettergrblsupport_control.css', 'css/bettergrblsupport_settings.css', 'css/bgs_framing.css'],
                     less=['less/bettergrblsupport.less', "less/bgs_framing.less"])
+
+    # #~~ BlueprintPlugin mixin: normalised copies for the built-in G-code viewer
+    def _viewer_files(self, storage, filename):
+        src = _viewer.source_path(self._file_manager, storage, filename)
+        if src is None:
+            flask.abort(404)
+        meta = self._file_manager.get_metadata(storage, filename) or {}
+        if storage == "local" and not meta.get("bgs_origin"):
+            # the frame routine normally runs on upload/select; run it now so the job lands on the bed
+            _bgs.defer_generate_metadata_for_file(self, filename, False)
+            meta = self._file_manager.get_metadata(storage, filename) or {}
+        shift = _viewer.origin_shift(meta.get("bgs_origin"), meta.get("bgs_width"), meta.get("bgs_length"))
+        cache_dir = os.path.join(self.get_plugin_data_folder(), "viewer-cache")
+        return src, _viewer.cached(cache_dir, storage, filename, src, shift)
+
+    @octoprint.plugin.BlueprintPlugin.route("/viewer/<string:storage>/<path:filename>", methods=["GET"])
+    @no_firstrun_access
+    @Permissions.GCODE_VIEWER.require(403)
+    @Permissions.FILES_DOWNLOAD.require(403)
+    def viewer_gcode(self, storage, filename):
+        src, built = self._viewer_files(storage, filename)
+        path, mode = (built[0], "normalized/1") if built else (src, "passthrough")
+        response = flask.make_response(flask.send_file(path, mimetype="text/plain", max_age=0))
+        response.headers["X-Original-Content-Length"] = str(os.path.getsize(path))
+        response.headers["Cache-Control"] = "no-cache"
+        response.headers["X-BGS-Viewer"] = mode
+        return response
+
+    @octoprint.plugin.BlueprintPlugin.route("/viewer-map/<string:storage>/<path:filename>", methods=["GET"])
+    @no_firstrun_access
+    @Permissions.GCODE_VIEWER.require(403)
+    @Permissions.FILES_DOWNLOAD.require(403)
+    def viewer_map(self, storage, filename):
+        _, built = self._viewer_files(storage, filename)
+        if not built:
+            flask.abort(404)
+        response = flask.make_response(flask.send_file(built[1], mimetype="application/json", max_age=0))
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+    def get_blueprint_api_prefixes(self):
+        return ["/viewer-map/"]
+
+    def is_blueprint_csrf_protected(self):
+        return True
 
     # #~~ TemplatePlugin mixin
     def get_template_configs(self):
@@ -753,6 +847,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return None
 
         cmd = cmd.lstrip("\r").lstrip("\n").rstrip("\r").rstrip("\n")
+        requested = cmd
 
         # suppress temperature if machine is printing or
         # running fluidnc auto reporting
@@ -777,10 +872,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     _bgs.send_command_now(self._printer, self._logger, "M999")
 
                 # pop any queued commands if state is IDLE or HOLD:0, DOOR:0, CHECK, or ALARM
-                if len(self.grblCmdQueue) > 0 and self.grblState.upper() in ("IDLE", "HOLD:0", "DOOR:0", "CHECK", "ALARM"):
-                    self._logger.debug('sending queued command [%s] - depth [%d]', self.grblCmdQueue[0], len(self.grblCmdQueue))
-                    self._printer.commands(self.grblCmdQueue[0])
-                    self.grblCmdQueue.pop(0)
+                _bgs.release_queued_command(self)
 
                 if _bgs.is_grbl_fluidnc(self) and self.fluidAutoReport:
                     # let fluidnc handle status reports
@@ -791,6 +883,23 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 return (self.statusCommand, )
 
         self.autoSleepTimer = time.monotonic()
+
+        # a job that is being cancelled must not run the leftovers of the resume script
+        if self.cancelling and cmd in ("G4 P10", "G91 G0 Z-5"):
+            self._logger.debug('Dropping [%s] - job is being cancelled', cmd)
+            return (None, )
+
+        # commands that change the controller state: keep grblState in step with them
+        if cmd.upper().startswith("$J="):
+            _bgs.start_jog_guard(self)
+        elif cmd == "!":
+            if self.grblState.upper() != "ALARM":
+                _bgs.set_grbl_state(self, "Hold:1")
+        elif cmd.upper() in ("$X", "~"):
+            _bgs.schedule_status_refresh(self)
+            if cmd.upper() == "$X":
+                # a probe that alarmed could not hand the distance mode back; the unlock is what lets it
+                _bgs.send_pending_distance_restore(self)
 
         # forward on BGS_MULTIPOINT_ZPROBE_MOVE events to _bgs
         if "BGS_MULTIPOINT_ZPROBE_MOVE" in cmd:
@@ -841,12 +950,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", coord=self.grblCoordinateSystem))
 
         # capture M-Command if sent
-        if "M3" in cmd.upper():
-            self.grblMCode = "M3"
-        if "M4" in cmd.upper():
-            self.grblMCode = "M4"
-        if "M5" in cmd.upper():
-            self.grblMCode = "M5"
+        mcode = _bgs.spindle_mcode(cmd)
+        if mcode is not None:
+            self.grblMCode = mcode
 
         # only apply coolant handling here if not fluidnc auto reporting
         if not (_bgs.is_grbl_fluidnc(self) and self.fluidAutoReport):
@@ -975,9 +1081,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             else:
                 return (None, )
 
+        # cycle start after a parked pause: the controller ignores it until it reports Door:0
+        if cmd.upper() == "PARKRESUME":
+            _bgs.resume_from_park(self)
+            return (None, )
+
         # toggle spindle
         if cmd.upper() == "TOGGLESPINDLE":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
+            if (_bgs.is_grbl_one_dot_one(self) or _bgs.is_grbl_fluidnc(self)) and _bgs.is_latin_encoding_available(self):
                 self._logger.debug("Toggling spindle stop")
                 cmd = "? {} ?".format("\x9E")
             else:
@@ -1002,8 +1113,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
-            self._logger.debug('Rewriting M400 as %s', self.dwellCommand)
-            cmd = self.dwellCommand
+            if self.pauseHoldActive:
+                # the machine is in feed hold: a dwell would not be acknowledged until the hold is released
+                # and OctoPrint would never finish pausing, so just ask for the position it wants
+                self._logger.debug('Rewriting M400 as %s (feed hold)', self.statusCommand)
+                cmd = self.statusCommand
+            else:
+                self._logger.debug('Rewriting M400 as %s', self.dwellCommand)
+                cmd = self.dwellCommand
 
         # rewrite M114 current position as ? (typically)
         if self.suppressM114 and cmd.upper().startswith('M114'):
@@ -1015,6 +1132,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._logger.debug('Sending Soft Reset')
             _bgs.add_notifications(self, ["Machine has been reset"])
 
+            # a reset puts Grbl back to its default modal state: nothing is left to restore
+            self.pendingDistanceRestore = None
+            self.grblJobFeed = float(0)
+            self.grblJobPower = float(0)
             self.grblState = "Reset"
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", state="Reset"))
             _bgs.queue_cmds_and_send(self, ["$G"])
@@ -1052,16 +1173,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self._settings.set(["fluidYaml"], self.fluidYaml)
             self._settings.save(trigger_event=True)
 
-        # we need to track absolute position mode for "RUN" position updates
-        if "G90" in cmd.upper():
-            # absolute positioning
-            self.positioning = 0
-            self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
-
-        # we need to track relative position mode for "RUN" position updates
-        if "G91" in cmd.upper():
-            # relative positioning
-            self.positioning = 1
+        # we need to track the distance mode (G90/G91) for "RUN" position updates, and the units and motion mode
+        # so a pause can put them back (see _bgs.track_modal_state: jogs, G90.1/G91.1 and comments do not count)
+        # OctoPrint tags the lines of the job with source:file; a jog, a probe or framing move and the line an
+        # override change sends come from elsewhere and must not become the job's feed or power. A caller that
+        # passes no tags (no provenance to go on) is taken as the job, as before.
+        tags = kwargs.get("tags")
+        if _bgs.track_modal_state(self, cmd, job=tags is None or "source:file" in tags):
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
 
         # save our G command for shorthand post processors
@@ -1078,34 +1196,39 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             found = False
             foundZ = False
 
+            # a $J= jog carries its own distance mode and leaves the parser's alone (see track_modal_state)
+            relative = self.positioning == 1
+            if cmd.upper().startswith("$J="):
+                relative = "G91" in cmd.upper() or (relative and "G90" not in cmd.upper())
+
             # match = re.search(r"^G([0][0123]|[0123])(\D.*[Xx]|[Xx])\ *(-?[\d.]+).*", command)
             match = re.search(r".*[Xx]\ *(-?[\d.]+).*", cmd)
             if match:
-                self.grblX = float(match.groups(1)[0]) if self.positioning == 0 else self.grblX + float(match.groups(1)[0])
+                self.grblX = float(match.groups(1)[0]) if not relative else self.grblX + float(match.groups(1)[0])
                 found = True
 
             # match = re.search(r"^G([0][0123]|[0123])(\D.*[Yy]|[Yy])\ *(-?[\d.]+).*", command)
             match = re.search(r".*[Yy]\ *(-?[\d.]+).*", cmd)
             if match:
-                self.grblY = float(match.groups(1)[0]) if self.positioning == 0 else self.grblY + float(match.groups(1)[0])
+                self.grblY = float(match.groups(1)[0]) if not relative else self.grblY + float(match.groups(1)[0])
                 found = True
 
             # match = re.search(r"^G([0][0123]|[0123])(\D.*[Zz]|[Zz])\ *(-?[\d.]+).*", command)
             match = re.search(r".*[Zz]\ *(-?[\d.]+).*", cmd)
             if match:
-                self.grblZ = float(match.groups(1)[0]) if self.positioning == 0 else self.grblZ + float(match.groups(1)[0])
+                self.grblZ = float(match.groups(1)[0]) if not relative else self.grblZ + float(match.groups(1)[0])
                 found = True
                 foundZ = True
 
             #ADD A and B here
             match = re.search(r".*[Aa]\ *(-?[\d.]+).*", cmd)
             if match:
-                self.grblA = float(match.groups(1)[0]) if self.positioning == 0 else self.grblA + float(match.groups(1)[0])
+                self.grblA = float(match.groups(1)[0]) if not relative else self.grblA + float(match.groups(1)[0])
                 found = True
 
             match = re.search(r".*[Bb]\ *(-?[\d.]+).*", cmd)
             if match:
-                self.grblB = float(match.groups(1)[0]) if self.positioning == 0 else self.grblB + float(match.groups(1)[0])
+                self.grblB = float(match.groups(1)[0]) if not relative else self.grblB + float(match.groups(1)[0])
                 found = True
 
             # match = re.search(r"^[GM]([0][01234]|[01234])(\D.*[Ff]|[Ff])\ *(-?[\d.]+).*", command)
@@ -1171,6 +1294,13 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                                                                                     coolant=self.coolant))
                     self.timeRef = currentTime
 
+        # this line goes out: anything but the connect handshake / status traffic is the user's, and its errors are
+        # real, whenever they come
+        if not _bgs.is_startup_command(requested):
+            self.userCommandSinceConnect = True
+
+        _bgs.note_setting_sent(self, cmd)
+
         # we only want to track requests we care about
         if cmd.upper() in self.trackedCmds:
             self.lastRequest.append(cmd)
@@ -1197,6 +1327,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # look for an error
         if not self.ignoreErrors and line.lower().startswith('error:'):
             return _bgs.process_grbl_error(self, line)
+
+        # an updateGrblSetting request waits for its line's answer: this ok is it (an ignored error never gets one)
+        if line.lstrip().lower().startswith("ok"):
+            _bgs.resolve_setting_waiter(self, True)
+        elif self.ignoreErrors and line.lower().startswith('error:'):
+            _bgs.resolve_setting_waiter(self, False, line.strip())
             
         if line.startswith('Grbl'):
             # it all starts here
@@ -1287,30 +1423,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self._settings.set(["fluidYaml"], yaml.dump(self.fluidYaml, sort_keys=False).replace(": null", ": "))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
                 self._settings.save(trigger_event=True)
-                # lets populate our x,y,z limits (namely set distance)
-                _bgs.get_axes_limits(self)
-                # retreive the fluid settings out of config yaml 
+                # retreive the fluid settings out of config yaml (the axes limits come with them)
                 self._printer.commands("$S")
 
             # grbl settings received
             if lastRequest.upper() in ("$$", "$+", "M115"): 
                 self._settings.set(["grblSettingsText"], _bgs.save_grbl_settings(self))
                 self._settings.set_boolean(["laserMode"], _bgs.is_laser_mode(self))
-                # lets populate our x,y,z limits (namely set distance)
-                if all(id in self.grblSettings for id in (130, 131, 132)):
+                # lets populate our x,y,z limits (namely set distance); Z is optional
+                if all(id in self.grblSettings for id in (130, 131)):
                     _bgs.get_axes_limits(self)
 
             # grbl offsets
-            if lastRequest.upper() in ("$#"):
+            if lastRequest.upper() == "$#":
                 for offset in lastResponse.split("\n"):
                     offsetpair = offset.replace("[", "").replace("]", "").split(":")
                     offsetkey = offsetpair[0]
                     if offsetkey in ("G54", "G55", "G56", "G57", "G58", "G59"):
+                        # one value per axis the controller has: 2-axis machines report only X and Y
                         offsetvalues = offsetpair[1].split(",")
                         self.offsets[offsetkey] = {}
-                        self.offsets[offsetkey]['x'] = float(offsetvalues[0])
-                        self.offsets[offsetkey]['y'] = float(offsetvalues[1])
-                        self.offsets[offsetkey]['z'] = float(offsetvalues[2])
+                        for axis, value in zip("xyz", offsetvalues):
+                            self.offsets[offsetkey][axis] = float(value)
 
                 self._logger.debug(f"offsets: [{self.offsets}]")
 
@@ -1328,6 +1462,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 self.fluidSettings = json.loads("{" + lastResponse.replace("\r", "").replace("=", '": "').replace("\n", '", ').replace("$", '"').replace("\\", "\\\\") + '"}')
                 self._settings.set(["fluidSettings"], self.fluidSettings)
                 self._settings.save(trigger_event=True)
+                # lets populate our x,y,z limits (namely set distance)
+                _bgs.get_axes_limits(self)
                 if self.fluidAutoReport:
                     self._printer.commands(f"$Report/Interval={self.autoReportInterval}")
                 else:
@@ -1399,15 +1535,28 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         if command == "updateGrblSetting":
-            self._printer.commands("${}={}".format(data.get("id"), data.get("value")))
-            self.grblSettings.update({int(data.get("id")): [data.get("value"), self.grblSettingsNames.get(int(data.get("id")))]})
-            # self._printer.commands("$$")
-            return
+            try:
+                setting_id = int(data.get("id"))
+            except (TypeError, ValueError):
+                return flask.abort(400, "Grbl setting id must be a number")
+            value = str(data.get("value", "")).strip()
+            if value == "":
+                return flask.abort(400, "Grbl setting value is required")
+
+            # the table only changes once Grbl has acknowledged the new value
+            accepted, reason = _bgs.set_grbl_setting_and_wait(self, setting_id, value)
+            if not accepted:
+                return flask.abort(400, reason)
+
+            self.grblSettings.update({setting_id: [value, self.grblSettingsNames.get(setting_id)]})
+            return flask.jsonify({'res': value})
 
         if command == "backupGrblSettings":
-            self._settings.set(["grblSettingsBackup"], _bgs.save_grbl_settings(self))
-            self._settings.save()
-            return
+            backup = _bgs.save_grbl_settings(self)
+            self._settings.set(["grblSettingsBackup"], backup)
+            # trigger_event: other open browsers re-read the settings; the caller gets the backup to show it at once
+            self._settings.save(trigger_event=True)
+            return flask.jsonify({'res': backup})
 
         if command == "restoreGrblSettings":
             settings = self._settings.get(["grblSettingsBackup"])
@@ -1435,13 +1584,15 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             feedRate = float(data.get("feed_rate"))
             if feedRate not in (0, 100):
                 self.feedRate = feedRate * .01
-                # sending our current feedrate ensures grbl uses the new feedrate
-                # now rather than wait for it to be sent -- it could be a while for
-                # one to come in
-                if self._printer.is_printing():
-                    self._printer.commands(f"F{self.grblSpeed}", force=True)
             else:
                 self.feedRate = float(0)
+
+            # sending the job's own feed rate ensures grbl uses the new override now rather than wait for the
+            # job to send one -- it could be a while. It is the programmed feed, in the job's units: this line goes
+            # back through the sending hook, which applies the override to it exactly once (grblSpeed is not it:
+            # it is the overridden feed, or the controller's FS: report, which is always mm/min)
+            if self._printer.is_printing() and self.grblJobFeed > 0:
+                self._printer.commands(f"F{self.grblJobFeed}", force=True)
 
             self._logger.info("feed rate overriden by %.0f%%", feedRate)
             return
@@ -1460,14 +1611,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             powerRate = float(data.get("power_rate"))
             if powerRate not in (0, 100):
                 self.powerRate = powerRate * .01
-                # sending our current powerRate ensures grbl uses the new powerRate
-                # now rather than wait for it to be sent -- it could be a while for
-                # one to come in
-                if self._printer.is_printing():
-                    self._printer.commands(f"S{self.grblPowerLevel}", force=True)
-
             else:
                 self.powerRate = float(0)
+
+            # as the feed rate: the job's own power, which the sending hook overrides exactly once
+            if self._printer.is_printing() and self.grblJobPower > 0:
+                self._printer.commands(f"S{self.grblJobPower}", force=True)
 
             self._logger.info("power rate overriden by %.0f%%", powerRate)
             return
@@ -1486,17 +1635,27 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             return 
 
         # catch-all (TODO: should revisit state management) for validating printer State
+        # grblState is N/A until the first status report after connecting: ask rather than ignore the command
+        if self.grblState == "N/A" and self._printer.is_ready():
+            _bgs.refresh_grbl_state(self)
+
         if not self._printer.is_ready() or self.grblState not in ("Idle", "Jog", "Check"):
             self._logger.debug("ignoring move related command - printer is not available")
             return
 
         if command == "frame":
-            length = float(data.get("length"))
-            width = float(data.get("width"))
+            length = _bgs.parse_distance(data.get("length"), "Frame length")
+            width = _bgs.parse_distance(data.get("width"), "Frame width")
+            if isinstance(length, str):
+                return flask.abort(400, length)
+            if isinstance(width, str):
+                return flask.abort(400, width)
+            if data.get("origin") not in _bgs.FRAME_ORIGINS:
+                return flask.abort(400, "Select a starting position for the frame")
 
             # check distance against limits
             if abs(length) > abs(yl):
-                return flask.abort(403, "Distance exceeds Y axis limit")
+                return flask.abort(400, "Distance exceeds Y axis limit")
             if abs(width) > abs(xl):
                 return flask.abort(400, "Distance exceeds X axis limit")
                     
@@ -1515,8 +1674,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
             # do move stuff
             direction = data.get("direction")
-            distance = float(data.get("distance"))
             axis = data.get("axis")
+            distance = data.get("distance")
+            if direction not in ("home", "probe"):
+                distance = _bgs.parse_distance(distance, "Jog distance")
+                if isinstance(distance, str):
+                    return flask.abort(400, distance)
+            else:
+                distance = 0.0
 
             self._logger.debug(f"move direction=[{direction}] distance=[{distance}] axis=[{axis}] xlimit=[{xl}] ylimit=[{yl}] zlimit=[{zl}]")
 
@@ -1526,6 +1691,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif axis == "Y":
                     self._printer.commands(f"G0 G90 Y{0 if not self.originOffsets else self.originYOffset}")
                 elif axis == "Z":
+                    if not self.hasZ:
+                        return self.no_z_axis()
                     self._printer.commands(f"G0 G90 Z{0 if not self.originOffsets else self.originZOffset}")
                 elif axis == "XY":
                     self._printer.commands(f"G0 G90 X{0 if not self.originOffsets else self.originXOffset} Y{0 if not self.originOffsets else self.originYOffset}")
@@ -1534,7 +1701,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                 elif axis == "B":
                     self._printer.commands("G0 G90 B0")
                 else:
-                    self._printer.commands(f"G0 G90 X{0 if not self.originOffsets else self.originXOffset} Y{0 if not self.originOffsets else self.originYOffset} Z{0 if not self.originOffsets else self.originZOffset} {extra_axes}")
+                    z_word = f" Z{0 if not self.originOffsets else self.originZOffset}" if self.hasZ else ""
+                    self._printer.commands(f"G0 G90 X{0 if not self.originOffsets else self.originXOffset} Y{0 if not self.originOffsets else self.originYOffset}{z_word} {extra_axes}")
 
                 program = int(float(self.grblCoordinateSystem.replace("G", "")))
                 program = -53 + program
@@ -1589,6 +1757,9 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             if direction == "southeast":
                 self._printer.commands("{}G91 G21 X{:f} Y{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * self.invertX, distance * -1 * self.invertY, xf if xf < yf else yf))
 
+            if direction in ("up", "down") and not self.hasZ:
+                return self.no_z_axis()
+
             if direction == "up":
                 self._printer.commands("{}G91 G21 Z{:f} F{}".format("$J=" if _bgs.is_grbl_one_dot_one(self) else "G1 ", distance * self.invertZ, zf))
 
@@ -1622,19 +1793,22 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             program = -53 + program
 
             if axis == "X":
-                self._printer.commands(f"G91 G10 P{program} L20 X{self.originXOffset}")
+                self._printer.commands(f"G10 P{program} L20 X{self.originXOffset}")
             elif axis == "Y":
-                self._printer.commands(f"G91 G10 P{program} L20 Y{self.originYOffset}")
+                self._printer.commands(f"G10 P{program} L20 Y{self.originYOffset}")
             elif axis == "Z":
-                self._printer.commands(f"G91 G10 P{program} L20 Z{self.originZOffset}")
+                if not self.hasZ:
+                    return self.no_z_axis()
+                self._printer.commands(f"G10 P{program} L20 Z{self.originZOffset}")
             elif axis == "XY":
-                self._printer.commands(f"G91 G10 P{program} L20 X{self.originXOffset} Y{self.originYOffset}")
+                self._printer.commands(f"G10 P{program} L20 X{self.originXOffset} Y{self.originYOffset}")
             elif axis == "A" and self.hasA:
-                self._printer.commands(f"G91 G10 P{program} L20 A0")
+                self._printer.commands(f"G10 P{program} L20 A0")
             elif axis == "B" and self.hasB:
-                self._printer.commands(f"G91 G10 P{program} L20 B0")
+                self._printer.commands(f"G10 P{program} L20 B0")
             else:
-                self._printer.commands(f"G91 G10 P{program} L20 X{self.originXOffset} Y{self.originYOffset} Z{self.originZOffset} {extra_axes}")
+                z_word = f" Z{self.originZOffset}" if self.hasZ else ""
+                self._printer.commands(f"G10 P{program} L20 X{self.originXOffset} Y{self.originYOffset}{z_word} {extra_axes}")
 
             self._printer.commands("$#")
             _bgs.add_notifications(self, [f"Coordinate system {program} home for {axis} set"])
@@ -1643,6 +1817,11 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if command == "toggleWeak":
             return flask.jsonify({'res' : _bgs.toggle_weak(self)})
 
+
+    def no_z_axis(self):
+        # the controller has no Z axis: it would answer error:20 to any Z word
+        self._logger.debug("ignoring Z command - the controller reports no Z axis")
+        _bgs.add_notifications(self, ["This machine has no Z axis"])
 
     def on_wizard_finish(self, handled):
         self._logger.debug(f"__init__: on_wizard_finish handled=[{handled}]")

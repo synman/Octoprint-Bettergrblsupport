@@ -43,6 +43,10 @@
 					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.hideGCodeTab"> Hide
 					the Octoprint GCode Viewer tab *
 				</label>
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.viewerNormalize"> Draw
+					Grbl files in the GCode Viewer as Grbl moves them (G90/G91, arcs, units)
+				</label>
 			</div>
 
 			<h5><b>Probing</b></h5>
@@ -252,6 +256,27 @@
 				</div>
 
 				<!-- /ko -->
+
+				<br>
+
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.pauseParking">
+					Pause with the controller's parking (safety door)
+				</label>
+				<span class="help-block">Used only when the controller has parking enabled and the job is not a laser
+					job: pause stops, retracts and switches the spindle off; resume waits for the controller to be
+					ready, restores the spindle and lowers the tool. Otherwise the setting below applies.</span>
+
+				<label class="control-label">Pause without parking</label>
+				<div class="controls">
+					<select data-bind="value: settings.plugins.bettergrblsupport.pauseMode">
+						<option value="drain">Finish moves, lift Z</option>
+						<option value="hold">Stop at once, no lift</option>
+					</select>
+				</div>
+				<span class="help-block">"Finish moves, lift Z" lets the buffered moves run out, then stops the spindle and lifts
+					Z 5 mm; resume restores the spindle and lowers Z. "Stop at once, no lift" stops where the tool is and
+					stops the spindle. A laser job (laser mode enabled) always stops at once with no lift.</span>
 
 			</div>
 
