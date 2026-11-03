@@ -222,7 +222,7 @@ python3.12 -m venv <scratch>/venv111 && <scratch>/venv111/bin/python -m pip inst
 `rigtool.py` below needs `tornado` and `yaml`; both arrive as OctoPrint dependencies, so always run it with the
 rig's own `<venv>/bin/python`. Never install into a system Python or your real OctoPrint's environment.
 
-Keep `<scratch>` out of `/tmp` for any rig that must outlive a single test run, for example `~/octoprint-rigs`.
+Keep `<scratch>` out of `/tmp` for any rig that must outlive a single test run, for example a directory under your home directory.
 macOS deletes files under `/tmp` that have gone unchanged for about three days, even while a server is still
 using them. A rig in `/tmp` keeps running on the deleted files until its next request needs one. On 2026-10-11
 that cost a rig its venv, `config.yaml`, `users.yaml`, printer profiles and uploads.
