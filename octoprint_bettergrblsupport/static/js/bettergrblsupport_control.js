@@ -15,6 +15,16 @@ $(function() {
         self.loginState = parameters[1];
         self.access = parameters[2];
         self.notifications = parameters[3];
+        self.printerState = parameters[4];
+        self.printerProfiles = parameters[5];
+
+        // A machine runs a job rather than prints it: OctoPrint's "Printing" in the State panel reads "Running" when our
+        // printer profile (_bgs) is selected. Only the displayed text changes; OctoPrint's state itself does not.
+        self.printerState.stateString.subscribe(function (text) {
+            if (typeof text === "string" && /^Printing/.test(text) && self.printerProfiles.currentProfile() === "_bgs") {
+                self.printerState.stateString(text.replace(/^Printing/, "Running"));
+            }
+        });
 
         self.my_notifications = ko.observableArray();
 
@@ -1091,7 +1101,8 @@ $(function() {
 
     OCTOPRINT_VIEWMODELS.push([
         BettergrblsupportViewModel,
-        ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel"],
+        ["settingsViewModel", "loginStateViewModel", "accessViewModel", "actionCommandNotificationViewModel",
+         "printerStateViewModel", "printerProfilesViewModel"],
         ["#bettergrblsupport_control_panel"]
     ]);
 

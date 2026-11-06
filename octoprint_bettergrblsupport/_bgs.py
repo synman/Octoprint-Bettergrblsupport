@@ -290,7 +290,7 @@ def on_event(_plugin, event, payload):
                         Events.PLUGIN_PLUGINMANAGER_UNINSTALL_PLUGIN, Events.PLUGIN_PLUGINMANAGER_DISABLE_PLUGIN, Events.UPLOAD,
                         Events.CONNECTING, Events.CONNECTED, Events.DISCONNECTING, Events.DISCONNECTED, Events.STARTUP, Events.SHUTDOWN)
 
-    if event not in subscribed_events and payload is not None and payload.get("state_id") not in ("PAUSING", "STARTING"):
+    if event not in subscribed_events and payload is not None and payload.get("state_id") not in ("PAUSING", "RESUMING", "STARTING"):
         _plugin._logger.debug(f'event [{event}] payload [{payload}] received but not subscribed - discarding')
         return
 
@@ -328,6 +328,10 @@ def on_event(_plugin, event, payload):
         _plugin.grblMCode = "M5"
         # a restore owed by a probe on the previous connection is not this controller's: it starts from its own state
         _plugin.pendingDistanceRestore = None
+        # nor is a hold, or an acknowledgement debt (see fake_ack)
+        _plugin.pauseHoldActive = False
+        _plugin.pauseStrategy = "drain"
+        _plugin.strayOksOwed = 0
         _plugin._printer.commands(["$I", "$G", "$#"])
         # don't leave grblState at N/A until the next scheduled poll
         schedule_status_refresh(_plugin, 0.5)
@@ -411,7 +415,8 @@ def on_event(_plugin, event, payload):
         _plugin._logger.debug("cancelling job")
         _plugin.cancelling = True
         _plugin.cancelMotionActive = True
-        _plugin.pauseHoldActive = False
+        # cancel_motion holds the controller until its reset: meanwhile OctoPrint's M400 must not become a dwell
+        _plugin.pauseHoldActive = True
         threading.Thread(target=cancel_motion, args=(_plugin,), daemon=True).start()
 
     # Print Pausing
@@ -420,6 +425,7 @@ def on_event(_plugin, event, payload):
 
         strategy, why = pause_strategy(_plugin)
         _plugin._logger.info("pause: strategy [%s] (%s)", strategy, why)
+        _plugin.pauseStrategy = strategy
 
         if strategy == "park":
             # the safety-door realtime byte: the firmware stops, retracts, switches the spindle off and (on resume)
@@ -433,22 +439,35 @@ def on_event(_plugin, event, payload):
             if _plugin.grblState.upper() != "ALARM":
                 set_grbl_state(_plugin, "Hold:1")
 
+        # the coolant state the job had: the resume puts it back (resume_hold), whatever the pause or the user did
+        # meanwhile. A park's firmware switches coolant off and back on by itself (the door path); a drain's scripts
+        # carry M9 / M8 lines; a hold has only the realtime toggle, which is ours to send.
+        _plugin.coolantAtPause = _plugin.coolant
+        if strategy in ("laser", "hold") and _plugin.pauseCoolantOff:
+            set_coolant(_plugin, False, "paused")
+
         if strategy != "drain":
             # a held or parked planner never acknowledges the line OctoPrint last sent
             _plugin.pauseHoldActive = True
+            _plugin.holdBytes = 0
             threading.Thread(target=finish_pause_hold, args=(_plugin,), daemon=True).start()
 
         write_pause_resume_scripts(_plugin, strategy)
 
+    # Print Resuming: the cycle start goes out here, as a realtime byte, ahead of anything the resume queues
+    if payload is not None and payload.get("state_id") == "RESUMING":
+        resume_hold(_plugin)
+
     # Print Paused
     if event == Events.PRINT_PAUSED:
+        # OctoPrint fires this before it switches from PAUSING to PAUSED, and the switch waits behind any line
+        # it sends meanwhile (the held planner never acknowledges one): finish_pause_hold keeps acknowledging
+        # until the switch is made, and resume, cancel or the end of the job clears pauseHoldActive
         _plugin._logger.debug("paused job")
-        _plugin.pauseHoldActive = False
 
     # Print Resumed
     if event == Events.PRINT_RESUMED:
         _plugin._logger.debug("resuming job")
-        _plugin.pauseHoldActive = False
         _plugin.grblState = "Run"
         _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", state="Run"))
 
@@ -602,25 +621,15 @@ def write_pause_resume_scripts(_plugin, strategy):
 
     laser = is_laser_mode(_plugin)
 
-    if strategy in ("laser", "hold"):
-        # The machine is already in feed hold and G-code (M5, a Z retract) would only be queued behind the
-        # held planner, so the scripts hold nothing for the planner. Laser mode switches the laser off by
-        # itself during a hold; for a spindle use Grbl's spindle-stop override, which only works while held.
-        # The cycle start (~) restores the spindle and resumes; no modal state was changed, so none is restored.
-        with open(pauseScript, 'w') as file:
-            if strategy == "hold":
-                file.write("TOGGLESPINDLE\n")
-        with open(resumeScript, 'w') as file:
-            file.write("~\n")
-        return
-
-    if strategy == "park":
-        # The firmware retracts and stops the spindle by itself. Its cycle start is ignored until it reports
-        # Door:0, so PARKRESUME (see resume_from_park) holds the ~ back until then.
-        with open(pauseScript, 'w'):
-            pass
-        with open(resumeScript, 'w') as file:
-            file.write("PARKRESUME\n")
+    if strategy in ("laser", "hold", "park"):
+        # The controller is held (or parking) and acknowledges no line until the cycle start, and OctoPrint sends a
+        # script as lines, behind whatever else is queued (an event subscription's, a plugin's). So the scripts
+        # carry nothing these strategies need: everything is a realtime byte -- `!` / 0x84 at PAUSING, the
+        # spindle-stop override from finish_pause_hold (hold), the cycle start from resume_hold. Both files are
+        # written empty so an earlier drain's lines are not replayed.
+        for path in (pauseScript, resumeScript):
+            with open(path, 'w'):
+                pass
         return
 
     # drain: OctoPrint has already waited for the planner to run dry (its M400 became a dwell), so these lines run on
@@ -653,6 +662,8 @@ def write_pause_resume_scripts(_plugin, strategy):
     with open(pauseScript, 'w') as file:
         # turn off laser/spindle
         file.write("M5\n")
+        if _plugin.pauseCoolantOff and _plugin.coolant in ("M7", "M8"):
+            file.write("M9\n")
         if not laser:
             # retract Z 5 away from the work, then put the distance mode (and units) back: the Z move leaves Grbl in G91.
             # Away from the work is the jog's "up": +Z, or -Z with Invert Z on (see jog in __init__.py)
@@ -666,6 +677,8 @@ def write_pause_resume_scripts(_plugin, strategy):
     with open(resumeScript, 'w') as file:
         # reset our M-code
         file.write(f"{pausedGrblMCode}\n")
+        if _plugin.pauseCoolantOff and _plugin.coolantAtPause in ("M7", "M8"):
+            file.write(f"{_plugin.coolantAtPause}\n")
         # reset our spindle speed / power
         file.write(f"S{pausedPower}\n")
         # reset our feedrate
@@ -704,9 +717,11 @@ def resume_from_park(_plugin, timeout=60.0):
             time.sleep(0.1)
             continue
         if state == "DOOR:3":
+            _plugin.pauseHoldActive = False
             return False
         if state != "DOOR:0" and not state.startswith("HOLD"):
             _plugin._logger.info("resume: controller is [%s], not parked: no cycle start sent", _plugin.grblReportedState)
+            _plugin.pauseHoldActive = False
             return False
         moved = _plugin.grblZ - _plugin.parkStartZ
         if state == "DOOR:0":
@@ -716,6 +731,7 @@ def resume_from_park(_plugin, timeout=60.0):
                 _plugin._logger.warning("resume: parking did not move Z (still %.3f): the tool was already above the "
                                         "controller's parking target, or parking is not active", _plugin.grblZ)
         send_realtime(_plugin, b"~")
+        _plugin.pauseHoldActive = False
         schedule_status_refresh(_plugin)
         return True
 
@@ -723,26 +739,156 @@ def resume_from_park(_plugin, timeout=60.0):
         return False
     _plugin._logger.warning("resume: no Door:0 within %.0fs (state [%s]), sending the cycle start anyway", timeout, _plugin.grblReportedState)
     send_realtime(_plugin, b"~")
+    _plugin.pauseHoldActive = False
     schedule_status_refresh(_plugin)
     return True
 
 
-def finish_pause_hold(_plugin):
-    """Let OctoPrint finish pausing a machine that is in feed hold.
+def resume_hold(_plugin):
+    """The cycle start for a pause that held or parked, the moment OctoPrint goes RESUMING.
 
-    A planner that is full never accepts the line OctoPrint last sent while it is held, so that line's `ok`
-    never comes and OctoPrint's send loop (which would send the position request, then the pause script)
-    waits for it. Grbl keeps what it already holds, so acknowledging on its behalf only lets the next
-    commands queue up behind it.
+    Realtime, never a line: a line is queued behind everything else a resume puts in OctoPrint's send queue (an
+    event subscription's M8, a plugin's line), the held planner acknowledges none of them, and OctoPrint drains its
+    command queue before the script's. PrinterStateChanged is the first thing OctoPrint emits for a resume (it
+    changes state, then fires PrintResumed and queues the script), so this runs ahead of any PrintResumed
+    subscription; a realtime byte owes the queue nothing either way. A park waits for Door:0 first, on its own
+    thread (resume_from_park must not block the event thread). A drain never held the planner: nothing to start.
     """
+    strategy = getattr(_plugin, "pauseStrategy", "drain")
+    if strategy in ("laser", "hold"):
+        # before the cycle start, so the first resumed move has its air, and so a subscription's M8 that follows
+        # (after PRINTING, outside any window) finds the parser already there: a coolant word equal to the modal
+        # state is not synced, so it costs no planner drain. A firmware that restores coolant on ~ by itself (seen on
+        # a vendor fork; stock Grbl does not on a plain hold) then restores to the same state.
+        if getattr(_plugin, "coolantAtPause", "M9") in ("M7", "M8"):
+            set_coolant(_plugin, True, "resumed")
+        send_realtime(_plugin, b"~")
+        _plugin.pauseHoldActive = False
+        schedule_status_refresh(_plugin)
+    elif strategy == "park":
+        threading.Thread(target=resume_from_park, args=(_plugin,), daemon=True).start()
+
+
+# G-code bytes let through to a held controller per pause before finish_pause_hold stops acknowledging on its
+# behalf: gnea Grbl's RX ring is 128 bytes (serial.h RX_BUFFER_SIZE) and drops what does not fit, silently; other
+# flavors have more, and a vendor build may not report its size, so the smallest known sets the budget.
+HOLD_RX_BUDGET = 100
+
+
+def finish_pause_hold(_plugin):
+    """Let OctoPrint reach PAUSED on a controller that is held or parking.
+
+    A hold strategy first stops the spindle with the override 0x9E once the controller reports Hold:0 (it acts
+    only in a completed hold; laser mode needs none, the hold switches the beam off by itself).
+
+    Then: the held planner acknowledges no line, so OctoPrint's send loop waits for the ok of the last line it
+    sent, and the position request, the pause script and the marker that switches PAUSING to PAUSED wait behind
+    it. An acknowledgement on the controller's behalf lets exactly one waiting line out (OctoPrint's counter
+    clamps at ackMax, 1 by default); it is given only while OctoPrint is actually waiting for one, so each stands
+    for one line sent into the hold. Every line let through sits in the controller's RX buffer until the resume:
+    past HOLD_RX_BUDGET bytes this stops, with a warning, rather than overflow an 8-bit buffer (OctoPrint still
+    gets to PAUSED on its own communication timeout). Ends with the hold (resume, cancel).
+    """
+    if getattr(_plugin, "pauseStrategy", None) == "hold":
+        end = time.monotonic() + 10.0
+        while time.monotonic() < end and _plugin.pauseHoldActive:
+            if refresh_grbl_state(_plugin, 0.5) and _plugin.grblReportedState.upper() == "HOLD:0":
+                send_realtime(_plugin, b"\x9e")
+                break
+            time.sleep(0.1)
+        else:
+            if _plugin.pauseHoldActive:
+                _plugin._logger.warning("pause: no Hold:0 within 10s (state [%s]): spindle-stop override not sent", _plugin.grblReportedState)
+
     while _plugin._printer.is_pausing() and _plugin.pauseHoldActive:
         time.sleep(0.5)
-        if _plugin._printer.is_pausing() and _plugin.pauseHoldActive:
-            _plugin._logger.debug("_bgs: finish_pause_hold: acknowledging for the held planner")
-            fake_ack(_plugin)
+        if not (_plugin._printer.is_pausing() and _plugin.pauseHoldActive):
+            break
+        if not octoprint_waiting_for_ok(_plugin):
+            # Not waiting for an ok, yet still pausing: OctoPrint's line for M400 (a `?`, which spends no ok) tickles
+            # the queues before its on_sent callback queues the position request, so that request can sit in the job
+            # queue with nothing left to move it until an ok arrives -- which a hold never sends. Move it along
+            # without acknowledging anything.
+            tickle_send_queue(_plugin)
+            continue
+        if _plugin.holdBytes > HOLD_RX_BUDGET:
+            _plugin._logger.warning("pause: %d bytes of G-code were queued into the hold, more than the controller's buffer is "
+                                    "trusted with (%d): no further line is acknowledged on its behalf", _plugin.holdBytes, HOLD_RX_BUDGET)
+            break
+        _plugin._logger.debug("_bgs: finish_pause_hold: acknowledging one line for the held planner")
+        fake_ack(_plugin)
+
+
+def realtime_available(_plugin):
+    """True when a realtime byte can be written out of band (send_realtime has OctoPrint's serial port); otherwise a
+    caller keeps sending its line, rather than have send_realtime queue it back through the sending hook."""
+    return getattr(comm_object(_plugin._printer), "_serial", None) is not None
+
+
+def set_coolant(_plugin, on, why):
+    """Switch flood coolant on the plugin's own account (a pause, a resume, a user's M8/M9 while paused).
+
+    The realtime toggle 0xA0 when the tracked state differs (it acts in Idle, Run and Hold, not in a Door state, and
+    sets the parser's modal coolant), the operator's M8/M9 shell command when configured (at once: a hold is not
+    Idle, so delayM9 does not apply), and the tracked state. Pre-1.1 Grbl has no override: nothing is sent, and the
+    drain scripts carry the words as lines there. Returns True when something was switched.
+    """
+    want = "M8" if on else "M9"
+    if _plugin.coolant == want:
+        return False
+    if is_grbl_one_dot_one(_plugin) and realtime_available(_plugin):
+        send_realtime(_plugin, b"\xa0")
+        schedule_status_refresh(_plugin)
+    run_coolant_override(_plugin, want)
+    _plugin.coolant = want
+    _plugin.M9DelayActive = False
+    _plugin._plugin_manager.send_plugin_message(_plugin._identifier, dict(type="grbl_state", coolant=want))
+    _plugin._logger.info("coolant %s: %s", want, why)
+    return True
+
+
+def run_coolant_override(_plugin, word):
+    """The operator's air-assist shell command for a coolant word, when configured (settings overrideM8/overrideM9)."""
+    if word == "M8" and _plugin.overrideM8 and _plugin.m8Command:
+        _plugin._logger.debug('Turning ON Air Assist')
+        subprocess.Popen(_plugin.m8Command, shell=True)
+    elif word == "M9" and _plugin.overrideM9 and _plugin.m9Command:
+        _plugin._logger.debug('Turning OFF Air Assist')
+        subprocess.Popen(_plugin.m9Command, shell=True)
+
+
+def in_pause_window(_plugin):
+    """True while OctoPrint is pausing, paused or resuming a job."""
+    printer = _plugin._printer
+    return any(getattr(printer, name, lambda: False)() for name in ("is_pausing", "is_paused", "is_resuming"))
+
+
+def tickle_send_queue(_plugin):
+    """Have OctoPrint move its next queued line into the send queue (comm._continue_sending, private on 1.11 and
+    2.0). Spends and creates no ok."""
+    tickle = getattr(comm_object(_plugin._printer), "_continue_sending", None)
+    if tickle is not None:
+        tickle()
+
+
+def comm_object(printer):
+    """OctoPrint's MachineCom: printer._comm (1.x) or printer._connection._comm (2.0, serial_connector)."""
+    return getattr(printer, "_comm", None) or getattr(getattr(printer, "_connection", None), "_comm", None)
+
+
+def octoprint_waiting_for_ok(_plugin):
+    """True while OctoPrint's send loop is blocked on an acknowledgement (its clear-to-send counter is at 0; the same
+    private CountedEvent on 1.11 and 2.0). Unreadable: assume it is waiting, the earlier blind behaviour."""
+    gate = getattr(comm_object(_plugin._printer), "_clear_to_send", None)
+    blocked = getattr(gate, "blocked", None)
+    return True if blocked is None else bool(blocked())
 
 
 def fake_ack(_plugin):
+    """Acknowledge one line on the controller's behalf. The controller acknowledges it too, later: that ok is one
+    OctoPrint never spent and would let one more line go out unacknowledged for the rest of the job, so it is owed
+    (strayOksOwed) and the received hook swallows it."""
+    _plugin.strayOksOwed += 1
     printer = _plugin._printer
     # renamed in OctoPrint 2.0; the old name is only a deprecation shim there
     (getattr(printer, "repair_communication", None) or printer.fake_ack)()
@@ -751,7 +897,8 @@ def fake_ack(_plugin):
 def cancel_motion(_plugin):
     """Stop motion for a cancel: feed hold, wait until the machine has stopped, then soft reset.
 
-    The reset flushes the planner (so buffered moves stop cutting) and switches off the spindle and laser.
+    The reset flushes the planner (so buffered moves stop cutting) and switches off the spindle and laser
+    (a laser is also sent M3 S0 then M5, as some firmware relights it coming out of the reset).
     Resetting while still decelerating raises ALARM:3 and loses position, resetting after the hold has
     completed does not; hence the wait. The decision is made on fresh status reports, never on grblState as
     cached, which can still say Run when the machine was paused seconds ago.
@@ -788,6 +935,12 @@ def cancel_motion(_plugin):
         if not alarmed:
             _plugin._logger.warning("cancel: machine did not report a completed hold within %ds, resetting anyway", limit)
 
+    # a laser is switched off again the moment the controller's banner says the reset is done (see
+    # laser_off_after_reset below): armed before the reset, so the banner cannot arrive first
+    laser = is_laser_mode(_plugin)
+    if laser:
+        arm_laser_off_after_reset(_plugin)
+
     send_realtime(_plugin, b"\x18")
 
     # a reset restores Grbl's default modal state and discards whatever was outstanding
@@ -801,6 +954,23 @@ def cancel_motion(_plugin):
     _plugin.lastRequest = []
     _plugin.lastResponse = ""
     _plugin.grblCmdQueue.clear()
+    # the hold is over, and the lines in the controller's buffer went with it: nothing is owed for them
+    _plugin.pauseHoldActive = False
+    _plugin.pauseStrategy = "drain"
+    _plugin.strayOksOwed = 0
+    _plugin.coolantAtPause = "M9"
+
+    # a laser controller can come out of a reset from a hold with the beam still on while its parser reports
+    # M5 S0 (seen as [MSG:Restoring spindle]); M5 or S0 alone change no modal state, so nothing rewrites the
+    # output: M3 S0 does, then M5. Not for a spindle, which M3 would switch on.
+    # Sent by the received hook the moment the banner arrives (a line arriving while the controller restarts can be
+    # lost; the relight shows within milliseconds of the reset), through OctoPrint rather than our queue, which only
+    # drains on the next status report. Without a banner within 2 s (a controller that prints none), sent from here.
+    if laser:
+        end = time.monotonic() + 2.0
+        while time.monotonic() < end and _plugin.laserOffAfterReset:
+            time.sleep(0.02)
+        laser_off_after_reset(_plugin, "no banner after the reset")
     queue_cmds_and_send(_plugin, ["$G"])
 
     # leftovers of the resume script may still be queued in OctoPrint: let them be dropped, then take the
@@ -809,6 +979,25 @@ def cancel_motion(_plugin):
     _plugin.cancelling = False
     _plugin.cancelMotionActive = False
     refresh_grbl_state(_plugin)
+
+
+_laser_off_lock = threading.Lock()
+
+
+def arm_laser_off_after_reset(_plugin):
+    with _laser_off_lock:
+        _plugin.laserOffAfterReset = True
+
+
+def laser_off_after_reset(_plugin, why):
+    """Send M3 S0 then M5 once per armed reset (cancel_motion arms it, the banner or cancel_motion's timeout fires it)."""
+    with _laser_off_lock:
+        if not _plugin.laserOffAfterReset:
+            return False
+        _plugin.laserOffAfterReset = False
+    _plugin._logger.debug("laser off after the reset: %s", why)
+    send_command_now(_plugin._printer, _plugin._logger, ["M3 S0", "M5"])
+    return True
 
 
 def do_framing(_plugin, data):
@@ -855,8 +1044,8 @@ def send_frame_init_gcode(_plugin):
     f = max(get_axes_max_rates(_plugin)) * (float(_plugin.framingPercentOfMaxSpeed) * .01)
 
     # cancel jog if grbl 1.1+is_grbl_one_dot_one
-    if is_grbl_one_dot_one(_plugin) and is_latin_encoding_available(_plugin):
-        send_command_now(_plugin._printer, _plugin._logger, "CANCELJOG")
+    if is_grbl_one_dot_one(_plugin):
+        send_realtime(_plugin, b"\x85")
 
     # Linear mode, feedrate f% of max
     _plugin._printer.commands(f"G1 F{f}")
@@ -1059,6 +1248,14 @@ def process_grbl_status_msg(_plugin, msg):
     if match is not None:
         _plugin.grblSpeed = round(float(match.groups(1)[0]))
         _plugin.grblPowerLevel = float(match.groups(1)[1])
+
+    # The accessory field is the controller's own word on coolant and keeps the state the realtime toggle relies on
+    # honest (set_coolant). Grbl prints |A: inside the |Ov: block, and only when an accessory is on: a report that
+    # carries |Ov: and no F says "off" as surely as one with F says "on"; a report without |Ov: says nothing.
+    if "|Ov:" in msg and not _plugin.M9DelayActive:
+        match = re.search(r'\|A:([A-Z]*)', msg)
+        letters = match.group(1) if match else ""
+        _plugin.coolant = "M8" if "F" in letters else ("M7" if "M" in letters else "M9")
 
     # _plugin._logger.info("status received: printing=[%s] mode=[%s] state=[%s] x=[%.3f] y=[%.3f] z=[%.3f] a=[%.3f] b=[%.3f] pins=[%s] speed=[%d] power=[%.2f]",
     #                     "yes" if _plugin.is_printing else "no",
@@ -2125,19 +2322,33 @@ _TERMINAL_PREFIXES = {
 }
 
 _TERMINAL_FILTER_TEMPLATES = [
-    ("Suppress status report requests", "^{send}\\?$"),
+    # a status request goes out as a line ("?") or as a realtime byte, logged with a " [realtime]" suffix
+    ("Suppress status report requests", "^{send}\\?( \\[realtime\\])?$"),
     ("Suppress acknowledgement responses", "^{recv}ok$"),
     ("Suppress status report responses", "^{recv}<.*[\\x2c|][WM]Pos:.+"),
     ("Suppress blank responses", "^{recv}$"),
 ]
 
-def bgs_terminal_filters(prefixes="both"):
+# earlier spellings of a filter, by name: still ours, and replaced by the current one
+_LEGACY_TERMINAL_FILTER_TEMPLATES = [
+    ("Suppress status report requests", "^{send}\\?$"),
+]
+
+def bgs_terminal_filters(prefixes="both", templates=_TERMINAL_FILTER_TEMPLATES):
     send, recv = _TERMINAL_PREFIXES[prefixes]
-    return [{"name": name, "regex": template.format(send=send, recv=recv)} for name, template in _TERMINAL_FILTER_TEMPLATES]
+    return [{"name": name, "regex": template.format(send=send, recv=recv)} for name, template in templates]
+
+def _bgs_filter_variants():
+    # every spelling of our filters, from any release (1.x-only, 2.x-only, dual-prefix, legacy), mapped to the
+    # current regex of the filter with the same name
+    current = {f["name"]: f["regex"] for f in bgs_terminal_filters()}
+    return {f["regex"]: current[f["name"]]
+            for templates in (_TERMINAL_FILTER_TEMPLATES, _LEGACY_TERMINAL_FILTER_TEMPLATES)
+            for prefixes in _TERMINAL_PREFIXES
+            for f in bgs_terminal_filters(prefixes, templates)}
 
 def _bgs_filter_regexes():
-    # every spelling of our filters, from any release: 1.x-only, 2.x-only and the dual-prefix one
-    return {f["regex"] for prefixes in _TERMINAL_PREFIXES for f in bgs_terminal_filters(prefixes)}
+    return set(_bgs_filter_variants())
 
 def user_terminal_filters(filters):
     # the user's own filters: neither ours nor OctoPrint's shipped defaults (what terminalFilters reads as
@@ -2153,13 +2364,9 @@ def merge_terminal_filters(_plugin):
         _plugin._settings.global_set(["terminalFilters"], merged)
 
 def normalize_active_filters(_plugin):
-    # active filters are saved by regex, so selections saved by older releases (1.x-only regexes)
+    # active filters are saved by regex, so selections saved by older releases (1.x-only or legacy regexes)
     # no longer match a filter -- map them to the current regex
-    current = [f["regex"] for f in bgs_terminal_filters()]
-    variants = {}
-    for prefixes in _TERMINAL_PREFIXES:
-        for old, new in zip((f["regex"] for f in bgs_terminal_filters(prefixes)), current):
-            variants[old] = new
+    variants = _bgs_filter_variants()
 
     activeFilters = _plugin._settings.get(["activeFilters"]) or []
     normalized = [variants.get(f, f) for f in activeFilters]
@@ -2262,14 +2469,16 @@ def send_realtime(_plugin, data):
     Grbl handles realtime bytes outside its line buffer, so they are safe to write at any time.
     """
     printer = _plugin._printer
-    comm = getattr(printer, "_comm", None) or getattr(getattr(printer, "_connection", None), "_comm", None)
+    comm = comm_object(printer)
     port = getattr(comm, "_serial", None)
     shown = data.decode("latin-1").encode("unicode_escape").decode("ascii")
 
     if port is not None:
         try:
             port.write(data)
-            comm._log(("Send: " if not is_octoprint_compatible(">=2") else ">>> ") + shown + " [realtime]")
+            log = getattr(comm, "_log", None)
+            if log is not None:
+                log(("Send: " if not is_octoprint_compatible(">=2") else ">>> ") + shown + " [realtime]")
             return True
         except Exception as e:
             _plugin._logger.error("_bgs: send_realtime: direct write of [%s] failed: %s", shown, e)

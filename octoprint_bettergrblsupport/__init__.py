@@ -28,6 +28,7 @@
 #
 
 from octoprint.events import Events
+from octoprint.util.comm import gcode_command_for_cmd
 from shutil import copyfile
 
 from . import _bgs
@@ -47,6 +48,15 @@ import flask
 from octoprint.access.permissions import Permissions
 from octoprint.server.util.flask import no_firstrun_access
 import yaml
+
+# Grbl 1.1 realtime command bytes by the names the Control tab, the API and scripts use
+REALTIME_ALIASES = {
+    "SAFETYDOOR": b"\x84", "CANCELJOG": b"\x85",
+    "FEEDNORMAL": b"\x90", "FEEDPLUS10": b"\x91", "FEEDMINUS10": b"\x92", "FEEDPLUS1": b"\x93", "FEEDMINUS1": b"\x94",
+    "SPINDLENORMAL": b"\x99", "SPINDLEPLUS10": b"\x9a", "SPINDLEMINUS10": b"\x9b", "SPINDLEPLUS1": b"\x9c",
+    "SPINDLEMINUS1": b"\x9d", "TOGGLESPINDLE": b"\x9e",
+}
+
 
 class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                               octoprint.plugin.SimpleApiPlugin,
@@ -122,14 +132,26 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         self.jogSeen = False
         # feed hold sent for a pause (the pause M400 would block in a hold) / cancel in progress
         self.pauseHoldActive = False
+        # the strategy of the pause in progress (_bgs.pause_strategy), which _bgs.resume_hold starts again
+        self.pauseStrategy = "drain"
+        # G-code bytes sent to the controller while it is held (see _bgs.finish_pause_hold)
+        self.holdBytes = 0
+        # acknowledgements the controller will send that OctoPrint did not spend (see _bgs.fake_ack)
+        self.strayOksOwed = 0
         # Z when the pause sent the safety-door byte, to tell afterwards whether parking moved it (_bgs.resume_from_park)
         self.parkStartZ = float(0)
         # settings: use firmware parking for a pause when the controller has it / what a pause does without it
         self.pauseParking = False
         self.pauseMode = "drain"
+        # setting: a pause switches flood coolant (air assist) off and the resume puts it back (_bgs.set_coolant)
+        self.pauseCoolantOff = False
+        # the coolant word the job had when the pause began, what the resume restores
+        self.coolantAtPause = "M9"
         self.cancelling = False
         # cancel_motion() is still stopping the machine (PrintCancelled fires before it is done)
         self.cancelMotionActive = False
+        # a cancel's reset armed the laser-off lines for the controller's banner (_bgs.laser_off_after_reset)
+        self.laserOffAfterReset = False
 
         self.timeRef = 0
 
@@ -279,6 +301,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             autoCooldownDuration = 15,
             pauseParking = False,
             pauseMode = "drain",
+            pauseCoolantOff = False,
             zProbeConfirmActions = True,
             wizard_version = 1,
             invertX = False,
@@ -379,6 +402,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
 
         self.pauseParking = self._settings.get_boolean(["pauseParking"])
         self.pauseMode = "hold" if self._settings.get(["pauseMode"]) == "hold" else "drain"
+        self.pauseCoolantOff = self._settings.get_boolean(["pauseCoolantOff"])
 
         self.invertX = -1 if self._settings.get_boolean(["invertX"]) else 1
         self.invertY = -1 if self._settings.get_boolean(["invertY"]) else 1
@@ -879,13 +903,31 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                     self._logger.debug('Allowing FluidNC to handle status report')
                     return (None, )
 
+                # a one-character status request is a realtime byte: as a line, the controller would acknowledge
+                # the newline behind it, an ok OctoPrint never spent
+                if len(self.statusCommand) == 1 and _bgs.realtime_available(self):
+                    self._logger.debug('Rewriting M105 as a realtime %s', self.statusCommand)
+                    _bgs.send_realtime(self, self.statusCommand.encode("latin-1"))
+                    return (None, )
+
                 self._logger.debug('Rewriting M105 as %s', self.statusCommand)
                 return (self.statusCommand, )
 
         self.autoSleepTimer = time.monotonic()
+        tags = kwargs.get("tags") or set()
 
-        # a job that is being cancelled must not run the leftovers of the resume script
-        if self.cancelling and cmd in ("G4 P10", "G91 G0 Z-5"):
+        # a realtime character typed or scripted as a line: out of band, as the controller treats it, and without the
+        # newline OctoPrint would append (the controller acknowledges that empty line: an ok nothing waits for)
+        if (cmd in ("!", "~", "\x18") or (len(cmd) == 1 and ord(cmd) >= 0x80)) and _bgs.realtime_available(self):
+            if cmd == "!" and self.grblState.upper() != "ALARM":
+                _bgs.set_grbl_state(self, "Hold:1")
+            elif cmd == "~":
+                _bgs.schedule_status_refresh(self)
+            _bgs.send_realtime(self, cmd.encode("latin-1"))
+            return (None, )
+
+        # a job that is being cancelled must not run the leftovers of the pause or resume script (OctoPrint tags them)
+        if self.cancelling and ("script:beforePrintResumed" in tags or "script:afterPrintPaused" in tags):
             self._logger.debug('Dropping [%s] - job is being cancelled', cmd)
             return (None, )
 
@@ -954,6 +996,20 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if mcode is not None:
             self.grblMCode = mcode
 
+        # a cancel never switches coolant on: a subscription's M8 that waited out the hold in OctoPrint's queue goes
+        # out right after the reset, when the job it was for is gone (its shell override must not fire either)
+        if self.cancelMotionActive and cmd.upper() in ("M7", "M8"):
+            self._logger.debug('Dropping [%s] - job is being cancelled', cmd)
+            return (None, )
+
+        # Coolant while the job is pausing, paused or resuming: as a line, M8/M9 wait behind the held planner and run
+        # after the resume, once it has run dry (a stall in the cut, air on or off at the wrong time). Applied now,
+        # through the same path the pause and the resume use (realtime toggle, shell override, tracked state).
+        if (cmd.upper() in ("M8", "M9") and _bgs.is_grbl_one_dot_one(self) and _bgs.in_pause_window(self)
+                and _bgs.realtime_available(self) and not (_bgs.is_grbl_fluidnc(self) and self.fluidAutoReport)):
+            _bgs.set_coolant(self, cmd.upper() == "M8", f"{cmd.upper()} while paused")
+            return (None, )
+
         # only apply coolant handling here if not fluidnc auto reporting
         if not (_bgs.is_grbl_fluidnc(self) and self.fluidAutoReport):
             # M8 (air assist on) processing - work in progress
@@ -982,117 +1038,17 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
                         self._logger.debug('Delaying OFF Air Assist command until Idle')   
                     # return (None,)
 
-        # Grbl 1.1 Realtime Commands (requires Octoprint 1.8.0+)
-        # see https://github.com/OctoPrint/OctoPrint/pull/4390
-
-        # safety door
-        if cmd.upper() == "SAFETYDOOR":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Triggering safety door ")
-                cmd = "? {} ?".format("\x84")
-            else:
-                return (None, )
-
-        # cancel jog
-        if cmd.upper() == "CANCELJOG":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Cancelling jog")
-                cmd = "? {} ?".format("\x85")
-            else:
-                return (None, )
-
-        # normal feed
-        if cmd.upper() == "FEEDNORMAL":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting normal feed rate")
-                cmd = "? {} ?".format("\x90")
-            else:
-                return (None, )
-
-        # feed +10%
-        if cmd.upper() == "FEEDPLUS10":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting feed rate +10%")
-                cmd = "? {} ?".format("\x91")
-            else:
-                return (None, )
-
-        # feed -10%
-        if cmd.upper() == "FEEDMINUS10":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting feed rate -10%")
-                cmd = "? {} ?".format("\x92")
-            else:
-                return (None, )
-
-        # feed +1%
-        if cmd.upper() == "FEEDPLUS1":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting feed rate +1%")
-                cmd = "? {} ?".format("\x93")
-            else:
-                return (None, )
-
-        # feed -1%
-        if cmd.upper() == "FEEDMINUS1":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting feed rate -1%")
-                cmd = "? {} ?".format("\x94")
-            else:
-                return (None, )
-
-        # normal spindle
-        if cmd.upper() == "SPINDLENORMAL":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting normal spindle speed")
-                cmd = "? {} ?".format("\x99")
-            else:
-                return (None, )
-
-        # spindle +10%
-        if cmd.upper() == "SPINDLEPLUS10":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting spindle speed +10%")
-                cmd = "? {} ?".format("\x9a") 
-            else:
-                return (None, )
-
-        # spindle -10%
-        if cmd.upper() == "SPINDLEMINUS10":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting spindle speed -10%")
-                cmd = "? {} ?".format("\x9B")
-            else:
-                return (None, )
-
-        # spindle +1%
-        if cmd.upper() == "SPINDLEPLUS1":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting spindle speed +1%")
-                cmd = "? {} ?".format("\x9C")
-            else:
-                return (None, )
-
-        # spindle -1%
-        if cmd.upper() == "SPINDLEMINUS1":
-            if _bgs.is_grbl_one_dot_one(self) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Setting spindle speed -1%")
-                cmd = "? {} ?".format("\x9D")
-            else:
-                return (None, )
-
-        # cycle start after a parked pause: the controller ignores it until it reports Door:0
-        if cmd.upper() == "PARKRESUME":
-            _bgs.resume_from_park(self)
+        # Grbl 1.1 realtime commands by name (Control tab, API, scripts): one byte, out of band -- never a line,
+        # which would wait its turn in OctoPrint's queue (a hold never gives it one) and whose empty remainder the
+        # controller acknowledges as an ok OctoPrint never spent. Nothing to send on pre-1.1 Grbl.
+        realtime = REALTIME_ALIASES.get(cmd.upper())
+        if realtime is not None:
+            if _bgs.is_grbl_one_dot_one(self):
+                self._logger.debug("realtime %s", cmd.upper())
+                _bgs.send_realtime(self, realtime)
+                if cmd.upper() in ("SAFETYDOOR", "CANCELJOG"):
+                    _bgs.schedule_status_refresh(self)
             return (None, )
-
-        # toggle spindle
-        if cmd.upper() == "TOGGLESPINDLE":
-            if (_bgs.is_grbl_one_dot_one(self) or _bgs.is_grbl_fluidnc(self)) and _bgs.is_latin_encoding_available(self):
-                self._logger.debug("Toggling spindle stop")
-                cmd = "? {} ?".format("\x9E")
-            else:
-                return (None, )
 
         # rewrite M115 firmware as $$ (hello)
         if self.suppressM115 and cmd.upper().startswith('M115'):
@@ -1114,16 +1070,25 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # Wait for moves to finish before turning off the spindle
         if self.suppressM400 and cmd.upper().startswith('M400'):
             if self.pauseHoldActive:
-                # the machine is in feed hold: a dwell would not be acknowledged until the hold is released
-                # and OctoPrint would never finish pausing, so just ask for the position it wants
+                # the machine is held: a dwell would be acknowledged only after the resume, and then only once the
+                # planner ran dry. A `?` line is answered at once; the newline left behind it is acknowledged after
+                # the resume, an ok OctoPrint never spent (see _bgs.fake_ack). The line itself must go out: its
+                # on_sent callback is what starts OctoPrint's position request.
                 self._logger.debug('Rewriting M400 as %s (feed hold)', self.statusCommand)
                 cmd = self.statusCommand
+                if gcode_command_for_cmd(cmd) is None:
+                    self.strayOksOwed += 1
             else:
                 self._logger.debug('Rewriting M400 as %s', self.dwellCommand)
                 cmd = self.dwellCommand
 
-        # rewrite M114 current position as ? (typically)
+        # rewrite M114 current position as ? (typically). OctoPrint only wants a position back, which the report of a
+        # realtime ? gives it (the received hook turns a status report into X: Y: Z:): the line itself is not needed
         if self.suppressM114 and cmd.upper().startswith('M114'):
+            if len(self.positionCommand) == 1 and _bgs.realtime_available(self):
+                self._logger.debug('Rewriting M114 as a realtime %s', self.positionCommand)
+                _bgs.send_realtime(self, self.positionCommand.encode("latin-1"))
+                return (None, )
             self._logger.debug('Rewriting M114 as %s', self.positionCommand)
             cmd = self.positionCommand
 
@@ -1144,6 +1109,12 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             self.lastRequest = []
             self.lastResponse = ""
 
+            # the reset discards the controller's buffer: nothing queued in it will be acknowledged
+            self.strayOksOwed = 0
+            self.pauseHoldActive = False
+            if _bgs.realtime_available(self):
+                _bgs.send_realtime(self, b"\x18")
+                return (None, )
             cmd = "\x18"
 
         # baby stepping (Marlin M290)
@@ -1178,8 +1149,7 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         # OctoPrint tags the lines of the job with source:file; a jog, a probe or framing move and the line an
         # override change sends come from elsewhere and must not become the job's feed or power. A caller that
         # passes no tags (no provenance to go on) is taken as the job, as before.
-        tags = kwargs.get("tags")
-        if _bgs.track_modal_state(self, cmd, job=tags is None or "source:file" in tags):
+        if _bgs.track_modal_state(self, cmd, job=not tags or "source:file" in tags):
             self._plugin_manager.send_plugin_message(self._identifier, dict(type="grbl_state", positioning=self.positioning))
 
         # save our G command for shorthand post processors
@@ -1305,6 +1275,10 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if cmd.upper() in self.trackedCmds:
             self.lastRequest.append(cmd)
 
+        # every byte sent into a hold waits in the controller's RX buffer (see _bgs.finish_pause_hold)
+        if self.pauseHoldActive:
+            self.holdBytes += len(cmd) + 1
+
         return (cmd, )
 
 
@@ -1328,6 +1302,14 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
         if not self.ignoreErrors and line.lower().startswith('error:'):
             return _bgs.process_grbl_error(self, line)
 
+        # an ok OctoPrint did not spend a clear on (a `?` line's empty remainder, a line we acknowledged on the
+        # controller's behalf during a hold): counting it would let one more line go out unacknowledged for the rest
+        # of the job, so it is swallowed
+        if line.lstrip().lower().startswith("ok") and self.strayOksOwed > 0:
+            self.strayOksOwed -= 1
+            self._logger.debug("swallowing an ok OctoPrint did not spend (%d more owed)", self.strayOksOwed)
+            return None
+
         # an updateGrblSetting request waits for its line's answer: this ok is it (an ignored error never gets one)
         if line.lstrip().lower().startswith("ok"):
             _bgs.resolve_setting_waiter(self, True)
@@ -1335,6 +1317,8 @@ class BetterGrblSupportPlugin(octoprint.plugin.SettingsPlugin,
             _bgs.resolve_setting_waiter(self, False, line.strip())
             
         if line.startswith('Grbl'):
+            # a cancel's reset is done: switch a laser off before anything else goes out (_bgs.cancel_motion)
+            _bgs.laser_off_after_reset(self, "banner")
             # it all starts here
             return "ok " + line
 

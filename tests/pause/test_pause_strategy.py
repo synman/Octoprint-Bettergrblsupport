@@ -39,7 +39,7 @@ def plugin(version=GRBL, settings=None, fluid_settings=None, yaml=None, parking=
         grblVersion=version,
         grblSettings={k: [str(v), ""] for k, v in (settings or {}).items()},
         fluidSettings=fluid_settings or {}, fluidYaml=yaml,
-        pauseParking=parking, pauseMode=mode, pauseHoldActive=False,
+        pauseParking=parking, pauseMode=mode, pauseHoldActive=False, pauseCoolantOff=False, coolant="M9", coolantAtPause="M9",
         grblPowerLevel=1000.0, grblJobPower=1000.0, powerRate=0.0, positioning=0, grblSpeed=500.0, grblJobFeed=500.0, grblMCode="M3", invertZ=1,
         _logger=logging.getLogger("test"),
         _settings=types.SimpleNamespace(global_get_basefolder=lambda name: scripts or tempfile.gettempdir()),
@@ -142,14 +142,16 @@ class Scripts(unittest.TestCase):
                     return file.read().split()
             return read("afterPrintPaused"), read("beforePrintResumed")
 
-    def test_hold_stops_the_spindle_with_the_override_and_resumes_with_a_cycle_start(self):
-        self.assertEqual(self.written("hold"), (["TOGGLESPINDLE"], ["~"]))
+    # a held or parked controller acknowledges no line, and a script goes out as lines behind whatever else is queued:
+    # these strategies work entirely in realtime bytes (pause: `!`/0x84, finish_pause_hold's 0x9E; resume: resume_hold)
+    def test_hold_scripts_are_empty(self):
+        self.assertEqual(self.written("hold"), ([], []))
 
-    def test_laser_sends_nothing_but_the_cycle_start(self):
-        self.assertEqual(self.written("laser", laser=1), ([], ["~"]))
+    def test_laser_scripts_are_empty(self):
+        self.assertEqual(self.written("laser", laser=1), ([], []))
 
-    def test_park_resume_is_the_gated_cycle_start(self):
-        self.assertEqual(self.written("park"), ([], ["PARKRESUME"]))
+    def test_park_scripts_are_empty(self):
+        self.assertEqual(self.written("park"), ([], []))
 
     def test_drain_lifts_z_then_puts_the_distance_mode_back_and_does_not_hold(self):
         # a `!` behind the lift stops it a few steps in (measured on the simulator rigs: the lift then ran after the resume)
@@ -160,6 +162,16 @@ class Scripts(unittest.TestCase):
 
     def test_drain_resume_restores_spindle_speed_feed_waits_lowers_z_then_the_distance_mode(self):
         self.assertEqual(self.written("drain")[1], ["M3", "S1000.0", "F500.0", "G4", "P10", "G91", "G0", "Z-5", "G90"])
+
+    def test_drain_with_coolant_off_at_pause_switches_it_off_and_back(self):
+        pause, resume = self.written("drain", pauseCoolantOff=True, coolant="M8", coolantAtPause="M8")
+        self.assertEqual(pause[:2], ["M5", "M9"])
+        self.assertEqual(resume[:2], ["M3", "M8"])
+
+    def test_drain_without_the_setting_leaves_coolant_alone(self):
+        pause, resume = self.written("drain", coolant="M8", coolantAtPause="M8")
+        self.assertNotIn("M9", pause)
+        self.assertNotIn("M8", resume)
 
     def test_drain_resume_ends_in_the_distance_mode_the_job_was_in(self):
         pause, resume = self.written("drain", positioning=1)

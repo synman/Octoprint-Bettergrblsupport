@@ -278,6 +278,13 @@
 					Z 5 mm; resume restores the spindle and lowers Z. "Stop at once, no lift" stops where the tool is and
 					stops the spindle. A laser job (laser mode enabled) always stops at once with no lift.</span>
 
+				<label class="checkbox">
+					<input type="checkbox" data-bind="checked: settings.plugins.bettergrblsupport.pauseCoolantOff">
+					A pause switches coolant (air assist) off
+				</label>
+				<span class="help-block">The resume puts it back as it was. Without this, coolant stays as the job
+					had it; a coolant change sent while paused (M8/M9) is applied at once either way.</span>
+
 			</div>
 
 			<br>

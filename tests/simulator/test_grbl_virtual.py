@@ -1715,6 +1715,58 @@ def advance(g, seconds, step=0.1):
         g.tick(step)
 
 
+class HoldFlow(unittest.TestCase):
+    """What the plugin's hold flow relies on (_bgs.finish_pause_hold, resume_hold, fake_ack): a held controller with a
+    full planner acknowledges no line until the cycle start, a status line is answered at once but its newline only
+    after the resume, and the realtime flood toggle acts in a hold."""
+
+    def held_full(self):
+        g = mk()
+        for i in range(1, 20):                       # more than the 15-block planner holds
+            send(g, ("G1X%dF100\n" % (i * 50)).encode())
+        g.tick(1.0)
+        send(g, b"!")
+        g.tick(2.0)
+        self.assertEqual(status(send(g, b"?")[0])[0], "Hold:0")
+        return g
+
+    def test_held_planner_acknowledges_no_line_until_cycle_start(self):
+        g = self.held_full()
+        self.assertEqual(send(g, b"M9\n"), [])
+        g.tick(2.0)
+        self.assertNotIn(OK, out(g))
+        send(g, b"~")
+        self.assertEqual(status(send(g, b"?")[0])[0], "Run")
+
+    def test_status_line_during_hold_reports_now_and_acknowledges_after_resume(self):
+        g = self.held_full()
+        lines = send(g, b"?\n")
+        self.assertEqual([status(l)[0] for l in lines if l.startswith("<")], ["Hold:0"])
+        self.assertNotIn(OK, lines)
+
+    def test_equal_coolant_word_is_acknowledged_without_a_planner_drain(self):
+        # a coolant word equal to the parser's state does not sync (gcode.c): the resume's M8 after the plugin has
+        # already put the air back costs no stall
+        g = mk()
+        send(g, b"\xa0")                            # flood on, Idle: the parser's coolant is now M8
+        for i in range(1, 20):
+            send(g, ("G1X%dF100\n" % (i * 50)).encode())
+        g.tick(0.5)
+        self.assertEqual(send(g, b"M8\n"), [])     # behind the full planner: no room for the line yet
+        g.tick(40.0)                                 # one 50 mm block at F100 frees a slot
+        self.assertIn(OK, out(g) + send(g, b""))
+        self.assertEqual(status(send(g, b"?")[0])[0], "Run")   # no drain: still running
+
+    def test_flood_toggle_in_hold_sets_the_accessory_field(self):
+        g = self.held_full()
+        send(g, b"\xa0")
+        g.tick(0.1)
+        self.assertIn("F", status(send(g, b"?")[0])[1].get("A", ""))
+        send(g, b"\xa0")
+        g.tick(0.1)
+        self.assertNotIn("F", status(send(g, b"?")[0])[1].get("A", ""))
+
+
 class Parking(unittest.TestCase):
     """PARKING_ENABLE build (``GrblVirtual(parking=True)``): protocol.c:protocol_exec_rt_suspend parking branches.
 
